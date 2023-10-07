@@ -284,16 +284,16 @@ end
 
 -- Locks the collider horizontally, meaning it can never move up or down.
 -- Call this after calling other movement functions.
--- self:collider_lock_y()
-function collider:collider_lock_y()
+-- self:collider_lock_horizontally()
+function collider:collider_lock_horizontally()
   local vx, vy = self.body:getLinearVelocity()
   self.body:setLinearVelocity(vx, 0)
 end
 
 -- Locks the collider vertically, meaning it can never move left or right.
 -- Call this after calling other movement functions.
--- self:collider_lock_x()
-function collider:collider_lock_x()
+-- self:collider_lock_vertically()
+function collider:collider_lock_vertically()
   local vx, vy = self.body:getLinearVelocity()
   self.body:setLinearVelocity(0, vy)
 end
@@ -319,7 +319,7 @@ end
 
 -- Same as :collider_move_towards_point but does so only on the x axis.
 -- self:collider_move_towards_point_horizontally(player.x, player.y, 40)
-function collider:move_towards_point_horizontally(x, y, speed, max_time)
+function collider:collider_move_towards_point_horizontally(x, y, speed, max_time)
   if max_time then speed = math.distance(self.x, self.y, x, y)/max_time end
   local r = math.angle_to_point(self.x, self.y, x, y)
   local vx, vy = self:collider_get_velocity()
@@ -328,7 +328,7 @@ end
 
 -- Same as :collider_move_towards_point but does so only on the y axis.
 -- self:collider_move_towards_point_vertically(player.x, player.y, 40)
-function collider:move_towards_point_vertically(x, y, speed, max_time)
+function collider:collider_move_towards_point_vertically(x, y, speed, max_time)
   if max_time then speed = math.distance(self.x, self.y, x, y)/max_time end
   local r = math.angle_to_point(self.x, self.y, x, y)
   local vx, vy = self:collider_get_velocity()

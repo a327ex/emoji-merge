@@ -48,7 +48,7 @@ end
 -- color, shader and flat are optional arguments that change how the canvas is drawn.
 function layer:layer_draw(name, x, y, r, sx, sy, color, shader, flat)
   local color = color or colors.white[0]
-  if shader then love.graphics.setShader(shader.shader) end
+  if shader then love.graphics.setShader(shader.object) end
   if flat then
     love.graphics.setColor(color.r, color.g, color.b, color.a)
     love.graphics.draw(self.canvas[name or 'main'], x or self.x or 0, y or self.y or 0, r or 0, sx or main.sx or 1, sy or main.sy or sx or 1)
@@ -126,7 +126,7 @@ function graphics.draw_image(drawable, x, y, r, sx, sy, ox, oy, color, shader)
     _r, g, b, a = love.graphics.getColor()
     love.graphics.setColor(color.r, color.g, color.b, color.a)
   end
-  if shader then love.graphics.setShader(shader) end
+  if shader then love.graphics.setShader(shader.object) end
   love.graphics.draw(drawable.object, x, y, r or 0, sx or 1, sy or sx or 1, drawable.w*0.5 + (ox or 0), drawable.w*0.5 + (oy or 0))
   if shader then love.graphics.setShader() end
   if color then love.graphics.setColor(_r, g, b, a) end
@@ -142,7 +142,7 @@ function graphics.draw_quad(drawable, quad, x, y, r, sx, sy, ox, oy, color, shad
     _r, g, b, a = love.graphics.getColor()
     love.graphics.setColor(color.r, color.g, color.b, color.a)
   end
-  if shader then love.graphics.setShader(shader) end
+  if shader then love.graphics.setShader(shader.object) end
   love.graphics.draw(drawable.object, quad, x, y, r or 0, sx or 1, sy or sx or 1, ox, oy)
   if shader then love.graphics.setShader() end
   if color then love.graphics.setColor(_r, g, b, a) end
@@ -315,7 +315,7 @@ end
 
 function graphics.set_shader(shader)
   if not shader then love.graphics.setShader()
-  else love.graphics.setShader(shader) end
+  else love.graphics.setShader(shader.object) end
 end
 
 function layer:set_shader(shader, z)
