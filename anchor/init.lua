@@ -67,6 +67,7 @@ function image(filename) return anchor('image'):image_init(filename) end
 anchor:class_add(require('anchor.input'))
 anchor:class_add(require('anchor.layer'))
 function layer(args) return anchor('layer', args):layer_init() end
+anchor:class_add(require('anchor.level'))
 anchor:class_add(require('anchor.music_player'))
 anchor:class_add(require('anchor.observer'))
 anchor:class_add(require('anchor.physics_world'))
@@ -114,7 +115,7 @@ main.sleep = .001
 main.accumulator = 0
 main.rate = 1/60
 
-main:container_init():input_init():input_bind_all():music_player_init():observer_init():physics_world_init():random_init():shake_init():slow_init():system_init()
+main:container_init():input_init():input_bind_all():level_init():music_player_init():observer_init():physics_world_init():random_init():shake_init():slow_init():system_init()
 main.pointer = anchor('pointer', {pointer = true, x = 0, y = 0}):area_init('point')
 
 function main:init(args)
@@ -192,7 +193,7 @@ function main:calculate_main_scale(w, h)
 end
 
 -- Redefine this function from game's side if needed for more complex layer drawing with shader effects and so on.
-function main:draw_layers()
+function main:draw_all_layers_to_main_layer()
   for _, layer in ipairs(main.layer_objects) do 
     main:layer_draw_to_canvas('main', function() 
       layer:layer_draw_commands()
@@ -372,6 +373,7 @@ function love.run()
       for _, x in ipairs(main.hitfx_objects) do x:hitfx_update(main.rate*main.slow_amount) end
       for _, x in ipairs(main.shake_objects) do x:shake_update(main.rate*main.slow_amount) end
       main.camera:camera_update(main.rate*main.slow_amount)
+      main:level_update(main.rate*main.slow_amount)
       if update then update(main.rate*main.slow_amount) end
       for _, x in ipairs(main.area_objects) do x:area_update_vertices(main.rate*main.slow_amount) end
       for _, x in ipairs(main.collider_objects) do x:collider_post_update(main.rate*main.slow_amount) end
@@ -396,7 +398,7 @@ function love.run()
     if love.graphics and love.graphics.isActive() then
       love.graphics.origin()
       love.graphics.clear()
-      main:draw_layers()
+      main:draw_all_layers_to_main_layer()
       main:layer_draw('main', main.rx*0.5, main.ry*0.5, 0, main.sx, main.sy)
       love.graphics.present()
       main.frame = main.frame + 1

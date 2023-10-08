@@ -78,8 +78,6 @@ function input:input_set_mouse_locked(value)
   love.mouse.setGrabbed(value)
 end
 
--- Returns true if the action has been pressed this frame.
-
 function input:input_update(dt)
   for _, action in ipairs(self.input_actions) do
     self.input_state[action].pressed = false
@@ -140,6 +138,7 @@ function input:input_post_update()
   self.input_mouse_state.wheel_down = false
 end
 
+-- Returns true if the action has been pressed this frame.
 function input:input_is_pressed(action)
   return self.input_state[action].pressed
 end
@@ -164,7 +163,7 @@ function input:input_is_sequence_pressed(...)
 end
 
 -- Returns true if the sequence is released this frame.
--- The sequence must be completed first, and then released. True will be return on release after completion. So, for instance:
+-- The sequence must be completed first, and then released. True will be returned on release after completion. So, for instance:
 --   :input_is_sequence_released('action_1', 0.5, 'action_2')
 -- will return true when 'action_2' is released within 0.5 seconds of 'action_1' being pressed.
 function input:input_is_sequence_released(...)

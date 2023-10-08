@@ -86,6 +86,18 @@ function container:container_remove_dead_without_destroying()
   end
 end
 
+-- Returns all objects for which the attribute is not nil/false.
+-- enemies:container_get_objects_by_attribute('dead') -> returns all objects which have the .dead attribute set to true.
+function container:container_get_objects_by_attribute(attribute)
+  local objects = {}
+  for _, object in ipairs(self.objects) do
+    if object[attribute] then
+      table.insert(self.objects, object)
+    end
+  end
+  return objects
+end
+
 -- Returns the closest object to the given point.
 -- enemies:get_closest_object(player.x, player.y) -> gets the closest enemy to the player.
 -- "condition" is an optional function that receives an object and returns true if it should be considered for the calculation.

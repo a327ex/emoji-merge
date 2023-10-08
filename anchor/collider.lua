@@ -264,8 +264,14 @@ function collider:collider_apply_torque(t)
   self.body:applyTorque(t)
 end
 
+-- Returns the collider's mass.
+-- self:collider_get_mass()
+function collider:collider_get_mass()
+  return self.body:getMass(mass)
+end
+
 -- Sets the collider's mass.
--- self:collider_set_mass(1000)
+-- self:collider_set_mass(2)
 function collider:collider_set_mass(mass)
   self.body:setMass(mass)
 end

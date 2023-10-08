@@ -81,7 +81,7 @@ function observer:observer_update(dt)
     elseif o.type == 'condition' then
       local condition = o.condition()
       if condition and not o.last_condition then
-        o.action()
+        o.action(condition)
         if o.times > 0 then
           o.times = o.times - 1
           if o.times <= 0 then
