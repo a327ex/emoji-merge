@@ -16,7 +16,7 @@ function init()
   shaders.grayscale = shader(nil, 'assets/grayscale.frag')
 
   main:input_set_mouse_visible(false)
-  main:input_set_mouse_locked(true)
+  -- main:input_set_mouse_locked(true)
 
   frames = {}
   frames.hit = animation_frames('assets/hit.png', 96, 48)
@@ -60,7 +60,9 @@ function init()
   require 'arena'
   require 'effects'
   require 'emoji'
+  require 'main_menu'
   main:level_add('classic_arena', arena())
+  main:level_add('main_menu', main_menu())
   main:level_goto('classic_arena')
 end
 

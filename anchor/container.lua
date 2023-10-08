@@ -86,12 +86,12 @@ function container:container_remove_dead_without_destroying()
   end
 end
 
--- Returns all objects for which the attribute is not nil/false.
--- enemies:container_get_objects_by_attribute('dead') -> returns all objects which have the .dead attribute set to true.
-function container:container_get_objects_by_attribute(attribute)
+-- Returns all objects for which the attribute has the given value.
+-- enemies:container_get_objects_by_attribute('dead', true) -> returns all objects which have the .dead attribute set to true.
+function container:container_get_objects_by_attribute(attribute, value)
   local objects = {}
   for _, object in ipairs(self.objects) do
-    if object[attribute] then
+    if object[attribute] == value then
       table.insert(self.objects, object)
     end
   end

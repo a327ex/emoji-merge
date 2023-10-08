@@ -109,12 +109,19 @@ function collider:collider_draw(layer, color, line_width, z)
   end
 end
 
--- Changes the collider's collision tag to another one.
+-- Changes the collider's collision tag.
 -- The target tag must be previously defined with :physics_world_set_collision_tags.
 function collider:collider_set_collision_tag(tag)
   self.physics_tag = tag
   self.fixture:setCategory(main.collision_tags[self.physics_tag].category)
   self.fixture:setMask(unpack(main.collision_tags[self.physics_tag].masks))
+end
+
+-- Changes the collider's body type.
+-- Possible values are: 'static', 'dynamic' and 'kinematic'.
+function collider:collider_set_body_type(body_type)
+  self.body:setType(body_type)
+  if body_type == 'dynamic' then self.body:setAwake(true) end
 end
 
 -- This is called automatically whenever a .dead object is removed from its container.
@@ -248,8 +255,12 @@ end
 
 -- Applies an instantaneous amount of force to the collider.
 -- self:apply_impulse(100*math.cos(angle), 100*math.sin(angle))
-function collider:collider_apply_impulse(fx, fy)
-  self.body:applyLinearImpulse(fx, fy)
+function collider:collider_apply_impulse(fx, fy, x, y)
+  if x and y then
+    self.body:applyLinearImpulse(fx, fy, x, y)
+  else
+    self.body:applyLinearImpulse(fx, fy)
+  end
 end
 
 -- Applies an instantaneous amount of angular force to the collider.

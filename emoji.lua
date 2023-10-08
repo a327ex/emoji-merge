@@ -29,6 +29,10 @@ emoji = function(x, y, args)
     end
   end
 
+  if main.current_level.round_ending then
+    emoji_die(self, 1)
+  end
+
   self.update = emoji_update
   return self
 end
@@ -38,10 +42,15 @@ emoji_update = function(self, dt)
   if self.follow_spawner then
     self:collider_set_position(main.current_level.spawner.x - 24, main.current_level.spawner.y + self.rs)
   end
+  if self.dying and not self.dying_and_falling then
+    self:collider_set_velocity(0, 0)
+    self:collider_set_angular_velocity(0)
+  end
 
   -- If it's the second emoji's update and it has already been killed this frame by the collision, do nothing
   -- If this emoji is attached to the spawner still, do nothing
-  if not self.dead and not self.follow_spawner then 
+  -- If the round is ending, do nothing
+  if not self.dead and not self.follow_spawner and not main.current_level.round_ending then 
     for other, contact in pairs(self.collision_enter['emoji'] or {}) do
       if self.value == other.value and not other.follow_spawner then
         local x, y = contact:getPositions()
@@ -65,31 +74,12 @@ emoji_fall = function(self)
   self:collider_apply_impulse(0, 0.01)
   self.follow_spawner = false
   self.just_fell = true
-  self:timer_after(1, function() self.just_fell = false end)
+  self:timer_after(0.5, function() self.just_fell = false end)
 end
 
 emoji_die = function(self)
-  --[[
-  self.dying_marked = true
-  local min_d, min_object = 1000000, nil
-  for i, object in ipairs(main.current_level.emojis.objects) do
-    local d = math.distance(self.x, self.y, object.x, object.y)
-    if d < min_d and not object.dying_marked then
-      min_d = d
-      min_object = object
-    end
-  end
-  i = i + 1
-  if min_object then emoji_die(min_object, i)
-  else arena_end_round_2(main.current_level, i) end
-
-  self:timer_after(0.3*i, function()
-  end)
-  ]]--
-
+  if self.dying then return end
   self.dying = true
-  self:collider_set_velocity(0, 0)
-  self:collider_set_angular_velocity(0)
   self:collider_set_gravity_scale(0)
   self:hitfx_use('main', 0.25, nil, nil, 0.15)
   self:timer_after(0.15, function() self:shake_shake(4, 0.5) end)

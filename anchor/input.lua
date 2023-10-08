@@ -149,8 +149,9 @@ function input:input_is_released(action)
 end
 
 -- Returns true if the action is being held down this frame.
+-- TODO: If interval is defined then it returns true for one frame every interval seconds.
 -- For actions that come from any gamepad axis, the value is returned if it's over the self.input_deadzone value.
-function input:input_is_down(action)
+function input:input_is_down(action, interval)
   return self.input_state[action].down
 end
 
