@@ -322,6 +322,14 @@ function layer:set_shader(shader, z)
   table.insert(self.draw_commands, {type = 'set_shader', args = {shader}, z = z or 0})
 end
 
+function graphics.send(shader, name, value)
+  shader:shader_send(name, value)
+end
+
+function layer:send(shader, name, value, z) 
+  table.insert(self.draw_commands, {type = 'send', args = {shader, name, value}, z = z or 0})
+end
+
 function graphics.shape(shape, color, line_width, ...)
   local r, g, b, a = love.graphics.getColor()
   if not color and not line_width then love.graphics[shape]("line", ...)

@@ -60,16 +60,18 @@ emoji_update = function(self, dt)
         main.current_level.objects:container_add(emoji_merge_effect(other.x, other.y, {emoji = other.emoji, r = other.r, sx = other.sx, sy = other.sy, target_x = x, target_y = y}))
         local svx, svy = self:collider_get_velocity()
         local ovx, ovy = other:collider_get_velocity()
-        main:timer_after(0.15, function() emoji_fall(main.current_level.emojis:container_add(emoji(x, y, {from_merge = true, hitfx_on_spawn = true, value = self.value + 1, vx = (svx+ovx)/2, vy = (svy+ovy)/2}))) end)
+        main.current_level.score = main.current_level.score + value_to_emoji_data[self.value].score
+        emoji_text_change_score_text(main.current_level.score_value, string.format('%04d', main.current_level.score))
+        main:timer_after(0.15, function() emoji_drop(main.current_level.emojis:container_add(emoji(x, y, {from_merge = true, hitfx_on_spawn = true, value = self.value + 1, vx = (svx+ovx)/2, vy = (svy+ovy)/2}))) end)
       end
     end
   end
 
   game2:draw_image(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, nil, nil, colors.white[0], 
-    (self.dying and shaders.grayscale) or (self.flashes.main.x and shaders.combine))
+    (self.flashes.main.x and shaders.combine) or (self.dying and shaders.grayscale))
 end
 
-emoji_fall = function(self)
+emoji_drop = function(self)
   self:collider_set_gravity_scale(1)
   self:collider_apply_impulse(0, 0.01)
   self.follow_spawner = false

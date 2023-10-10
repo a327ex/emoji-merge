@@ -54,9 +54,23 @@ end
 
 -- Shakes the object with a certain intensity for duration seconds and with the specified frequency
 -- Higher frequency means jerkier movement, lower frequency means smoother movement
--- self:shake(10, 1, 120) -> shakes the object with 10 intensity for 1 second and 120 frequency
+-- :shake_shake(10, 1, 120) -> shakes the object with 10 intensity for 1 second and 120 frequency
 function shake:shake_shake(intensity, duration, frequency)
   table.insert(self.shakes.x, __shake(intensity, 1000*(duration or 0), frequency or 60))
+  table.insert(self.shakes.y, __shake(intensity, 1000*(duration or 0), frequency or 60))
+end
+
+-- Shakes the object horizontally with a certain intensity for duration seconds and with the specified frequency
+-- Higher frequency means jerkier movement, lower frequency means smoother movement
+-- :shake_shake_horizontally(10, 1, 120) -> shakes the object only on the x axis with 10 intensity for 1 second and 120 frequency 
+function shake:shake_shake_horizontally(intensity, duration, frequency)
+  table.insert(self.shakes.x, __shake(intensity, 1000*(duration or 0), frequency or 60))
+end
+
+-- Shakes the object vertically with a certain intensity for duration seconds and with the specified frequency
+-- Higher frequency means jerkier movement, lower frequency means smoother movement
+-- :shake_shake_horizontally(10, 1, 120) -> shakes the object only on the y axis with 10 intensity for 1 second and 120 frequency
+function shake:shake_shake_vertically(intensity, duration, frequency)
   table.insert(self.shakes.y, __shake(intensity, 1000*(duration or 0), frequency or 60))
 end
 
