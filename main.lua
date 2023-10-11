@@ -9,8 +9,12 @@ function init()
   effects:layer_add_canvas('outline')
   ui2:layer_add_canvas('outline')
 
-  print(table.tostring(love.graphics.getSystemLimits()))
-  font = font('assets/fusion-pixel-12px-monospaced-latin.ttf', 12, 'mono')
+  font_1 = font('assets/fusion-pixel-12px-monospaced-latin.ttf', 12, 'mono')
+  font_2 = font('assets/volkswagen-serial-bold.ttf', 26, 'mono')
+  font_3 = font('assets/volkswagen-serial-bold.ttf', 46, 'mono')
+  font_4 = font('assets/volkswagen-serial-bold.ttf', 36, 'mono')
+
+  colors.calendar_gray = color_ramp(color(102, 117, 127), 0.025)
 
   shaders = {}
   shaders.shadow = shader(nil, 'assets/shadow.frag')
@@ -79,6 +83,7 @@ function init()
   images.skull = image('assets/skull.png')
   images.thinking = image('assets/thinking.png')
   images.sunglasses = image('assets/sunglasses.png')
+  images.calendar = image('assets/calendar.png')
   bg_gradient = gradient_image('vertical', color(0.5, 0.5, 0.5, 0), color(0, 0, 0, 0.3))
 
   main:physics_world_set_gravity(0, 360)

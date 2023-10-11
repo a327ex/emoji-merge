@@ -27,11 +27,8 @@ require 'anchor.class'
 -- In this case, it's acceptable because in general color objects are never going to have transforms and thus the .r attribute confusion won't matter.
 anchor = class:class_new()
 function anchor:new(type, t) if t then for k, v in pairs(t) do self[k] = v end end; self.type = type end
+function anchor:anchor_init(type, t) if t then for k, v in pairs(t) do self[k] = v end end; self.type = type end
 function anchor:is(type) return self.type == type end
-function anchor:has(mixin) end
--- TODO: Because mixins are loaded locally here the user has no access to them globally in a :has call.
--- Either create a global main.mixins table and have the user refer to them there, or add mixin strings to a self.mixins table on each mixin init function and then have :has check for that.
--- Haven't used :has yet in code so I don't know if I'll ever need it.
 
 anchor:class_add(require('anchor.animation'))
 function animation(delay, animation_frames, loop_mode, actions) return anchor():animation_init(delay, animation_frames, loop_mode, actions) end

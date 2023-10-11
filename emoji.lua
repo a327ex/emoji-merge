@@ -1,5 +1,6 @@
-emoji = function(x, y, args)
-  local self = anchor('emoji', args)
+emoji = class:class_new(anchor)
+function emoji:new(x, y, args)
+  self:anchor_init('emoji', args)
   self.value = self.value or 1
   self.rs = value_to_emoji_data[self.value].rs
   self.emoji = value_to_emoji_data[self.value].emoji
@@ -28,19 +29,18 @@ emoji = function(x, y, args)
       self:collider_apply_impulse(self.vx/3, self.vy/3)
     end
   end
-
-  if main.current_level.round_ending then
-    emoji_die(self, 1)
-  end
-
-  self.update = emoji_update
-  return self
+  if main.current_level.round_ending then self:die() end
 end
 
-emoji_update = function(self, dt)
+function emoji:update(dt)
   self:collider_update_position_and_angle()
   if self.follow_spawner then
     self:collider_set_position(main.current_level.spawner.x - 24, main.current_level.spawner.y + self.rs)
+  end
+  if self.next_emoji then
+    self:collider_set_gravity_scale(0)
+    self:collider_set_velocity(0, 0)
+    self:collider_set_angular_velocity(0)
   end
   if self.dying and not self.dying_and_falling then
     self:collider_set_velocity(0, 0)
@@ -61,8 +61,7 @@ emoji_update = function(self, dt)
         local svx, svy = self:collider_get_velocity()
         local ovx, ovy = other:collider_get_velocity()
         main.current_level.score = main.current_level.score + value_to_emoji_data[self.value].score
-        emoji_text_change_score_text(main.current_level.score_value, string.format('%04d', main.current_level.score))
-        main:timer_after(0.15, function() emoji_drop(main.current_level.emojis:container_add(emoji(x, y, {from_merge = true, hitfx_on_spawn = true, value = self.value + 1, vx = (svx+ovx)/2, vy = (svy+ovy)/2}))) end)
+        main:timer_after(0.15, function() main.current_level.emojis:container_add(emoji(x, y, {from_merge = true, hitfx_on_spawn = true, value = self.value + 1, vx = (svx+ovx)/2, vy = (svy+ovy)/2})):drop() end)
       end
     end
   end
@@ -71,7 +70,7 @@ emoji_update = function(self, dt)
     (self.flashes.main.x and shaders.combine) or (self.dying and shaders.grayscale))
 end
 
-emoji_drop = function(self)
+function emoji:drop()
   self:collider_set_gravity_scale(1)
   self:collider_apply_impulse(0, 0.01)
   self.follow_spawner = false
@@ -79,7 +78,7 @@ emoji_drop = function(self)
   self:timer_after(0.5, function() self.just_fell = false end)
 end
 
-emoji_die = function(self)
+function emoji:die()
   if self.dying then return end
   self.dying = true
   self:collider_set_gravity_scale(0)
