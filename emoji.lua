@@ -1,6 +1,7 @@
 emoji = class:class_new(anchor)
 function emoji:new(x, y, args)
   self:anchor_init('emoji', args)
+  self.level = main.current_level
   self.value = self.value or 1
   self.rs = value_to_emoji_data[self.value].rs
   self.emoji = value_to_emoji_data[self.value].emoji
@@ -22,31 +23,34 @@ function emoji:new(x, y, args)
         local r = main:random_angle()
         local d = main:random_float(0.8, 1)
         local x, y = self.x + d*self.rs*math.cos(r), self.y + d*self.rs*math.sin(r)
-        main.current_level.objects:container_add(emoji_particle('star', x, y, {hitfx_on_spawn = 0.75, r = r, rotation_v = main:random_float(-2*math.pi, 2*math.pi), s = s, v = s*main:random_float(50, 100)}))
+        self.level.objects:container_add(emoji_particle('star', x, y, {hitfx_on_spawn = 0.75, r = r, rotation_v = main:random_float(-2*math.pi, 2*math.pi), s = s, v = s*main:random_float(50, 100)}))
       end
     end)
+    --[[
     if self.vx and self.vy then
       self:collider_apply_impulse(self.vx/3, self.vy/3)
     end
+    ]]--
   end
+  --[[
+  if self.next_emoji then self:collider_set_gravity_scale(1) end
   if main.current_level.round_ending then self:die() end
+  ]]--
 end
 
 function emoji:update(dt)
   self:collider_update_position_and_angle()
+  --[[
   if self.follow_spawner then
     self:collider_set_position(main.current_level.spawner.x - 24, main.current_level.spawner.y + self.rs)
-  end
-  if self.next_emoji then
-    self:collider_set_gravity_scale(0)
-    self:collider_set_velocity(0, 0)
-    self:collider_set_angular_velocity(0)
   end
   if self.dying and not self.dying_and_falling then
     self:collider_set_velocity(0, 0)
     self:collider_set_angular_velocity(0)
   end
+  ]]--
 
+  --[[
   -- If it's the second emoji's update and it has already been killed this frame by the collision, do nothing
   -- If this emoji is attached to the spawner still, do nothing
   -- If the round is ending, do nothing
@@ -65,11 +69,13 @@ function emoji:update(dt)
       end
     end
   end
+  ]]--
 
   game2:draw_image(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, nil, nil, colors.white[0], 
     (self.flashes.main.x and shaders.combine) or (self.dying and shaders.grayscale))
 end
 
+--[[
 function emoji:drop()
   self:collider_set_gravity_scale(1)
   self:collider_apply_impulse(0, 0.01)
@@ -85,3 +91,4 @@ function emoji:die()
   self:hitfx_use('main', 0.25, nil, nil, 0.15)
   self:timer_after(0.15, function() self:shake_shake(4, 0.5) end)
 end
+]]--
