@@ -129,6 +129,7 @@ end
 function container:container_destroy()
   for _, object in ipairs(self.objects) do
     if object.collider_destroy then object:collider_destroy() end
+    if object.joint_destroy then object:joint_destroy() end
     object.dead = true
   end
   self.objects = {}

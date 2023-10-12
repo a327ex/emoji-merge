@@ -84,6 +84,7 @@ function init()
   images.thinking = image('assets/thinking.png')
   images.sunglasses = image('assets/sunglasses.png')
   images.calendar = image('assets/calendar.png')
+  images.chain = image('assets/chain.png')
   bg_gradient = gradient_image('vertical', color(0.5, 0.5, 0.5, 0), color(0, 0, 0, 0.3))
 
   main:physics_world_set_gravity(0, 360)

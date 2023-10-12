@@ -56,9 +56,17 @@ end
 function arena:enter()
   self.emojis = container()
   self.objects = container()
+  self.solid_top = self.objects:container_add(solid(main.w/2, -90, 2*self.w, 10))
   self.solid_bottom = self.objects:container_add(solid(main.w/2, self.y2, self.w, 10))
   self.solid_left = self.objects:container_add(solid(self.x1, self.y2 - self.h/2, 10, self.h + 10))
   self.solid_right = self.objects:container_add(solid(self.x2, self.y2 - self.h/2, 10, self.h + 10))
+  self.left_solid_chain = self.objects:container_add(emoji_chain(self.solid_top, self.solid_left, self.x1, -90, self.x1, self.y1 + 5))
+  self.right_solid_chain = self.objects:container_add(emoji_chain(self.solid_top, self.solid_right, self.x2, -90, self.x2, self.y1 + 5))
+  self.objects:container_add(joint('weld', self.solid_left, self.solid_bottom, self.x1, self.y2))
+  self.objects:container_add(joint('weld', self.solid_right, self.solid_bottom, self.x2, self.y2))
+
+  self.chain = self.objects:container_add(emoji_chain(self.solid_left, self.solid_right, self.x1 + 5, self.y1 + 80, self.x2 - 5, self.y1 + 120))
+
   self.spawner = self.objects:container_add(spawner())
   self.emoji_line_color = colors.green[0]:color_clone()
   self.emoji_line_color.a = 0.32
@@ -69,6 +77,7 @@ function arena:enter()
   self.score = 0
   self.score_board = self.objects:container_add(score_board(self.score_x, 106))
   self.round_ending = false
+
 
   self:observer_condition(function()
     if self.round_ending then return end
@@ -165,18 +174,78 @@ function score_board:new(x, y, args)
   self:timer_init()
   self:hitfx_init()
   self:shake_init()
-  
 end
 
 function score_board:update(dt)
   self:collider_update_position_and_angle()
   game2:push(self.x, self.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x)
     game2:draw_image(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, 0, 1, 1, nil, nil, colors.white[0], (self.flashes.main.x and shaders.combine) or (self.dying and shaders.grayscale))
+  game2:pop()
+  game2:push(self.x, self.y, self.r)
     game2:draw_text_centered('SCORE', font_2, self.x, self.y - 18, 0, 1, 1, 0, 0, colors.fg[0])
     local score = main.current_level.score
     game2:draw_text_centered(tostring(score), (score < 999 and font_3) or font_4, self.x, self.y + 18, 0, 1, 1, 0, 0, colors.calendar_gray[0])
   game2:pop()
   -- self:collider_draw(game2, colors.white[0], 2)
+end
+
+
+emoji_chain = class:class_new(anchor)
+function emoji_chain:new(collider_1, collider_2, x1, y1, x2, y2, args)
+  self:anchor_init('emoji_chain', args)
+  self.chain_parts = {}
+  self.joints = {}
+  local chain_part_size = 18
+  local total_chain_size = math.distance(x1, y1, x2, y2)
+  local chain_part_amount = math.ceil(total_chain_size/chain_part_size)
+  local r = math.angle_to_point(x1, y1, x2, y2)
+  for i = 1, chain_part_amount do
+    local d = 0.5*chain_part_size + (i-1)*chain_part_size
+    table.insert(self.chain_parts, main.current_level.objects:container_add(chain_part(x1 + d*math.cos(r), y1 + d*math.sin(r), {r = r})))
+  end
+  for i, chain_part in ipairs(self.chain_parts) do
+    local next_chain_part = self.chain_parts[i+1]
+    if next_chain_part then
+      local x, y = (chain_part.x + next_chain_part.x)/2, (chain_part.y + next_chain_part.y)/2
+      table.insert(self.joints, main.current_level.objects:container_add(joint('revolute', chain_part, next_chain_part, x, y)))
+    end
+  end
+  table.insert(self.joints, main.current_level.objects:container_add(joint('revolute', collider_1, self.chain_parts[1], x1, y1)))
+  table.insert(self.joints, main.current_level.objects:container_add(joint('revolute', collider_2, self.chain_parts[#self.chain_parts], x2, y2)))
+  --[[
+  for _, joint in ipairs(self.joints) do
+    local stiffness, damping = love.physics.computeLinearStiffness(10, 1, joint.joint:getBodies())
+    joint:distance_joint_set_length(0)
+    joint:distance_joint_set_stiffness(stiffness)
+    joint:distance_joint_set_damping(damping)
+  end
+  ]]--
+end
+
+function emoji_chain:update(dt)
+
+end
+
+
+
+
+chain_part = class:class_new(anchor)
+function chain_part:new(x, y, args)
+  self:anchor_init('chain_part', args)
+  self.emoji = images[self.emoji or 'chain']
+  self:prs_init(x, y, self.r, 18/self.emoji.w, 18/self.emoji.h)
+  self:collider_init('solid', 'dynamic', 'rectangle', 18, 9)
+  self:collider_set_angle(self.r)
+  self:timer_init()
+  self:hitfx_init()
+  self:shake_init()
+end
+
+function chain_part:update(dt)
+  self:collider_update_position_and_angle()
+  game1:draw_image(images.chain, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0], 
+    (self.flashes.main.x and shaders.combine) or (self.dying and shaders.grayscale))
+  --self:collider_draw(ui1, colors.blue[0], 1)
 end
 
 --[[
@@ -325,10 +394,10 @@ end
 
 
 solid = class:class_new(anchor)
-function solid:new(x, y, w, h)
-  self:anchor_init('solid')
+function solid:new(x, y, w, h, args)
+  self:anchor_init('solid', args)
   self:prs_init(x, y)
-  self:collider_init('solid', 'static', 'rectangle', w, h)
+  self:collider_init('solid', self.body_type or 'static', 'rectangle', w, h)
   self:collider_set_friction(1)
   self:hitfx_init()
   self:timer_init()

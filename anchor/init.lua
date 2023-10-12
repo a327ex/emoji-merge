@@ -62,6 +62,8 @@ anchor:class_add(require('anchor.hitfx'))
 anchor:class_add(require('anchor.image'))
 function image(filename) return anchor('image'):image_init(filename) end
 anchor:class_add(require('anchor.input'))
+anchor:class_add(require('anchor.joint'))
+function joint(joint_type, ...) local self = anchor('joint'); self:joint_init(joint_type, ...); self.update = function(self, dt) end; return self end
 anchor:class_add(require('anchor.layer'))
 function layer(args) return anchor('layer', args):layer_init() end
 anchor:class_add(require('anchor.level'))
