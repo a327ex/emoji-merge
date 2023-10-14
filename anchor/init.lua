@@ -32,11 +32,11 @@ function anchor:is(type) return self.type == type end
 function anchor:action(f) self.update = f; return self end
 
 anchor:class_add(require('anchor.animation'))
-function animation(delay, animation_frames, loop_mode, actions) return anchor():animation_init(delay, animation_frames, loop_mode, actions) end
+function animation(delay, animation_frames, loop_mode, actions) return anchor('animation'):animation_init(delay, animation_frames, loop_mode, actions) end
 anchor:class_add(require('anchor.animation_frames'))
-function animation_frames(filename, frame_w, frame_h, frames_list) return anchor():animation_frames_init(filename, frame_w, frame_h, frames_list) end
+function animation_frames(filename, frame_w, frame_h, frames_list) return anchor('animation_frames'):animation_frames_init(filename, frame_w, frame_h, frames_list) end
 anchor:class_add(require('anchor.animation_logic'))
-function animation_logic(delay, size, loop_mode, actions) return anchor():animation_logic_init(delay, size, loop_mode, actions) end
+function animation_logic(delay, size, loop_mode, actions) return anchor('animation_logic'):animation_logic_init(delay, size, loop_mode, actions) end
 anchor:class_add(require('anchor.area'))
 anchor:class_add(require('anchor.camera'))
 function camera(x, y, w, h) return anchor('camera'):shake_init():camera_init(x, y, w, h) end
@@ -136,7 +136,7 @@ function main:init(args)
     main.resizable = false
     love.window.setMode(main.w*main.sx, main.h*main.sy, {borderless = false, minwidth = main.w, minheight = main.h, resizable = false})
     love.window.setTitle(main.title)
-    main.canvas = love.graphics.newCanvas(main.w, main.h)
+    main:layer_init()
     main.camera = camera(main.w/2, main.h/2)
 
   else
@@ -396,12 +396,12 @@ function love.run()
 
     last_frame = love.timer.getTime()
     if love.graphics and love.graphics.isActive() then
+      main.frame = main.frame + 1
       love.graphics.origin()
       love.graphics.clear()
       main:draw_all_layers_to_main_layer()
       main:layer_draw('main', main.rx*0.5, main.ry*0.5, 0, main.sx, main.sy)
       love.graphics.present()
-      main.frame = main.frame + 1
     end
 
     love.timer.sleep(main.sleep)

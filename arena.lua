@@ -12,6 +12,9 @@ end
 function arena:update(dt)
   bg:rectangle(main.w/2, main.h/2, 3*main.w, 3*main.h, 0, 0, colors.fg[0])
 
+  ui1:circle(self.x1, self.y1, 4, colors.blue[0])
+  ui1:circle(self.x2, self.y2, 4, colors.blue[0])
+
   self.emojis:container_update(dt)
   self.plants:container_update(dt)
   self.objects:container_update(dt)
@@ -31,6 +34,11 @@ function arena:enter()
   self.solid_right = self.objects:container_add(solid(self.x2, self.y2 - self.h/2, 10, self.h + 10))
   self.solid_left_joint = self.objects:container_add(joint('weld', self.solid_left, self.solid_bottom, self.x1, self.y2))
   self.solid_right_joint = self.objects:container_add(joint('weld', self.solid_right, self.solid_bottom, self.x2, self.y2))
+
+  local positions = {}
+  for x = self.x1 + 10 + 20, self.x1 + self.w - 10 - 20, 20 do table.insert(positions, {x = x, y = self.y2 - 15, direction = 'up'}) end
+  print(#positions)
+  self:spawn_plants(positions)
 end
 
 function arena:exit()
@@ -449,47 +457,50 @@ function spawner:die()
 end
 ]]--
 
+
+
+
 function arena:spawn_plants(plant_positions, x, y)
   local x, y = x or 0, y or 0
   local spawn_plant_set = function(x, y, direction)
     local n = main:random_weighted_pick(25, 20, 15, 10, 10, 10, 6, 4)
     local r = (direction == 'up' and -math.pi/2) or (direction == 'down' and math.pi/2) or (direction == 'left' and math.pi) or (direction == 'right' and 0)
     if n == 1 then
-      self.plants:container_add(plant{x = x + 2*math.cos(r - math.pi/2), y = y + 2*math.sin(r - math.pi/2), w = 9, h = 9, layer = game3, emoji = 'seedling', direction = direction})
-      self.plants:container_add(plant{x = x + 2*math.cos(r + math.pi/2), y = y + 2*math.sin(r + math.pi/2), w = 12, h = 12, layer = game3, emoji = 'sheaf', direction = direction})
+      self.plants:container_add(plant(x + 2.5*math.cos(r - math.pi/2), y + 2.5*math.sin(r - math.pi/2), {w = 11, h = 11, layer = game3, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(plant(x + 2.5*math.cos(r + math.pi/2), y + 2.5*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'sheaf', direction = direction}))
     elseif n == 2 then
-      self.plants:container_add(plant{x = x + 2*math.cos(r - math.pi/2), y = y + 2*math.sin(r - math.pi/2), w = 9, h = 9, layer = game1, emoji = 'seedling', direction = direction})
-      self.plants:container_add(plant{x = x + 2*math.cos(r + math.pi/2), y = y + 2*math.sin(r + math.pi/2), w = 12, h = 12, layer = game3, emoji = 'seedling', direction = direction})
+      self.plants:container_add(plant(x + 2.5*math.cos(r - math.pi/2), y + 2.5*math.sin(r - math.pi/2), {w = 11, h = 11, layer = game1, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(plant(x + 2.5*math.cos(r + math.pi/2), y + 2.5*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'seedling', direction = direction}))
     elseif n == 3 then
-      self.plants:container_add(plant{x = x + 4*math.cos(r - math.pi/2), y = y + 4*math.sin(r - math.pi/2), w = 9, h = 9, layer = game1, emoji = 'sheaf', direction = direction})
-      self.plants:container_add(plant{x = x + 0*math.cos(r - math.pi/2), y = y + 0*math.sin(r - math.pi/2), w = 16, h = 16, layer = game1, emoji = 'seedling', direction = direction})
-      self.plants:container_add(plant{x = x + 4*math.cos(r + math.pi/2), y = y + 4*math.sin(r + math.pi/2), w = 12, h = 12, layer = game1, emoji = 'sheaf', direction = direction})
+      self.plants:container_add(plant(x + 5*math.cos(r - math.pi/2), y + 5*math.sin(r - math.pi/2), {w = 11, h = 11, layer = game1, emoji = 'sheaf', direction = direction}))
+      self.plants:container_add(plant(x + 0*math.cos(r - math.pi/2), y + 0*math.sin(r - math.pi/2), {w = 20, h = 20, layer = game1, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(plant(x + 5*math.cos(r + math.pi/2), y + 5*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game1, emoji = 'sheaf', direction = direction}))
     elseif n == 4 then
-      self.plants:container_add(plant{x = x + 3*math.cos(r - math.pi/2), y = y + 3*math.sin(r - math.pi/2), w = 16, h = 16, layer = game3, emoji = 'blossom', direction = direction})
-      self.plants:container_add(plant{x = x + 1*math.cos(r + math.pi/2), y = y + 1*math.sin(r + math.pi/2), w = 12, h = 12, layer = game1, emoji = 'sheaf', direction = direction})
-      self.plants:container_add(plant{x = x + 4*math.cos(r + math.pi/2), y = y + 4*math.sin(r + math.pi/2), w = 9, h = 9, layer = game1, emoji = 'seedling', direction = direction})
+      self.plants:container_add(plant(x + 4*math.cos(r - math.pi/2), y + 4*math.sin(r - math.pi/2), {w = 20, h = 20, layer = game3, emoji = 'blossom', direction = direction}))
+      self.plants:container_add(plant(x + 1*math.cos(r + math.pi/2), y + 1*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game1, emoji = 'sheaf', direction = direction}))
+      self.plants:container_add(plant(x + 5*math.cos(r + math.pi/2), y + 5*math.sin(r + math.pi/2), {w = 11, h = 11, layer = game1, emoji = 'seedling', direction = direction}))
     elseif n == 5 then
-      self.plants:container_add(plant{x = x + 6*math.cos(r - math.pi/2), y = y + 6*math.sin(r - math.pi/2), w = 13, h = 13, layer = game1, emoji = 'sheaf', direction = direction})
-      self.plants:container_add(plant{x = x + 0*math.cos(r + math.pi/2), y = y + 0*math.sin(r + math.pi/2), w = 16, h = 16, layer = game3, emoji = 'tulip', direction = direction})
-      self.plants:container_add(plant{x = x + 6*math.cos(r + math.pi/2), y = y + 6*math.sin(r + math.pi/2), w = 10, h = 10, layer = game3, emoji = 'seedling', direction = direction})
+      self.plants:container_add(plant(x + 8*math.cos(r - math.pi/2), y + 8*math.sin(r - math.pi/2), {w = 16, h = 16, layer = game1, emoji = 'sheaf', direction = direction}))
+      self.plants:container_add(plant(x + 0*math.cos(r + math.pi/2), y + 0*math.sin(r + math.pi/2), {w = 20, h = 20, layer = game3, emoji = 'tulip', direction = direction}))
+      self.plants:container_add(plant(x + 8*math.cos(r + math.pi/2), y + 8*math.sin(r + math.pi/2), {w = 12, h = 12, layer = game3, emoji = 'seedling', direction = direction}))
     elseif n == 6 then
-      self.plants:container_add(plant{x = x + 8*math.cos(r - math.pi/2), y = y + 8*math.sin(r - math.pi/2), w = 12, h = 12, layer = game3, emoji = 'sheaf', direction = direction})
-      self.plants:container_add(plant{x = x + 0*math.cos(r - math.pi/2), y = y + 0*math.sin(r - math.pi/2), w = 14, h = 14, layer = game1, emoji = 'four_leaf_clover', direction = direction})
-      self.plants:container_add(plant{x = x + 6*math.cos(r + math.pi/2), y = y + 6*math.sin(r + math.pi/2), w = 10, h = 10, layer = game3, emoji = 'seedling', direction = direction})
+      self.plants:container_add(plant(x + 10*math.cos(r - math.pi/2), y + 10*math.sin(r - math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'sheaf', direction = direction}))
+      self.plants:container_add(plant(x + 0*math.cos(r - math.pi/2), y + 0*math.sin(r - math.pi/2), {w = 17, h = 17, layer = game1, emoji = 'four_leaf_clover', direction = direction}))
+      self.plants:container_add(plant(x + 8*math.cos(r + math.pi/2), y + 8*math.sin(r + math.pi/2), {w = 12, h = 12, layer = game3, emoji = 'seedling', direction = direction}))
     elseif n == 7 then
-      self.plants:container_add(plant{x = x + 0*math.cos(r - math.pi/2), y = y + 0*math.sin(r - math.pi/2), w = 16, h = 16, layer = game1, emoji = 'blossom', direction = direction})
-      self.plants:container_add(plant{x = x + 8*math.cos(r - math.pi/2), y = y + 8*math.sin(r - math.pi/2), w = 12, h = 12, layer = game3, emoji = 'sheaf', direction = direction})
-      self.plants:container_add(plant{x = x + 2*math.cos(r + math.pi/2), y = y + 2*math.sin(r + math.pi/2), w = 9, h = 9, layer = game3, emoji = 'seedling', direction = direction})
-      self.plants:container_add(plant{x = x + 7*math.cos(r + math.pi/2), y = y + 7*math.sin(r + math.pi/2), w = 9, h = 9, layer = game3, emoji = 'seedling', direction = direction})
-      self.plants:container_add(plant{x = x + 15*math.cos(r + math.pi/2), y = y + 15*math.sin(r + math.pi/2), w = 12, h = 12, layer = game3, emoji = 'sheaf', direction = direction})
+      self.plants:container_add(plant(x + 0*math.cos(r - math.pi/2), y + 0*math.sin(r - math.pi/2), {w = 20, h = 20, layer = game1, emoji = 'blossom', direction = direction}))
+      self.plants:container_add(plant(x + 10*math.cos(r - math.pi/2), y + 10*math.sin(r - math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'sheaf', direction = direction}))
+      self.plants:container_add(plant(x + 2.5*math.cos(r + math.pi/2), y + 2.5*math.sin(r + math.pi/2), {w = 11, h = 11, layer = game3, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(plant(x + 9*math.cos(r + math.pi/2), y + 9*math.sin(r + math.pi/2), {w = 11, h = 11, layer = game3, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(plant(x + 19*math.cos(r + math.pi/2), y + 19*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'sheaf', direction = direction}))
     elseif n == 8 then
-      self.plants:container_add(plant{x = x + 0*math.cos(r - math.pi/2), y = y + 0*math.sin(r - math.pi/2), w = 16, h = 16, layer = game3, emoji = 'tulip', direction = direction})
-      self.plants:container_add(plant{x = x + 10*math.cos(r - math.pi/2), y = y + 10*math.sin(r - math.pi/2), w = 12, h = 12, layer = game3, emoji = 'tulip', direction = direction})
-      self.plants:container_add(plant{x = x + 10*math.cos(r + math.pi/2), y = y + 10*math.sin(r + math.pi/2), w = 10, h = 10, layer = game1, emoji = 'tulip', direction = direction})
+      self.plants:container_add(plant(x + 0*math.cos(r - math.pi/2), y + 0*math.sin(r - math.pi/2), {w = 20, h = 20, layer = game3, emoji = 'tulip', direction = direction}))
+      self.plants:container_add(plant(x + 12*math.cos(r - math.pi/2), y + 12*math.sin(r - math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'tulip', direction = direction}))
+      self.plants:container_add(plant(x + 12*math.cos(r + math.pi/2), y + 12*math.sin(r + math.pi/2), {w = 12, h = 12, layer = game1, emoji = 'tulip', direction = direction}))
     end
   end
 
-  for i = 1, main:random_int(8, 12) do
+  for i = 1, main:random_int(3, 5) do
     local p = main:random_table_remove(plant_positions)
     spawn_plant_set(x + p.x, y + p.y, p.direction)
   end
@@ -504,7 +515,6 @@ function arena:get_nearby_plants(x, y, r)
   end
   return plants
 end
-
 
 
 plant = class:class_new(anchor)
