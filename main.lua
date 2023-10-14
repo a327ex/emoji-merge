@@ -1,9 +1,9 @@
 require 'anchor'
 
 function init()
-  main:init{title = 'emoji merge', theme = 'twitter_emoji', w = 640, h = 360, sx = 2.5, sy = 2.5}
+  main:init{title = 'super emoji merge', theme = 'twitter_emoji', w = 640, h = 360, sx = 2.5, sy = 2.5}
 
-  bg, bg_fixed, game1, game2, effects, ui1, ui2, shadow = layer(), layer({fixed = true}), layer(), layer(), layer(), layer({fixed = true}), layer({fixed = true}), layer({x = 4*main.sx, y = 4*main.sy, shadow = true})
+  bg, bg_fixed, game1, game2, game3, effects, ui1, ui2, shadow = layer(), layer({fixed = true}), layer(), layer(), layer(), layer(), layer({fixed = true}), layer({fixed = true}), layer({x = 4*main.sx, y = 4*main.sy, shadow = true})
   game1:layer_add_canvas('outline')
   game2:layer_add_canvas('outline')
   effects:layer_add_canvas('outline')
@@ -34,6 +34,16 @@ function init()
   frames.disappear = animation_frames('assets/disappear.png', 40, 40)
 
   images = {}
+  images.blossom = image('assets/blossom.png')
+  images.four_leaf_clover = image('assets/four_leaf_clover.png')
+  images.herb = image('assets/herb.png')
+  images.leaf = image('assets/leaf.png')
+  images.leaf_2 = image('assets/leaf_2.png')
+  images.seedling = image('assets/seedling.png')
+  images.sheaf = image('assets/sheaf.png')
+  images.sunflower = image('assets/sunflower.png')
+  images.tulip = image('assets/tulip.png')
+  images.vine_chain = image('assets/vine_chain.png')
   images['0'] = image('assets/0.png')
   images['1'] = image('assets/1.png')
   images['2'] = image('assets/2.png')
@@ -85,9 +95,11 @@ function init()
   images.sunglasses = image('assets/sunglasses.png')
   images.calendar = image('assets/calendar.png')
   images.chain = image('assets/chain.png')
+  
   bg_gradient = gradient_image('vertical', color(0.5, 0.5, 0.5, 0), color(0, 0, 0, 0.3))
 
   main:physics_world_set_gravity(0, 360)
+  main:physics_world_set_callbacks_as_global_functions()
   main:physics_world_set_collision_tags{'emoji', 'ghost', 'solid'}
   main:physics_world_disable_collision_between('emoji', {'ghost'})
   main:physics_world_disable_collision_between('ghost', {'emoji', 'ghost', 'solid'})
@@ -109,8 +121,8 @@ function init()
   require 'arena'
   require 'effects'
   require 'emoji'
-  require 'main_menu'
   require 'emoji_utils'
+  require 'main_menu'
   emoji_utils_init()
   main:level_add('classic_arena', arena())
   main:level_add('main_menu', main_menu())

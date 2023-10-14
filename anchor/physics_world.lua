@@ -8,6 +8,18 @@ local physics_world = class:class_new()
 function physics_world:physics_world_init(meter, xg, yg)
   love.physics.setMeter(meter or 64)
   self.world = love.physics.newWorld(xg or 0, yg or 0)
+  return self
+end
+
+function physics_world:physics_world_update(dt)
+  self.world:update(dt)
+end
+
+-- Sets physics world callbacks such that they populate each collider's .collision_enter/active/exit and .trigger_enter/active/exit tables every frame.
+-- These events can then be read on the object's update function as such: "for other, contact in pairs(self.collision_enter['other_type']) do"
+-- Where 'other_type' is the collision tag string for the object that this collider collided with.
+-- This or :physics_world_set_callbacks_as_collider_events should be called manually by the user at the start of the game once, as it is the case with :physics_world_set_collision_tags.
+function physics_world:physics_world_set_callbacks_as_collider_events()
   self.world:setCallbacks(
     function(fa, fb, c)
       local oa, ob = fa:getUserData(), fb:getUserData()
@@ -44,14 +56,46 @@ function physics_world:physics_world_init(meter, xg, yg)
       if ob.post_solve then ob:post_solve(oa, c, ni1, ti1, ni2, ti2) end
     end
   )
-  return self
 end
 
-function physics_world:physics_world_update(dt)
-  self.world:update(dt)
+-- Sets physics world callbacks such that they call the global functions collision_enter, collision_exit, trigger_enter, trigger_exit, pre_solve and post_solve.
+-- These events can then be handled by the user as they happen, without any other code happening in between (unlike when they're defined as collider events, which necessarily has some code to clean up previous frame's events).
+-- This or :physics_world_set_callbacks_as_collider_events should be called manually by the user at the start of the game once, as it is the case with :physics_world_set_collision_tags.
+function physics_world:physics_world_set_callbacks_as_global_functions()
+  self.world:setCallbacks(
+    function(fa, fb, c)
+      local oa, ob = fa:getUserData(), fb:getUserData()
+      if not oa or not ob then return end
+      if fa:isSensor() and fb:isSensor() then
+        if trigger_enter then trigger_enter(oa, ob) end
+      elseif not fa:isSensor() and not fb:isSensor() then
+        if collision_enter then collision_enter(oa, ob, c) end
+      end
+    end,
+    function(fa, fb, c)
+      local oa, ob = fa:getUserData(), fb:getUserData()
+      if not oa or not ob then return end
+      if fa:isSensor() and fb:isSensor() then
+        if trigger_exit then trigger_exit(oa, ob) end
+      elseif not fa:isSensor() and not fb:isSensor() then
+        if collision_exit then collision_exit(oa, ob, c) end
+      end
+    end,
+    function(fa, fb, c)
+      local oa, ob = fa:getUserData(), fb:getUserData()
+      if not oa or not ob then return end
+      if pre_solve then pre_solve(oa, ob, c) end
+    end,
+    function(fa, fb, c, ni1, ti1, ni2, ti2)
+      local oa, ob = fa:getUserData(), fb:getUserData()
+      if not oa or not ob then return end
+      if post_solve then post_solve(oa, ob, c, ni1, ti1, ni2, ti2) end
+    end
+  )
 end
 
--- Tagsw is a list of strings corresponding to collision tags that will be assigned to different objects.
+-- Tags is a list of strings corresponding to collision tags that will be assigned to different objects.
+-- This should be called manually by the user at the start of the game once, otherwise colliders will error out since their tags aren't defined.
 -- :physics_world_set_collision_tags{'player', 'enemy', 'projectile', 'ghost'}
 function physics_world:physics_world_set_collision_tags(tags)
   self.physics_tags = tags

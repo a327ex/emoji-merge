@@ -77,10 +77,10 @@ end
 -- Calls the action every frame for delay seconds.
 -- If after is passed in then it is called after the duration ends or after the condition becomes false.
 -- If tag is passed in then any other timer actions with the same tag are automatically cancelled.
--- :timer_during(5, function() print(main:random_float(0, 100)) end)
-function timer:timer_during(delay, action, after, tag)
+-- :timer_for(5, function() print(main:random_float(0, 100)) end)
+function timer:timer_for(delay, action, after, tag)
   local tag = tag or main:random_uid()
-  self.timer_timers[tag] = {type = "during", timer = 0, unresolved_delay = delay, delay = self:timer_resolve_delay(delay), action = action, after = after or empty_function}
+  self.timer_timers[tag] = {type = "for", timer = 0, unresolved_delay = delay, delay = self:timer_resolve_delay(delay), action = action, after = after or empty_function}
 end
 
 -- Tweens the target's values specified by the source table for delay seconds using the given tweening method.
@@ -138,8 +138,8 @@ function timer:timer_get_multiplier(tag)
 end
 
 -- Returns the elapsed time of a given timer as a number between 0 and 1.
--- Useful if you need to know where you currently are in the duration of a during call.
-function timer:timer_get_during_elapsed_time(tag)
+-- Useful if you need to know where you currently are in the duration of a for call.
+function timer:timer_get_for_elapsed_time(tag)
   if not self.timer_timers[tag] then return end
   return self.timer_timers[tag].timer/self.timer_timers[tag].delay
 end
@@ -209,7 +209,7 @@ function timer:timer_update(dt)
           end
         end
       end
-    elseif t.type == "during" then
+    elseif t.type == "for" then
       t.action(dt)
       if t.timer > t.delay then
         t.after()

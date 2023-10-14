@@ -27,8 +27,9 @@ require 'anchor.class'
 -- In this case, it's acceptable because in general color objects are never going to have transforms and thus the .r attribute confusion won't matter.
 anchor = class:class_new()
 function anchor:new(type, t) if t then for k, v in pairs(t) do self[k] = v end end; self.type = type end
-function anchor:anchor_init(type, t) if t then for k, v in pairs(t) do self[k] = v end end; self.type = type end
+function anchor:anchor_init(type, t) if t then for k, v in pairs(t) do self[k] = v end end; self.type = type; return self end
 function anchor:is(type) return self.type == type end
+function anchor:action(f) self.update = f; return self end
 
 anchor:class_add(require('anchor.animation'))
 function animation(delay, animation_frames, loop_mode, actions) return anchor():animation_init(delay, animation_frames, loop_mode, actions) end
@@ -63,7 +64,7 @@ anchor:class_add(require('anchor.image'))
 function image(filename) return anchor('image'):image_init(filename) end
 anchor:class_add(require('anchor.input'))
 anchor:class_add(require('anchor.joint'))
-function joint(joint_type, ...) local self = anchor('joint'); self:joint_init(joint_type, ...); self.update = function(self, dt) end; return self end
+function joint(joint_type, ...) return anchor('joint'):joint_init(joint_type, ...):action(function(self, dt) end) end
 anchor:class_add(require('anchor.layer'))
 function layer(args) return anchor('layer', args):layer_init() end
 anchor:class_add(require('anchor.level'))

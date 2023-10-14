@@ -1,31 +1,65 @@
 arena = class:class_new(anchor)
 function arena:new(x, y, args)
   self:anchor_init('arena', args)
-  
-end
-
-function arena:update(dt)
-
-end
-
-
---[[
-arena = class:class_new(anchor)
-function arena:new(x, y, args)
-  self:anchor_init('arena', args)
   self:timer_init()
   self:observer_init()
-  self.top_spacing = 40
-  self.bottom_spacing = 20
-  self.w, self.h = 240, 280
-  self.score_x = (main.w - self.w)/4 - 4
-  self.next_x = main.w - (main.w - self.w)/4 - 4
-  self.x1, self.y1, self.x2, self.y2 = main.w/2 - self.w/2, self.top_spacing, main.w/2 + self.w/2, main.h - self.bottom_spacing 
+  self.top_spacing, self.bottom_spacing = 40, 20
+  self.w, self.h = 252, 294
+  self.x1, self.y1, self.x2, self.y2 = main.w/2 - self.w/2, self.top_spacing, main.w/2 + self.w/2, main.h - self.bottom_spacing
+  self.score_x, self.next_x = (self.x1-5)/2, self.x2 + 5 + (main.w - (self.x2 + 5))/2 + 1
 end
 
 function arena:update(dt)
   bg:rectangle(main.w/2, main.h/2, 3*main.w, 3*main.h, 0, 0, colors.fg[0])
-  bg_gradient:gradient_image_draw(bg_fixed, main.w/2, main.h/2, main.w, main.h)
+
+  self.emojis:container_update(dt)
+  self.plants:container_update(dt)
+  self.objects:container_update(dt)
+  self.emojis:container_remove_dead()
+  self.plants:container_remove_dead()
+  self.objects:container_remove_dead()
+end
+
+function arena:enter()
+  self.emojis = container()
+  self.plants = container()
+  self.objects = container()
+
+  self.solid_top = self.objects:container_add(solid(main.w/2, -120, 2*self.w, 10))
+  self.solid_bottom = self.objects:container_add(solid(main.w/2, self.y2, self.w, 10))
+  self.solid_left = self.objects:container_add(solid(self.x1, self.y2 - self.h/2, 10, self.h + 10))
+  self.solid_right = self.objects:container_add(solid(self.x2, self.y2 - self.h/2, 10, self.h + 10))
+  self.solid_left_joint = self.objects:container_add(joint('weld', self.solid_left, self.solid_bottom, self.x1, self.y2))
+  self.solid_right_joint = self.objects:container_add(joint('weld', self.solid_right, self.solid_bottom, self.x2, self.y2))
+end
+
+function arena:exit()
+  
+end
+
+function arena:start_round()
+  
+end
+
+function arena:merge_emojis()
+  
+end
+
+function arena:drop_emoji()
+  
+end
+
+function arena:choose_next_emoji()
+  
+end
+
+function arena:end_round()
+  
+end
+
+
+--[[
+function arena:update(dt)
   if self.emoji_to_be_dropped and not self.round_ending then bg:line(self.spawner.x - 24, self.spawner.y, self.spawner.x - 24, self.y2, self.emoji_line_color, 2) end
   -- game1:rectangle(self.next_x, 72, 56, 56, 4, 4, colors.fg[0])
 
@@ -413,6 +447,187 @@ function spawner:die()
   self:hitfx_use('main', 0.1)
   self:timer_after(0.15, function() self:shake_shake(2, 0.5) end)
 end
+]]--
+
+function arena:spawn_plants(plant_positions, x, y)
+  local x, y = x or 0, y or 0
+  local spawn_plant_set = function(x, y, direction)
+    local n = main:random_weighted_pick(25, 20, 15, 10, 10, 10, 6, 4)
+    local r = (direction == 'up' and -math.pi/2) or (direction == 'down' and math.pi/2) or (direction == 'left' and math.pi) or (direction == 'right' and 0)
+    if n == 1 then
+      self.plants:container_add(plant{x = x + 2*math.cos(r - math.pi/2), y = y + 2*math.sin(r - math.pi/2), w = 9, h = 9, layer = game3, emoji = 'seedling', direction = direction})
+      self.plants:container_add(plant{x = x + 2*math.cos(r + math.pi/2), y = y + 2*math.sin(r + math.pi/2), w = 12, h = 12, layer = game3, emoji = 'sheaf', direction = direction})
+    elseif n == 2 then
+      self.plants:container_add(plant{x = x + 2*math.cos(r - math.pi/2), y = y + 2*math.sin(r - math.pi/2), w = 9, h = 9, layer = game1, emoji = 'seedling', direction = direction})
+      self.plants:container_add(plant{x = x + 2*math.cos(r + math.pi/2), y = y + 2*math.sin(r + math.pi/2), w = 12, h = 12, layer = game3, emoji = 'seedling', direction = direction})
+    elseif n == 3 then
+      self.plants:container_add(plant{x = x + 4*math.cos(r - math.pi/2), y = y + 4*math.sin(r - math.pi/2), w = 9, h = 9, layer = game1, emoji = 'sheaf', direction = direction})
+      self.plants:container_add(plant{x = x + 0*math.cos(r - math.pi/2), y = y + 0*math.sin(r - math.pi/2), w = 16, h = 16, layer = game1, emoji = 'seedling', direction = direction})
+      self.plants:container_add(plant{x = x + 4*math.cos(r + math.pi/2), y = y + 4*math.sin(r + math.pi/2), w = 12, h = 12, layer = game1, emoji = 'sheaf', direction = direction})
+    elseif n == 4 then
+      self.plants:container_add(plant{x = x + 3*math.cos(r - math.pi/2), y = y + 3*math.sin(r - math.pi/2), w = 16, h = 16, layer = game3, emoji = 'blossom', direction = direction})
+      self.plants:container_add(plant{x = x + 1*math.cos(r + math.pi/2), y = y + 1*math.sin(r + math.pi/2), w = 12, h = 12, layer = game1, emoji = 'sheaf', direction = direction})
+      self.plants:container_add(plant{x = x + 4*math.cos(r + math.pi/2), y = y + 4*math.sin(r + math.pi/2), w = 9, h = 9, layer = game1, emoji = 'seedling', direction = direction})
+    elseif n == 5 then
+      self.plants:container_add(plant{x = x + 6*math.cos(r - math.pi/2), y = y + 6*math.sin(r - math.pi/2), w = 13, h = 13, layer = game1, emoji = 'sheaf', direction = direction})
+      self.plants:container_add(plant{x = x + 0*math.cos(r + math.pi/2), y = y + 0*math.sin(r + math.pi/2), w = 16, h = 16, layer = game3, emoji = 'tulip', direction = direction})
+      self.plants:container_add(plant{x = x + 6*math.cos(r + math.pi/2), y = y + 6*math.sin(r + math.pi/2), w = 10, h = 10, layer = game3, emoji = 'seedling', direction = direction})
+    elseif n == 6 then
+      self.plants:container_add(plant{x = x + 8*math.cos(r - math.pi/2), y = y + 8*math.sin(r - math.pi/2), w = 12, h = 12, layer = game3, emoji = 'sheaf', direction = direction})
+      self.plants:container_add(plant{x = x + 0*math.cos(r - math.pi/2), y = y + 0*math.sin(r - math.pi/2), w = 14, h = 14, layer = game1, emoji = 'four_leaf_clover', direction = direction})
+      self.plants:container_add(plant{x = x + 6*math.cos(r + math.pi/2), y = y + 6*math.sin(r + math.pi/2), w = 10, h = 10, layer = game3, emoji = 'seedling', direction = direction})
+    elseif n == 7 then
+      self.plants:container_add(plant{x = x + 0*math.cos(r - math.pi/2), y = y + 0*math.sin(r - math.pi/2), w = 16, h = 16, layer = game1, emoji = 'blossom', direction = direction})
+      self.plants:container_add(plant{x = x + 8*math.cos(r - math.pi/2), y = y + 8*math.sin(r - math.pi/2), w = 12, h = 12, layer = game3, emoji = 'sheaf', direction = direction})
+      self.plants:container_add(plant{x = x + 2*math.cos(r + math.pi/2), y = y + 2*math.sin(r + math.pi/2), w = 9, h = 9, layer = game3, emoji = 'seedling', direction = direction})
+      self.plants:container_add(plant{x = x + 7*math.cos(r + math.pi/2), y = y + 7*math.sin(r + math.pi/2), w = 9, h = 9, layer = game3, emoji = 'seedling', direction = direction})
+      self.plants:container_add(plant{x = x + 15*math.cos(r + math.pi/2), y = y + 15*math.sin(r + math.pi/2), w = 12, h = 12, layer = game3, emoji = 'sheaf', direction = direction})
+    elseif n == 8 then
+      self.plants:container_add(plant{x = x + 0*math.cos(r - math.pi/2), y = y + 0*math.sin(r - math.pi/2), w = 16, h = 16, layer = game3, emoji = 'tulip', direction = direction})
+      self.plants:container_add(plant{x = x + 10*math.cos(r - math.pi/2), y = y + 10*math.sin(r - math.pi/2), w = 12, h = 12, layer = game3, emoji = 'tulip', direction = direction})
+      self.plants:container_add(plant{x = x + 10*math.cos(r + math.pi/2), y = y + 10*math.sin(r + math.pi/2), w = 10, h = 10, layer = game1, emoji = 'tulip', direction = direction})
+    end
+  end
+
+  for i = 1, main:random_int(8, 12) do
+    local p = main:random_table_remove(plant_positions)
+    spawn_plant_set(x + p.x, y + p.y, p.direction)
+  end
+end
+
+function arena:get_nearby_plants(x, y, r)
+  local plants = {}
+  for _, plant in ipairs(self.plants.objects) do
+    if math.distance(plant.x, plant.y, x, y) < r then
+      table.insert(plants, plant)
+    end
+  end
+  return plants
+end
+
+
+
+plant = class:class_new(anchor)
+function plant:new(x, y, args)
+  self:anchor_init('plant', args)
+  self.emoji = images[self.emoji]
+  self.flip_sx = main:random_sign(50)
+  self:prs_init(x, y, 0, self.flip_sx*self.w/self.emoji.w, self.h/self.emoji.h)
+  if self.direction == 'up' then
+    self.y = self.y + math.remap(self.h, 9, 16, 4, 0)
+  elseif self.direction == 'right' then
+    self.x = self.x + math.remap(self.h, 9, 16, -4, 0)
+  elseif self.direction == 'down' then
+    self.x = self.x + math.remap(self.h, 9, 16, 4, 0)
+  end
+  self:collider_init('ghost', 'static', 'rectangle', self.w, self.h)
+  if self.direction == 'right' then
+    self.r = math.pi/2
+    self:collider_set_angle(self.r)
+  elseif self.direction == 'left' then
+    self.r = 3*math.pi/2
+    self:collider_set_angle(self.r)
+  end
+  self:timer_init()
+
+  self.constant_wind_r = 0
+  self.random_wind_r = 0
+  self.random_wind_rv = 0
+  self.random_wind_ra = 40
+  self.init_max_random_wind_rv = 3
+  self.max_random_wind_rv = self.init_max_random_wind_rv
+  self.applying_wind_stream = false
+  self.moving_wind_force_r = 0
+  self.moving_wind_force_rv = 0
+  self.moving_wind_force_ra = 40
+  self.init_max_moving_wind_force_rv = 4
+  self.max_moving_wind_force_rv = self.init_max_moving_wind_force_rv
+  self.applying_moving_force = false
+  self.direct_wind_force_r = 0
+  self.direct_wind_force_rv = 0
+  self.direct_wind_force_ra = 200
+  self.init_max_direct_wind_force_rv = 6
+  self.max_direct_wind_force_rv = self.init_max_direct_wind_force_rv
+  self.applying_direct_force = false
+end
+
+function plant:update(dt)
+  self:collider_update_position_and_angle()
+
+  self.constant_wind_r = 0.2*math.sin(1.4*main.time + 0.005*self.x)
+
+  if self.applying_wind_stream then
+    self.random_wind_rv = math.min(self.random_wind_rv + main:random_float(0.6, 1.4)*self.random_wind_ra*dt, self.max_random_wind_rv)
+    self.random_wind_r = self.random_wind_r + main:random_float(0.6, 1.4)*self.random_wind_rv*dt
+  end
+  self.random_wind_rv = self.random_wind_rv*56*dt
+  self.random_wind_r = self.random_wind_r*56*dt
+
+  if self.applying_moving_force then
+    if self.max_moving_wind_force_rv > 0 then self.moving_wind_force_rv = math.min(self.moving_wind_force_rv + self.moving_wind_force_ra*dt, self.max_moving_wind_force_rv)
+    else self.moving_wind_force_rv = math.max(self.moving_wind_force_rv - self.moving_wind_force_ra*dt, self.max_moving_wind_force_rv) end
+    self.moving_wind_force_r = self.moving_wind_force_r + self.moving_wind_force_rv*dt
+  end
+  self.moving_wind_force_rv = self.moving_wind_force_rv*57*dt
+  self.moving_wind_force_r = self.moving_wind_force_r*57*dt
+
+  if self.applying_direct_force then
+    if self.max_direct_wind_force_rv > 0 then self.direct_wind_force_rv = math.min(self.direct_wind_force_rv + self.direct_wind_force_ra*dt, self.max_direct_wind_force_rv)
+    else self.direct_wind_force_rv = math.max(self.direct_wind_force_rv - self.direct_wind_force_ra*dt, self.max_direct_wind_force_rv) end
+    self.direct_wind_force_r = self.direct_wind_force_r + self.direct_wind_force_rv*dt
+  end
+  self.direct_wind_force_rv = self.direct_wind_force_rv*58*dt
+  self.direct_wind_force_r = self.direct_wind_force_r*58*dt
+
+  self.sx, self.sy = self.flip_sx*self.w/self.emoji.w, self.h/self.emoji.h
+
+  if self.direction == 'up' then
+    self.layer:push(self.x, self.y + self.h/2, self.r + self.constant_wind_r + self.random_wind_r + self.moving_wind_force_r + self.direct_wind_force_r)
+      self.layer:draw_image(self.emoji, self.x, self.y, 0, self.sx, self.sy)
+    self.layer:pop()
+  elseif self.direction == 'right' or self.direction == 'left' then
+    self.layer:push(self.x, self.y, self.r)
+      self.layer:push(self.x, self.y + self.h/2, self.constant_wind_r + self.random_wind_r + self.moving_wind_force_r + self.direct_wind_force_r)
+        self.layer:draw_image(self.emoji, self.x, self.y, 0, self.sx, self.sy)
+      self.layer:pop()
+    self.layer:pop()
+  end
+end
+
+function plant:apply_direct_force(vx, vy, force)
+  local direction
+  if self.direction == 'up' then direction = math.sign(vx)
+  elseif self.direction == 'left' or self.direction == 'right' then direction = math.sign(vy) end
+
+  force = force + main:random_float(-force/3, force/3)
+  self.applying_direct_force = true
+  local f = math.remap(math.abs(force), 0, 100, 0, self.init_max_direct_wind_force_rv)
+  self.max_direct_wind_force_rv = direction*f
+  self:timer_after({0.1, 0.2}, function() self.applying_direct_force = false; self.max_direct_wind_force_rv = self.init_max_direct_wind_force_rv end)
+end
+
+function plant:apply_moving_force(vx, vy, force)
+  local direction
+  if self.direction == 'up' then direction = math.sign(vx)
+  elseif self.direction == 'left' or self.direction == 'right' then direction = math.sign(vy) end
+
+  self.applying_moving_force = true
+  local f = math.remap(math.abs(force), 0, 200, 0, self.init_max_moving_wind_force_rv)
+  self.max_moving_wind_force_rv = direction*f
+  self:timer_after({0.4, 0.6}, function() self.applying_moving_force = false; self.max_moving_wind_force_rv = self.init_max_moving_wind_force_rv end)
+end
+
+function plant:apply_wind_stream(duration, force)
+  self:timer_after(0.002*self.x, function()
+    self.max_random_wind_rv = force/10
+    self.applying_wind_stream = true
+    self:timer_after(duration/2, function() self:timer_tween(duration/2 + 0.004*self.x, self, {max_random_wind_rv = 0}, math.linear) end, 'back')
+    self:timer_after(duration + 0.004*self.x, function()
+      self.applying_wind_stream = false
+      self.max_random_wind_rv = self.init_max_random_wind_rv
+    end, 'end')
+  end)
+end
 
 
 
@@ -433,10 +648,11 @@ function solid:update(dt)
   self:collider_update_position_and_angle()
   game2:push(self.x, self.y, self.r)
   game2:rectangle(self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.w*self.springs.main.x, self.h*self.springs.main.x, 4, 4, 
-    (self.flashes.main.x and colors.white[0]) or (self.dying and self.gray_color) or (colors.green[0]))
+    (self.dying and self.gray_color) or (self.flashes.main.x and colors.white[0]) or (colors.green[0]))
   game2:pop()
 end
 
+--[[
 function solid:die()
   if self.dying then return end
   self.dying = true
