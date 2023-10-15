@@ -105,13 +105,13 @@ end
 
 -- Zooms the camera by the given amount
 -- :camera_zoom(2) -> zooms the camera in by 2x from the current zoom level
-function camera:camera_zoom(s)
+function camera:camera_zoom(sx, sy)
   self.sx, self.sy = self.sx*(sx or 1), self.sy*(sy or sx or 1)
 end
 
 -- Zooms the camera to the given scale
 -- :camera_zoom(2) -> zooms the camera to 2x zoom regardless of current zoom level
-function camera:camera_zoom_to(s)
+function camera:camera_zoom_to(sx, sy)
   self.sx, self.sy = (sx or 1), (sy or sx or 1)
 end
 

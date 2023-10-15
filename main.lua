@@ -12,8 +12,8 @@ function init()
 
   font_1 = font('assets/fusion-pixel-12px-monospaced-latin.ttf', 12, 'mono')
   font_2 = font('assets/volkswagen-serial-bold.ttf', 26, 'mono')
-  font_3 = font('assets/volkswagen-serial-bold.ttf', 46, 'mono')
-  font_4 = font('assets/volkswagen-serial-bold.ttf', 36, 'mono')
+  font_3 = font('assets/volkswagen-serial-bold.ttf', 36, 'mono')
+  font_4 = font('assets/volkswagen-serial-bold.ttf', 46, 'mono')
 
   colors.calendar_gray = color_ramp(color(102, 117, 127), 0.025)
 
@@ -94,7 +94,10 @@ function init()
   images.skull = image('assets/skull.png')
   images.thinking = image('assets/thinking.png')
   images.sunglasses = image('assets/sunglasses.png')
-  images.calendar = image('assets/calendar.png')
+  images.board = image('assets/board.png')
+  images.blue_board = image('assets/blue_board.png')
+  images.red_board = image('assets/red_board.png')
+  images.green_board = image('assets/green_board.png')
   images.chain = image('assets/chain.png')
   
   bg_gradient = gradient_image('vertical', color(0.5, 0.5, 0.5, 0), color(0, 0, 0, 0.3))
@@ -119,6 +122,11 @@ function init()
     blue_original = {0.49166, 1.13333, 1.625},
     purple = {1.41666, 1.18333, 1.78333},
     brown = {1.60833, 0.875, 0.65833},
+  }
+
+  emoji_type_to_base = {
+    character = 161/255,
+    board = 101/255,
   }
 
   value_to_emoji_data = {
@@ -149,6 +157,7 @@ function update(dt)
 end
 
 function draw_emoji_character(layer, character, x, y, r, sx, sy, ox, oy, color)
+  layer:send(shaders.multiply_emoji, 'base', emoji_type_to_base.character)
   layer:send(shaders.multiply_emoji, 'multiplier', color_to_emoji_multiplier[color])
   layer:draw_image(images[character], x, y, r, sx, sy, ox, oy, nil, shaders.multiply_emoji)
 end

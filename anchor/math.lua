@@ -101,7 +101,7 @@ end
 -- Generates points in the area centered around x, y with size w, h, with each point having a minimum distance of rs from each other.
 -- Based on https://www.youtube.com/watch?v=7WcmyxyFO7o
 -- math.generate_poisson_disc_sampled_points(10, gw/2, gh/2, 100, 100) -> generates however many points fit into a 100, 100 area centered on gw/2, gh/2 that are separated by 10 units between each other
-function math.generate_poisson_disc_sampled_points(rs, x, y, w, h)
+function math.generate_poisson_disc_sampled_points_2d(rs, x, y, w, h)
   local cell_size = rs/math.sqrt(2)
   local grid = grid(math.floor(w/cell_size), math.floor(h/cell_size), 0)
   local points = {}

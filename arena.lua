@@ -7,13 +7,12 @@ function arena:new(x, y, args)
   self.w, self.h = 252, 294
   self.x1, self.y1, self.x2, self.y2 = main.w/2 - self.w/2, self.top_spacing, main.w/2 + self.w/2, main.h - self.bottom_spacing
   self.score_x, self.next_x = (self.x1-5)/2, self.x2 + 5 + (main.w - (self.x2 + 5))/2 + 1
+
+  -- main.camera:camera_zoom_to(0.5)
 end
 
 function arena:update(dt)
   bg:rectangle(main.w/2, main.h/2, 3*main.w, 3*main.h, 0, 0, colors.fg[0])
-
-  ui1:circle(self.x1, self.y1, 4, colors.blue[0])
-  ui1:circle(self.x2, self.y2, 4, colors.blue[0])
 
   self.emojis:container_update(dt)
   self.plants:container_update(dt)
@@ -34,11 +33,22 @@ function arena:enter()
   self.solid_right = self.objects:container_add(solid(self.x2, self.y2 - self.h/2, 10, self.h + 10))
   self.solid_left_joint = self.objects:container_add(joint('weld', self.solid_left, self.solid_bottom, self.x1, self.y2))
   self.solid_right_joint = self.objects:container_add(joint('weld', self.solid_right, self.solid_bottom, self.x2, self.y2))
+  self:spawn_plants()
 
-  local positions = {}
-  for x = self.x1 + 10 + 20, self.x1 + self.w - 10 - 20, 20 do table.insert(positions, {x = x, y = self.y2 - 15, direction = 'up'}) end
-  print(#positions)
-  self:spawn_plants(positions)
+  self.score = 0
+  self.score_board = self.objects:container_add(board('score', self.score_x, 120))
+  self.score_left_chain = self.objects:container_add(emoji_chain('vine_chain', self.solid_top, self.score_board, self.score_board.x - 21, self.solid_top.y, self.score_board.x - 21, self.score_board.y - self.score_board.h/2))
+  self.score_right_chain = self.objects:container_add(emoji_chain('vine_chain', self.solid_top, self.score_board, self.score_board.x + 21, self.solid_top.y, self.score_board.x + 21, self.score_board.y - self.score_board.h/2))
+  self.score_board:collider_apply_impulse(main:random_sign(50)*main:random_float(100, 200), 0)
+  self.best = 0
+  self.best_board = self.objects:container_add(board('best', self.score_x, 253))
+  self.best_chain = self.objects:container_add(emoji_chain('vine_chain', self.score_board, self.best_board, self.best_board.x, self.score_board.y + self.score_board.h/2, self.best_board.x, self.best_board.y - self.best_board.h/2))
+  self.best_board:collider_apply_impulse(main:random_sign(50)*main:random_float(75, 150), 0)
+  self.next = main:random_int(1, 5)
+  self.next_board = self.objects:container_add(board('next', self.next_x, 126))
+  self.next_left_chain = self.objects:container_add(emoji_chain('vine_chain', self.solid_top, self.next_board, self.next_board.x - 21, self.solid_top.y, self.next_board.x - 21, self.next_board.y - self.next_board.h/2))
+  self.next_right_chain = self.objects:container_add(emoji_chain('vine_chain', self.solid_top, self.next_board, self.next_board.x + 21, self.solid_top.y, self.next_board.x + 21, self.next_board.y - self.next_board.h/2))
+  self.next_board:collider_apply_impulse(main:random_sign(50)*main:random_float(100, 200), 0)
 end
 
 function arena:exit()
@@ -64,6 +74,137 @@ end
 function arena:end_round()
   
 end
+
+
+
+
+
+
+
+
+
+
+
+board = class:class_new(anchor)
+function board:new(board_type, x, y, args)
+  self:anchor_init('score_board', args)
+  self.board_type = board_type
+  if self.board_type == 'score' then
+    self.emoji = images.red_board
+    self:prs_init(x, y, 0, 96/self.emoji.w, 96/self.emoji.h)
+    self:collider_init('solid', 'dynamic', 'rectangle', 88, 88)
+  elseif self.board_type == 'best' then
+    self.emoji = images.green_board
+    self:prs_init(x, y, 0, 80/self.emoji.w, 80/self.emoji.h)
+    self:collider_init('solid', 'dynamic', 'rectangle', 70, 70)
+  elseif self.board_type == 'next' then
+    self.emoji = images.blue_board
+    self:prs_init(x, y, 0, 112/self.emoji.w, 112/self.emoji.h)
+    self:collider_init('solid', 'dynamic', 'rectangle', 96, 96)
+  end
+  self:collider_set_damping(0.2)
+  self:timer_init()
+  self:hitfx_init()
+  self:shake_init()
+end
+
+function board:update(dt)
+  self:collider_update_position_and_angle()
+  game2:push(self.x, self.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x)
+    game2:draw_image(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, 0, 1, 1, nil, nil, colors.white[0], (self.dying and shaders.grayscale) or (self.flashes.main.x and shaders.combine))
+  game2:pop()
+  game2:push(self.x, self.y, self.r)
+    if self.board_type == 'score' then
+      game2:draw_text_centered(self.board_type:upper(), font_2, self.x, self.y - 24, 0, 1, 1, 0, 0, colors.fg[0])
+      local score = main.current_level.score
+      game2:draw_text_centered(tostring(score), (score < 999 and font_4) or font_3, self.x, self.y + 12, 0, 1, 1, 0, 0, colors.calendar_gray[0])
+    elseif self.board_type == 'best' then
+      game2:draw_text_centered(self.board_type:upper(), font_2, self.x, self.y - 20, 0, 1, 1, 0, 0, colors.fg[0])
+      local best = main.current_level.best
+      game2:draw_text_centered(tostring(best), (best < 999 and font_3) or font_2, self.x, self.y + 10, 0, 1, 1, 0, 0, colors.calendar_gray[0])
+    elseif self.board_type == 'next' then
+      game2:draw_text_centered(self.board_type:upper(), font_2, self.x, self.y - 28, 0, 1, 1, 0, 0, colors.fg[0])
+      game3:push(self.x, self.y, self.r)
+      local next = main.current_level.next
+      if next then
+        local sx = 2*value_to_emoji_data[next].rs/value_to_emoji_data[next].emoji.w
+        local sy = sx
+        next = value_to_emoji_data[next].emoji
+        game3:draw_image(next, self.x + self.shake_amount.x, self.y + 15 + self.shake_amount.y, 0, sx, sy, nil, nil, colors.white[0], (self.dying and shaders.grayscale) or (self.flashes.main.x and shaders.combine))
+      end
+      game3:pop()
+    end
+  game2:pop()
+  -- self:collider_draw(game2, colors.white[0], 2)
+end
+
+
+
+
+emoji_chain = class:class_new(anchor)
+function emoji_chain:new(emoji, collider_1, collider_2, x1, y1, x2, y2, args)
+  self:anchor_init('emoji_chain', args)
+  self.emoji = emoji
+  self.x1, self.y1, self.x2, self.y2 = x1, y1, x2, y2
+  self.chain_parts = {}
+  self.joints = {}
+  local chain_part_size = self.chain_part_size or 18
+  local total_chain_size = math.distance(x1, y1, x2, y2)
+  local chain_part_amount = math.ceil(total_chain_size/chain_part_size)
+  local r = math.angle_to_point(x1, y1, x2, y2)
+  for i = 1, chain_part_amount do
+    local d = 0.5*chain_part_size + (i-1)*chain_part_size
+    table.insert(self.chain_parts, main.current_level.objects:container_add(chain_part(emoji, x1 + d*math.cos(r), y1 + d*math.sin(r), {r = r, w = chain_part_size})))
+  end
+  for i, chain_part in ipairs(self.chain_parts) do
+    local next_chain_part = self.chain_parts[i+1]
+    if next_chain_part then
+      local x, y = (chain_part.x + next_chain_part.x)/2, (chain_part.y + next_chain_part.y)/2
+      table.insert(self.joints, main.current_level.objects:container_add(joint('revolute', chain_part, next_chain_part, x, y)))
+    end
+  end
+  table.insert(self.joints, main.current_level.objects:container_add(joint('revolute', collider_1, self.chain_parts[1], x1, y1)))
+  if collider_2 then table.insert(self.joints, main.current_level.objects:container_add(joint('revolute', self.chain_parts[#self.chain_parts], collider_2, x2, y2, true))) end
+end
+
+function emoji_chain:update(dt)
+
+end
+
+function emoji_chain:change_target_collider(collider)
+  local last_joint = self.joints[#self.joints]
+  last_joint:joint_destroy()
+  local last_chain_part = self.chain_parts[#self.chain_parts]
+  local x, y = last_chain_part.x + 0.5*last_chain_part.w*math.cos(last_chain_part.r), last_chain_part.y + 0.5*last_chain_part.w*math.sin(last_chain_part.r)
+  collider:collider_set_position(x, y)
+  collider:collider_update_position_and_angle()
+  self.joints[#self.joints] = main.current_level.objects:container_add(joint('revolute', last_chain_part, collider, x, y, true))
+end
+
+
+
+
+chain_part = class:class_new(anchor)
+function chain_part:new(emoji, x, y, args)
+  self:anchor_init('chain_part', args)
+  self.emoji = images[emoji or 'chain']
+  self:prs_init(x, y, self.r, self.w/self.emoji.w, self.w/self.emoji.h)
+  self:collider_init('solid', 'dynamic', 'rectangle', self.w, self.w/2)
+  self:collider_set_damping(0.2)
+  self:collider_set_angle(self.r)
+  self:timer_init()
+  self:hitfx_init()
+  self:shake_init()
+end
+
+function chain_part:update(dt)
+  self:collider_update_position_and_angle()
+  game1:draw_image(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0], 
+    (self.dying and shaders.grayscale) or (self.flashes.main.x and shaders.combine))
+  --self:collider_draw(ui1, colors.blue[0], 1)
+end
+
+
 
 
 --[[
@@ -107,10 +248,6 @@ function arena:update(dt)
     self:end_round(min_object)
   end
 
-  if main:input_is_pressed('k') then
-    self.score_board:collider_apply_impulse(100, 0)
-  end
-
   self.emojis:container_update(dt)
   self.objects:container_update(dt)
   self.emojis:container_remove_dead()
@@ -118,20 +255,6 @@ function arena:update(dt)
 end
 
 function arena:enter()
-  self.emojis = container()
-  self.objects = container()
-
-  self.solid_top = self.objects:container_add(solid(main.w/2, -90, 2*self.w, 10))
-  self.solid_bottom = self.objects:container_add(solid(main.w/2, self.y2, self.w, 10))
-  self.solid_left = self.objects:container_add(solid(self.x1, self.y2 - self.h/2, 10, self.h + 10))
-  self.solid_right = self.objects:container_add(solid(self.x2, self.y2 - self.h/2, 10, self.h + 10))
-  self.solid_left_joint = self.objects:container_add(joint('weld', self.solid_left, self.solid_bottom, self.x1, self.y2))
-  self.solid_right_joint = self.objects:container_add(joint('weld', self.solid_right, self.solid_bottom, self.x2, self.y2))
-
-  self.score = 0
-  self.score_board = self.objects:container_add(score_board(self.score_x, 115))
-  self.score_left_chain = self.objects:container_add(emoji_chain(self.solid_top, self.score_board, self.score_board.x - 21, -90, self.score_board.x - 21, self.score_board.y - self.score_board.h/2))
-  self.score_right_chain = self.objects:container_add(emoji_chain(self.solid_top, self.score_board, self.score_board.x + 21, -90, self.score_board.x + 21, self.score_board.y - self.score_board.h/2))
 
   self.spawner = self.objects:container_add(spawner())
   self.emoji_line_color = colors.green[0]:color_clone()
@@ -224,142 +347,6 @@ function arena:end_round(emoji)
   self:timer_after(4.5, function()
     main:level_goto('main_menu')
   end, 'end_round_timer_2')
-end
-
-
-
-
-score_board = class:class_new(anchor)
-function score_board:new(x, y, args)
-  self:anchor_init('score_board', args)
-  self.emoji = images.calendar
-  self:prs_init(x, y, 0, 96/self.emoji.w, 96/self.emoji.h)
-  self:collider_init('solid', 'dynamic', 'rectangle', 88, 88)
-  self:timer_init()
-  self:hitfx_init()
-  self:shake_init()
-end
-
-function score_board:update(dt)
-  self:collider_update_position_and_angle()
-  game2:push(self.x, self.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x)
-    game2:draw_image(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, 0, 1, 1, nil, nil, colors.white[0], (self.flashes.main.x and shaders.combine) or (self.dying and shaders.grayscale))
-  game2:pop()
-  game2:push(self.x, self.y, self.r)
-    game2:draw_text_centered('SCORE', font_2, self.x, self.y - 24, 0, 1, 1, 0, 0, colors.fg[0])
-    local score = main.current_level.score
-    game2:draw_text_centered(tostring(score), (score < 999 and font_3) or font_4, self.x, self.y + 12, 0, 1, 1, 0, 0, colors.calendar_gray[0])
-  game2:pop()
-  -- self:collider_draw(game2, colors.white[0], 2)
-end
-
-
-emoji_chain = class:class_new(anchor)
-function emoji_chain:new(collider_1, collider_2, x1, y1, x2, y2, args)
-  self:anchor_init('emoji_chain', args)
-  self.x1, self.y1, self.x2, self.y2 = x1, y1, x2, y2
-  self.chain_parts = {}
-  self.joints = {}
-  local chain_part_size = self.chain_part_size or 18
-  local total_chain_size = math.distance(x1, y1, x2, y2)
-  local chain_part_amount = math.ceil(total_chain_size/chain_part_size)
-  local r = math.angle_to_point(x1, y1, x2, y2)
-  for i = 1, chain_part_amount do
-    local d = 0.5*chain_part_size + (i-1)*chain_part_size
-    table.insert(self.chain_parts, main.current_level.objects:container_add(chain_part(x1 + d*math.cos(r), y1 + d*math.sin(r), {r = r, w = chain_part_size})))
-  end
-  for i, chain_part in ipairs(self.chain_parts) do
-    local next_chain_part = self.chain_parts[i+1]
-    if next_chain_part then
-      local x, y = (chain_part.x + next_chain_part.x)/2, (chain_part.y + next_chain_part.y)/2
-      table.insert(self.joints, main.current_level.objects:container_add(joint('revolute', chain_part, next_chain_part, x, y)))
-    end
-  end
-  table.insert(self.joints, main.current_level.objects:container_add(joint('revolute', collider_1, self.chain_parts[1], x1, y1)))
-  if collider_2 then table.insert(self.joints, main.current_level.objects:container_add(joint('revolute', self.chain_parts[#self.chain_parts], collider_2, x2, y2, true))) end
-end
-
-function emoji_chain:update(dt)
-  -- game2:circle(self.x2, self.y2, 4, colors.blue[0])
-end
-
-function emoji_chain:change_target_collider(collider)
-  local last_joint = self.joints[#self.joints]
-  last_joint:joint_destroy()
-  local last_chain_part = self.chain_parts[#self.chain_parts]
-  local x, y = last_chain_part.x + 0.5*last_chain_part.w*math.cos(last_chain_part.r), last_chain_part.y + 0.5*last_chain_part.w*math.sin(last_chain_part.r)
-  collider:collider_set_position(x, y)
-  collider:collider_update_position_and_angle()
-  self.joints[#self.joints] = main.current_level.objects:container_add(joint('revolute', last_chain_part, collider, x, y, true))
-end
-
-
-
-
-chain_part = class:class_new(anchor)
-function chain_part:new(x, y, args)
-  self:anchor_init('chain_part', args)
-  self.emoji = images[self.emoji or 'chain']
-  self:prs_init(x, y, self.r, self.w/self.emoji.w, self.w/self.emoji.h)
-  self:collider_init('solid', 'dynamic', 'rectangle', self.w, self.w/2)
-  self:collider_set_angle(self.r)
-  self:timer_init()
-  self:hitfx_init()
-  self:shake_init()
-end
-
-function chain_part:update(dt)
-  self:collider_update_position_and_angle()
-  game1:draw_image(images.chain, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0], 
-    (self.flashes.main.x and shaders.combine) or (self.dying and shaders.grayscale))
-  --self:collider_draw(ui1, colors.blue[0], 1)
-end
-
---[[
-score_ui = class:class_new(anchor)
-function score_ui:new(x, y, args)
-  self:anchor_init('score_ui', args)
-  self:prs_init(x, y)
-  self:collider_init('ghost', 'dynamic', 'rectangle', 144, 56)
-  self:collider_set_gravity_scale(0)
-  self.score_text = emoji_text('score', self.x, self.y - 32, {character_size = 16, character_spacing = 4})
-  self.score_value_text = emoji_text('0000', self.x, self.y, {character_size = 24, character_spacing = 6, color = 'black'})
-  self.r_spring = spring(0, main:random_float(0, 4*math.pi), 0)
-  self.r_spring:spring_pull(math.pi/128)
-end
-
-function score_ui:update(dt)
-  -- self.r_spring:spring_update(dt)
-  game1:push(self.x, self.y, self.r_spring.x, self.sx, self.sy)
-    game1:rectangle(self.x, self.y, self.w, self.h, 4, 4, colors.brown[0])
-  game1:pop()
-  self.score_text:update(dt)
-  self.score_value_text:update(dt)
-end
-
-function score_ui:change_score_text(new_score_text)
-  for i = 1, 4 do
-    local new, old = utf8.sub(new_score_text, i, i), utf8.sub(self.text, i, i)
-    if new ~= old then
-      local c = tostring(tonumber(new))
-      self.score_value_text.characters[i].character = c
-      self.score_value_text.characters[i]:change_effect()
-    end
-  end
-  self.text = new_score_text
-end
-
-
-
-
-next_ui = class:class_new(anchor)
-function next_ui:new(x, y, args)
-  self:anchor_init('next_ui', args)
-  self.next_text = emoji_text('next', self.next_x, 24, {character_size = 16, character_spacing = 4})
-end
-
-function next_ui:update(dt)
-
 end
 
 
@@ -460,49 +447,62 @@ end
 
 
 
-function arena:spawn_plants(plant_positions, x, y)
-  local x, y = x or 0, y or 0
+function arena:spawn_plants()
   local spawn_plant_set = function(x, y, direction)
-    local n = main:random_weighted_pick(25, 20, 15, 10, 10, 10, 6, 4)
+    local n = main:random_weighted_pick(20, 20, 20, 10, 10, 10, 5, 5)
     local r = (direction == 'up' and -math.pi/2) or (direction == 'down' and math.pi/2) or (direction == 'left' and math.pi) or (direction == 'right' and 0)
     if n == 1 then
-      self.plants:container_add(plant(x + 2.5*math.cos(r - math.pi/2), y + 2.5*math.sin(r - math.pi/2), {w = 11, h = 11, layer = game3, emoji = 'seedling', direction = direction}))
-      self.plants:container_add(plant(x + 2.5*math.cos(r + math.pi/2), y + 2.5*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'sheaf', direction = direction}))
+      self.plants:container_add(plant(x + 5*math.cos(r - math.pi/2), y + 5*math.sin(r - math.pi/2), {w = 11, h = 11, layer = game3, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(plant(x + 5*math.cos(r + math.pi/2), y + 5*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'sheaf', direction = direction}))
     elseif n == 2 then
-      self.plants:container_add(plant(x + 2.5*math.cos(r - math.pi/2), y + 2.5*math.sin(r - math.pi/2), {w = 11, h = 11, layer = game1, emoji = 'seedling', direction = direction}))
-      self.plants:container_add(plant(x + 2.5*math.cos(r + math.pi/2), y + 2.5*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(plant(x + 5*math.cos(r - math.pi/2), y + 5*math.sin(r - math.pi/2), {w = 11, h = 11, layer = game1, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(plant(x + 5*math.cos(r + math.pi/2), y + 5*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'seedling', direction = direction}))
     elseif n == 3 then
-      self.plants:container_add(plant(x + 5*math.cos(r - math.pi/2), y + 5*math.sin(r - math.pi/2), {w = 11, h = 11, layer = game1, emoji = 'sheaf', direction = direction}))
+      self.plants:container_add(plant(x + 8*math.cos(r - math.pi/2), y + 8*math.sin(r - math.pi/2), {w = 11, h = 11, layer = game1, emoji = 'sheaf', direction = direction}))
       self.plants:container_add(plant(x + 0*math.cos(r - math.pi/2), y + 0*math.sin(r - math.pi/2), {w = 20, h = 20, layer = game1, emoji = 'seedling', direction = direction}))
-      self.plants:container_add(plant(x + 5*math.cos(r + math.pi/2), y + 5*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game1, emoji = 'sheaf', direction = direction}))
+      self.plants:container_add(plant(x + 8*math.cos(r + math.pi/2), y + 8*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game1, emoji = 'sheaf', direction = direction}))
     elseif n == 4 then
-      self.plants:container_add(plant(x + 4*math.cos(r - math.pi/2), y + 4*math.sin(r - math.pi/2), {w = 20, h = 20, layer = game3, emoji = 'blossom', direction = direction}))
+      self.plants:container_add(plant(x + 8*math.cos(r - math.pi/2), y + 8*math.sin(r - math.pi/2), {w = 20, h = 20, layer = game3, emoji = 'blossom', direction = direction}))
       self.plants:container_add(plant(x + 1*math.cos(r + math.pi/2), y + 1*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game1, emoji = 'sheaf', direction = direction}))
-      self.plants:container_add(plant(x + 5*math.cos(r + math.pi/2), y + 5*math.sin(r + math.pi/2), {w = 11, h = 11, layer = game1, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(plant(x + 10*math.cos(r + math.pi/2), y + 10*math.sin(r + math.pi/2), {w = 11, h = 11, layer = game1, emoji = 'seedling', direction = direction}))
     elseif n == 5 then
-      self.plants:container_add(plant(x + 8*math.cos(r - math.pi/2), y + 8*math.sin(r - math.pi/2), {w = 16, h = 16, layer = game1, emoji = 'sheaf', direction = direction}))
+      self.plants:container_add(plant(x + 12*math.cos(r - math.pi/2), y + 12*math.sin(r - math.pi/2), {w = 16, h = 16, layer = game1, emoji = 'sheaf', direction = direction}))
       self.plants:container_add(plant(x + 0*math.cos(r + math.pi/2), y + 0*math.sin(r + math.pi/2), {w = 20, h = 20, layer = game3, emoji = 'tulip', direction = direction}))
-      self.plants:container_add(plant(x + 8*math.cos(r + math.pi/2), y + 8*math.sin(r + math.pi/2), {w = 12, h = 12, layer = game3, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(plant(x + 12*math.cos(r + math.pi/2), y + 12*math.sin(r + math.pi/2), {w = 12, h = 12, layer = game3, emoji = 'seedling', direction = direction}))
     elseif n == 6 then
-      self.plants:container_add(plant(x + 10*math.cos(r - math.pi/2), y + 10*math.sin(r - math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'sheaf', direction = direction}))
+      self.plants:container_add(plant(x + 12*math.cos(r - math.pi/2), y + 12*math.sin(r - math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'sheaf', direction = direction}))
       self.plants:container_add(plant(x + 0*math.cos(r - math.pi/2), y + 0*math.sin(r - math.pi/2), {w = 17, h = 17, layer = game1, emoji = 'four_leaf_clover', direction = direction}))
       self.plants:container_add(plant(x + 8*math.cos(r + math.pi/2), y + 8*math.sin(r + math.pi/2), {w = 12, h = 12, layer = game3, emoji = 'seedling', direction = direction}))
     elseif n == 7 then
       self.plants:container_add(plant(x + 0*math.cos(r - math.pi/2), y + 0*math.sin(r - math.pi/2), {w = 20, h = 20, layer = game1, emoji = 'blossom', direction = direction}))
       self.plants:container_add(plant(x + 10*math.cos(r - math.pi/2), y + 10*math.sin(r - math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'sheaf', direction = direction}))
-      self.plants:container_add(plant(x + 2.5*math.cos(r + math.pi/2), y + 2.5*math.sin(r + math.pi/2), {w = 11, h = 11, layer = game3, emoji = 'seedling', direction = direction}))
-      self.plants:container_add(plant(x + 9*math.cos(r + math.pi/2), y + 9*math.sin(r + math.pi/2), {w = 11, h = 11, layer = game3, emoji = 'seedling', direction = direction}))
-      self.plants:container_add(plant(x + 19*math.cos(r + math.pi/2), y + 19*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'sheaf', direction = direction}))
+      self.plants:container_add(plant(x + 5*math.cos(r + math.pi/2), y + 5*math.sin(r + math.pi/2), {w = 11, h = 11, layer = game3, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(plant(x + 10*math.cos(r + math.pi/2), y + 10*math.sin(r + math.pi/2), {w = 11, h = 11, layer = game3, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(plant(x + 20*math.cos(r + math.pi/2), y + 20*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'sheaf', direction = direction}))
     elseif n == 8 then
       self.plants:container_add(plant(x + 0*math.cos(r - math.pi/2), y + 0*math.sin(r - math.pi/2), {w = 20, h = 20, layer = game3, emoji = 'tulip', direction = direction}))
-      self.plants:container_add(plant(x + 12*math.cos(r - math.pi/2), y + 12*math.sin(r - math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'tulip', direction = direction}))
-      self.plants:container_add(plant(x + 12*math.cos(r + math.pi/2), y + 12*math.sin(r + math.pi/2), {w = 12, h = 12, layer = game1, emoji = 'tulip', direction = direction}))
+      self.plants:container_add(plant(x + 16*math.cos(r - math.pi/2), y + 16*math.sin(r - math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'tulip', direction = direction}))
+      self.plants:container_add(plant(x + 16*math.cos(r + math.pi/2), y + 16*math.sin(r + math.pi/2), {w = 12, h = 12, layer = game1, emoji = 'tulip', direction = direction}))
     end
   end
 
-  for i = 1, main:random_int(3, 5) do
+  local plant_positions = {}
+  for x = self.x1 + 25, self.x1 + self.w - 25, 25 do table.insert(plant_positions, {x = x, y = self.y2 - 15, direction = 'up'}) end
+  for i = 1, main:random_int(4, 5) do
     local p = main:random_table_remove(plant_positions)
-    spawn_plant_set(x + p.x, y + p.y, p.direction)
+    spawn_plant_set(p.x, p.y, p.direction)
+  end
+  plant_positions = {}
+  for y = self.y1 + 20, self.y1 + self.h - 20, 30 do table.insert(plant_positions, {x = self.x1 + 15, y = y, direction = 'right'}) end
+  for i = 1, main:random_int(2, 3) do
+    local p = main:random_table_remove(plant_positions)
+    spawn_plant_set(p.x, p.y, p.direction)
+  end
+  plant_positions = {}
+  for y = self.y1 + 20, self.y1 + self.h - 20, 30 do table.insert(plant_positions, {x = self.x2 - 15, y = y, direction = 'left'}) end
+  for i = 1, main:random_int(2, 3) do
+    local p = main:random_table_remove(plant_positions)
+    spawn_plant_set(p.x, p.y, p.direction)
   end
 end
 
@@ -527,7 +527,7 @@ function plant:new(x, y, args)
     self.y = self.y + math.remap(self.h, 9, 16, 4, 0)
   elseif self.direction == 'right' then
     self.x = self.x + math.remap(self.h, 9, 16, -4, 0)
-  elseif self.direction == 'down' then
+  elseif self.direction == 'left' then
     self.x = self.x + math.remap(self.h, 9, 16, 4, 0)
   end
   self:collider_init('ghost', 'static', 'rectangle', self.w, self.h)
@@ -564,7 +564,11 @@ end
 function plant:update(dt)
   self:collider_update_position_and_angle()
 
-  self.constant_wind_r = 0.2*math.sin(1.4*main.time + 0.005*self.x)
+  if self.direction == 'up' or self.direction == 'down' then
+    self.constant_wind_r = 0.2*math.sin(1.4*main.time + 0.01*self.x)
+  elseif self.direction == 'left' or self.direction == 'right' then
+    self.constant_wind_r = 0.2*math.sin(1.4*main.time + 0.01*self.y)
+  end
 
   if self.applying_wind_stream then
     self.random_wind_rv = math.min(self.random_wind_rv + main:random_float(0.6, 1.4)*self.random_wind_ra*dt, self.max_random_wind_rv)
