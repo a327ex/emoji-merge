@@ -33,7 +33,6 @@ function arena:enter()
   self.solid_right = self.objects:container_add(solid(self.x2, self.y2 - self.h/2, 10, self.h + 10))
   self.solid_left_joint = self.objects:container_add(joint('weld', self.solid_left, self.solid_bottom, self.x1, self.y2))
   self.solid_right_joint = self.objects:container_add(joint('weld', self.solid_right, self.solid_bottom, self.x2, self.y2))
-  self:spawn_plants()
 
   self.score = 0
   self.score_board = self.objects:container_add(board('score', self.score_x, 120))
@@ -49,6 +48,8 @@ function arena:enter()
   self.next_left_chain = self.objects:container_add(emoji_chain('vine_chain', self.solid_top, self.next_board, self.next_board.x - 21, self.solid_top.y, self.next_board.x - 21, self.next_board.y - self.next_board.h/2))
   self.next_right_chain = self.objects:container_add(emoji_chain('vine_chain', self.solid_top, self.next_board, self.next_board.x + 21, self.solid_top.y, self.next_board.x + 21, self.next_board.y - self.next_board.h/2))
   self.next_board:collider_apply_impulse(main:random_sign(50)*main:random_float(100, 200), 0)
+
+  self:spawn_plants()
 end
 
 function arena:exit()
@@ -146,6 +147,7 @@ function emoji_chain:new(emoji, collider_1, collider_2, x1, y1, x2, y2, args)
   self:anchor_init('emoji_chain', args)
   self.emoji = emoji
   self.x1, self.y1, self.x2, self.y2 = x1, y1, x2, y2
+
   self.chain_parts = {}
   self.joints = {}
   local chain_part_size = self.chain_part_size or 18
@@ -165,6 +167,24 @@ function emoji_chain:new(emoji, collider_1, collider_2, x1, y1, x2, y2, args)
   end
   table.insert(self.joints, main.current_level.objects:container_add(joint('revolute', collider_1, self.chain_parts[1], x1, y1)))
   if collider_2 then table.insert(self.joints, main.current_level.objects:container_add(joint('revolute', self.chain_parts[#self.chain_parts], collider_2, x2, y2, true))) end
+
+  self.plants = {}
+  for _, joint in ipairs(self.joints) do
+    local object_1, object_2 = joint:joint_get_objects()
+    if object_1:is('chain_part') and object_2:is('chain_part') then
+      if main:random_bool(80) then
+        local w = main:random_float(11, 13)
+        table.insert(self.plants, main.current_level.plants:container_add(vine_plant(joint, collider_1, collider_2, {layer = game1, w = w, h = 0.42*w, direction = main:random_table{'left', 'right'}})))
+      else
+        if main:random_bool(10) then
+          local w = main:random_float(11, 13)
+          table.insert(self.plants, main.current_level.plants:container_add(vine_plant(joint, collider_1, collider_2, {layer = game1, w = w, h = 0.42*w, direction = 'left'})))
+          local w = main:random_float(11, 13)
+          table.insert(self.plants, main.current_level.plants:container_add(vine_plant(joint, collider_1, collider_2, {layer = game1, w = w, h = 0.42*w, direction = 'right'})))
+        end
+      end
+    end
+  end
 end
 
 function emoji_chain:update(dt)
@@ -452,57 +472,103 @@ function arena:spawn_plants()
     local n = main:random_weighted_pick(20, 20, 20, 10, 10, 10, 5, 5)
     local r = (direction == 'up' and -math.pi/2) or (direction == 'down' and math.pi/2) or (direction == 'left' and math.pi) or (direction == 'right' and 0)
     if n == 1 then
-      self.plants:container_add(plant(x + 5*math.cos(r - math.pi/2), y + 5*math.sin(r - math.pi/2), {w = 11, h = 11, layer = game3, emoji = 'seedling', direction = direction}))
-      self.plants:container_add(plant(x + 5*math.cos(r + math.pi/2), y + 5*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'sheaf', direction = direction}))
+      self.plants:container_add(arena_plant(x + 5*math.cos(r - math.pi/2), y + 5*math.sin(r - math.pi/2), {w = 11, h = 11, layer = game3, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(arena_plant(x + 5*math.cos(r + math.pi/2), y + 5*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'sheaf', direction = direction}))
     elseif n == 2 then
-      self.plants:container_add(plant(x + 5*math.cos(r - math.pi/2), y + 5*math.sin(r - math.pi/2), {w = 11, h = 11, layer = game1, emoji = 'seedling', direction = direction}))
-      self.plants:container_add(plant(x + 5*math.cos(r + math.pi/2), y + 5*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(arena_plant(x + 5*math.cos(r - math.pi/2), y + 5*math.sin(r - math.pi/2), {w = 11, h = 11, layer = game1, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(arena_plant(x + 5*math.cos(r + math.pi/2), y + 5*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'seedling', direction = direction}))
     elseif n == 3 then
-      self.plants:container_add(plant(x + 8*math.cos(r - math.pi/2), y + 8*math.sin(r - math.pi/2), {w = 11, h = 11, layer = game1, emoji = 'sheaf', direction = direction}))
-      self.plants:container_add(plant(x + 0*math.cos(r - math.pi/2), y + 0*math.sin(r - math.pi/2), {w = 20, h = 20, layer = game1, emoji = 'seedling', direction = direction}))
-      self.plants:container_add(plant(x + 8*math.cos(r + math.pi/2), y + 8*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game1, emoji = 'sheaf', direction = direction}))
+      self.plants:container_add(arena_plant(x + 8*math.cos(r - math.pi/2), y + 8*math.sin(r - math.pi/2), {w = 11, h = 11, layer = game1, emoji = 'sheaf', direction = direction}))
+      self.plants:container_add(arena_plant(x + 0*math.cos(r - math.pi/2), y + 0*math.sin(r - math.pi/2), {w = 20, h = 20, layer = game1, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(arena_plant(x + 8*math.cos(r + math.pi/2), y + 8*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game1, emoji = 'sheaf', direction = direction}))
     elseif n == 4 then
-      self.plants:container_add(plant(x + 8*math.cos(r - math.pi/2), y + 8*math.sin(r - math.pi/2), {w = 20, h = 20, layer = game3, emoji = 'blossom', direction = direction}))
-      self.plants:container_add(plant(x + 1*math.cos(r + math.pi/2), y + 1*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game1, emoji = 'sheaf', direction = direction}))
-      self.plants:container_add(plant(x + 10*math.cos(r + math.pi/2), y + 10*math.sin(r + math.pi/2), {w = 11, h = 11, layer = game1, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(arena_plant(x + 8*math.cos(r - math.pi/2), y + 8*math.sin(r - math.pi/2), {w = 20, h = 20, layer = game3, emoji = 'blossom', direction = direction}))
+      self.plants:container_add(arena_plant(x + 1*math.cos(r + math.pi/2), y + 1*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game1, emoji = 'sheaf', direction = direction}))
+      self.plants:container_add(arena_plant(x + 10*math.cos(r + math.pi/2), y + 10*math.sin(r + math.pi/2), {w = 11, h = 11, layer = game1, emoji = 'seedling', direction = direction}))
     elseif n == 5 then
-      self.plants:container_add(plant(x + 12*math.cos(r - math.pi/2), y + 12*math.sin(r - math.pi/2), {w = 16, h = 16, layer = game1, emoji = 'sheaf', direction = direction}))
-      self.plants:container_add(plant(x + 0*math.cos(r + math.pi/2), y + 0*math.sin(r + math.pi/2), {w = 20, h = 20, layer = game3, emoji = 'tulip', direction = direction}))
-      self.plants:container_add(plant(x + 12*math.cos(r + math.pi/2), y + 12*math.sin(r + math.pi/2), {w = 12, h = 12, layer = game3, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(arena_plant(x + 12*math.cos(r - math.pi/2), y + 12*math.sin(r - math.pi/2), {w = 16, h = 16, layer = game1, emoji = 'sheaf', direction = direction}))
+      self.plants:container_add(arena_plant(x + 0*math.cos(r + math.pi/2), y + 0*math.sin(r + math.pi/2), {w = 20, h = 20, layer = game3, emoji = 'tulip', direction = direction}))
+      self.plants:container_add(arena_plant(x + 12*math.cos(r + math.pi/2), y + 12*math.sin(r + math.pi/2), {w = 12, h = 12, layer = game3, emoji = 'seedling', direction = direction}))
     elseif n == 6 then
-      self.plants:container_add(plant(x + 12*math.cos(r - math.pi/2), y + 12*math.sin(r - math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'sheaf', direction = direction}))
-      self.plants:container_add(plant(x + 0*math.cos(r - math.pi/2), y + 0*math.sin(r - math.pi/2), {w = 17, h = 17, layer = game1, emoji = 'four_leaf_clover', direction = direction}))
-      self.plants:container_add(plant(x + 8*math.cos(r + math.pi/2), y + 8*math.sin(r + math.pi/2), {w = 12, h = 12, layer = game3, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(arena_plant(x + 12*math.cos(r - math.pi/2), y + 12*math.sin(r - math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'sheaf', direction = direction}))
+      self.plants:container_add(arena_plant(x + 0*math.cos(r - math.pi/2), y + 0*math.sin(r - math.pi/2), {w = 17, h = 17, layer = game1, emoji = 'four_leaf_clover', direction = direction}))
+      self.plants:container_add(arena_plant(x + 8*math.cos(r + math.pi/2), y + 8*math.sin(r + math.pi/2), {w = 12, h = 12, layer = game3, emoji = 'seedling', direction = direction}))
     elseif n == 7 then
-      self.plants:container_add(plant(x + 0*math.cos(r - math.pi/2), y + 0*math.sin(r - math.pi/2), {w = 20, h = 20, layer = game1, emoji = 'blossom', direction = direction}))
-      self.plants:container_add(plant(x + 10*math.cos(r - math.pi/2), y + 10*math.sin(r - math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'sheaf', direction = direction}))
-      self.plants:container_add(plant(x + 5*math.cos(r + math.pi/2), y + 5*math.sin(r + math.pi/2), {w = 11, h = 11, layer = game3, emoji = 'seedling', direction = direction}))
-      self.plants:container_add(plant(x + 10*math.cos(r + math.pi/2), y + 10*math.sin(r + math.pi/2), {w = 11, h = 11, layer = game3, emoji = 'seedling', direction = direction}))
-      self.plants:container_add(plant(x + 20*math.cos(r + math.pi/2), y + 20*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'sheaf', direction = direction}))
+      self.plants:container_add(arena_plant(x + 0*math.cos(r - math.pi/2), y + 0*math.sin(r - math.pi/2), {w = 20, h = 20, layer = game1, emoji = 'blossom', direction = direction}))
+      self.plants:container_add(arena_plant(x + 10*math.cos(r - math.pi/2), y + 10*math.sin(r - math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'sheaf', direction = direction}))
+      self.plants:container_add(arena_plant(x + 5*math.cos(r + math.pi/2), y + 5*math.sin(r + math.pi/2), {w = 11, h = 11, layer = game3, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(arena_plant(x + 10*math.cos(r + math.pi/2), y + 10*math.sin(r + math.pi/2), {w = 11, h = 11, layer = game3, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(arena_plant(x + 20*math.cos(r + math.pi/2), y + 20*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'sheaf', direction = direction}))
     elseif n == 8 then
-      self.plants:container_add(plant(x + 0*math.cos(r - math.pi/2), y + 0*math.sin(r - math.pi/2), {w = 20, h = 20, layer = game3, emoji = 'tulip', direction = direction}))
-      self.plants:container_add(plant(x + 16*math.cos(r - math.pi/2), y + 16*math.sin(r - math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'tulip', direction = direction}))
-      self.plants:container_add(plant(x + 16*math.cos(r + math.pi/2), y + 16*math.sin(r + math.pi/2), {w = 12, h = 12, layer = game1, emoji = 'tulip', direction = direction}))
+      self.plants:container_add(arena_plant(x + 0*math.cos(r - math.pi/2), y + 0*math.sin(r - math.pi/2), {w = 20, h = 20, layer = game3, emoji = 'tulip', direction = direction}))
+      self.plants:container_add(arena_plant(x + 16*math.cos(r - math.pi/2), y + 16*math.sin(r - math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'tulip', direction = direction}))
+      self.plants:container_add(arena_plant(x + 16*math.cos(r + math.pi/2), y + 16*math.sin(r + math.pi/2), {w = 12, h = 12, layer = game1, emoji = 'tulip', direction = direction}))
     end
   end
 
+  -- Bottom solid
   local plant_positions = {}
   for x = self.x1 + 25, self.x1 + self.w - 25, 25 do table.insert(plant_positions, {x = x, y = self.y2 - 15, direction = 'up'}) end
   for i = 1, main:random_int(4, 5) do
     local p = main:random_table_remove(plant_positions)
     spawn_plant_set(p.x, p.y, p.direction)
   end
+
+  -- Left solid
   plant_positions = {}
   for y = self.y1 + 20, self.y1 + self.h - 20, 30 do table.insert(plant_positions, {x = self.x1 + 15, y = y, direction = 'right'}) end
   for i = 1, main:random_int(2, 3) do
     local p = main:random_table_remove(plant_positions)
     spawn_plant_set(p.x, p.y, p.direction)
   end
+
+  -- Right solid
   plant_positions = {}
   for y = self.y1 + 20, self.y1 + self.h - 20, 30 do table.insert(plant_positions, {x = self.x2 - 15, y = y, direction = 'left'}) end
   for i = 1, main:random_int(2, 3) do
     local p = main:random_table_remove(plant_positions)
     spawn_plant_set(p.x, p.y, p.direction)
+  end
+
+  -- Score board
+  local random_plant = function(plants) return main:random_table(plants or {'sheaf', 'blossom', 'seedling', 'four_leaf_clover'}) end
+  self.plants:container_add(board_plant(self.score_board, -21, -self.score_board.h/2 - 11, {w = 20, h = 20, layer = game3, emoji = random_plant(), direction = 'up'}))
+  if main:random_bool(75) then
+    self.plants:container_add(board_plant(self.score_board, -21 + 12 + main:random_float(-3, 3), -self.score_board.h/2 - 8, {w = 15, h = 15, layer = game3, emoji = random_plant{'sheaf', 'seedling'}, direction = 'up'}))
+  end
+  if main:random_bool(50) then
+    self.plants:container_add(board_plant(self.score_board, -21 - 12 + main:random_float(-3, 3), -self.score_board.h/2 - 6, {w = 11, h = 11, layer = game3, emoji = random_plant{'tulip', 'seedling'}, direction = 'up'}))
+  end
+  self.plants:container_add(board_plant(self.score_board, 21, -self.score_board.h/2 - 11, {w = 20, h = 20, layer = game3, emoji = random_plant(), direction = 'up'}))
+  if main:random_bool(50) then
+    self.plants:container_add(board_plant(self.score_board, 21 + 12 + main:random_float(-3, 3), -self.score_board.h/2 - 6, {w = 11, h = 11, layer = game3, emoji = random_plant{'tulip', 'blossom', 'seedling'}, direction = 'up'}))
+    self.plants:container_add(board_plant(self.score_board, 21 - 12 + main:random_float(-3, 3), -self.score_board.h/2 - 6, {w = 11, h = 11, layer = game3, emoji = random_plant{'tulip', 'blossom', 'seedling'}, direction = 'up'}))
+  end
+
+  -- Best board
+  self.plants:container_add(board_plant(self.best_board, 0, -self.best_board.h/2 - 12, {w = 20, h = 20, layer = game3, emoji = random_plant(), direction = 'up'}))
+  if main:random_bool(75) then
+    self.plants:container_add(board_plant(self.best_board, 12 + main:random_float(-3, 3), -self.best_board.h/2 - 10, {w = 15, h = 15, layer = game3, emoji = random_plant{'sheaf', 'blossom', 'seedling', 'tulip'}, direction = 'up'}))
+    self.plants:container_add(board_plant(self.best_board, -12 + main:random_float(-3, 3), -self.best_board.h/2 - 10, {w = 15, h = 15, layer = game3, emoji = random_plant{'sheaf', 'blossom', 'seedling', 'tulip'}, direction = 'up'}))
+    if main:random_bool(50) then
+      self.plants:container_add(board_plant(self.best_board, 24 + main:random_float(-3, 3), -self.best_board.h/2 - 8, {w = 11, h = 11, layer = game3, emoji = random_plant{'sheaf', 'blossom', 'seedling', 'tulip'}, direction = 'up'}))
+      self.plants:container_add(board_plant(self.best_board, -24 + main:random_float(-3, 3), -self.best_board.h/2 - 8, {w = 11, h = 11, layer = game3, emoji = random_plant{'sheaf', 'blossom', 'seedling', 'tulip'}, direction = 'up'}))
+    end
+  end
+
+  -- Next board
+  self.plants:container_add(board_plant(self.next_board, 0, -self.next_board.h/2 - 17, {w = 26, h = 26, layer = game3, emoji = random_plant(), direction = 'up'}))
+  if main:random_bool(75) then
+    self.plants:container_add(board_plant(self.next_board, 16 + main:random_float(-3, 3), -self.next_board.h/2 - 14, {w = 20, h = 20, layer = game3, emoji = random_plant{'sheaf', 'blossom', 'seedling', 'tulip'}, direction = 'up'}))
+    self.plants:container_add(board_plant(self.next_board, -16 + main:random_float(-3, 3), -self.next_board.h/2 - 14, {w = 20, h = 20, layer = game3, emoji = random_plant{'sheaf', 'blossom', 'seedling', 'tulip'}, direction = 'up'}))
+    if main:random_bool(50) then
+      self.plants:container_add(board_plant(self.next_board, 28 + main:random_float(-3, 3), -self.next_board.h/2 - 12, {w = 15, h = 15, layer = game3, emoji = random_plant{'sheaf', 'blossom', 'seedling', 'tulip'}, direction = 'up'}))
+      self.plants:container_add(board_plant(self.next_board, -28 + main:random_float(-3, 3), -self.next_board.h/2 - 12, {w = 15, h = 15, layer = game3, emoji = random_plant{'sheaf', 'blossom', 'seedling', 'tulip'}, direction = 'up'}))
+      if main:random_bool(50) then
+        self.plants:container_add(board_plant(self.next_board, 40 + main:random_float(-3, 3), -self.next_board.h/2 - 10, {w = 11, h = 11, layer = game3, emoji = random_plant{'sheaf', 'blossom', 'seedling', 'tulip'}, direction = 'up'}))
+        self.plants:container_add(board_plant(self.next_board, -40 + main:random_float(-3, 3), -self.next_board.h/2 - 10, {w = 11, h = 11, layer = game3, emoji = random_plant{'sheaf', 'blossom', 'seedling', 'tulip'}, direction = 'up'}))
+      end
+    end
   end
 end
 
@@ -517,26 +583,43 @@ function arena:get_nearby_plants(x, y, r)
 end
 
 
-plant = class:class_new(anchor)
-function plant:new(x, y, args)
+
+
+plant = class:class_new()
+function plant:plant_init(x, y, args)
   self:anchor_init('plant', args)
   self.emoji = images[self.emoji]
-  self.flip_sx = main:random_sign(50)
+  self.flip_sx = self.flip_sx or main:random_sign(50)
   self:prs_init(x, y, 0, self.flip_sx*self.w/self.emoji.w, self.h/self.emoji.h)
   if self.direction == 'up' then
     self.y = self.y + math.remap(self.h, 9, 16, 4, 0)
+  elseif self.direction == 'down' then
+    self.y = self.y + math.remap(self.h, 9, 16, -4, 0)
   elseif self.direction == 'right' then
     self.x = self.x + math.remap(self.h, 9, 16, -4, 0)
   elseif self.direction == 'left' then
     self.x = self.x + math.remap(self.h, 9, 16, 4, 0)
   end
-  self:collider_init('ghost', 'static', 'rectangle', self.w, self.h)
-  if self.direction == 'right' then
-    self.r = math.pi/2
-    self:collider_set_angle(self.r)
-  elseif self.direction == 'left' then
-    self.r = 3*math.pi/2
-    self:collider_set_angle(self.r)
+  if self.no_collider then
+    if self.direction == 'right' then
+      self.r = math.pi/2
+    elseif self.direction == 'left' then
+      self.r = 3*math.pi/2
+    elseif self.direction == 'down' then
+      self.r = math.pi
+    end
+  else
+    self:collider_init('ghost', 'static', 'rectangle', self.w, self.h)
+    if self.direction == 'right' then
+      self.r = math.pi/2
+      self:collider_set_angle(self.r)
+    elseif self.direction == 'left' then
+      self.r = 3*math.pi/2
+      self:collider_set_angle(self.r)
+    elseif self.direction == 'down' then
+      self.r = math.pi
+      self:collider_set_angle(self.r)
+    end
   end
   self:timer_init()
 
@@ -561,8 +644,10 @@ function plant:new(x, y, args)
   self.applying_direct_force = false
 end
 
-function plant:update(dt)
-  self:collider_update_position_and_angle()
+function plant:plant_update(dt)
+  if not self.no_collider then
+    self:collider_update_position_and_angle()
+  end
 
   if self.direction == 'up' or self.direction == 'down' then
     self.constant_wind_r = 0.2*math.sin(1.4*main.time + 0.01*self.x)
@@ -594,8 +679,10 @@ function plant:update(dt)
   self.direct_wind_force_r = self.direct_wind_force_r*58*dt
 
   self.sx, self.sy = self.flip_sx*self.w/self.emoji.w, self.h/self.emoji.h
+end
 
-  if self.direction == 'up' then
+function plant:plant_draw()
+  if self.direction == 'up' or self.direction == 'down' then
     self.layer:push(self.x, self.y + self.h/2, self.r + self.constant_wind_r + self.random_wind_r + self.moving_wind_force_r + self.direct_wind_force_r)
       self.layer:draw_image(self.emoji, self.x, self.y, 0, self.sx, self.sy)
     self.layer:pop()
@@ -641,6 +728,76 @@ function plant:apply_wind_stream(duration, force)
       self.max_random_wind_rv = self.init_max_random_wind_rv
     end, 'end')
   end)
+end
+
+anchor:class_add(plant)
+
+
+arena_plant = class:class_new(anchor)
+function arena_plant:new(x, y, args)
+  self:plant_init(x, y, args)
+end
+
+function arena_plant:update(dt)
+  self:plant_update(dt)
+  self:plant_draw()
+end
+
+
+board_plant = class:class_new(anchor)
+function board_plant:new(board, x, y, args)
+  args.no_collider = true
+  self:plant_init(0, 0, args)
+  self.board = board
+
+  self.ox, self.oy = x, y
+  if self.flip_sx == 1 and args.emoji == 'sheaf' then
+    self.ox = self.ox + 0.21*self.w
+  elseif self.flip_sx == -1 and args.emoji == 'sheaf' then
+    self.ox = self.ox - 0.21*self.w
+  end
+end
+
+function board_plant:update(dt)
+  self:plant_update(dt)
+  self.constant_wind_r = 0
+  self.x, self.y = math.rotate_point(self.board.x + self.ox, self.board.y + self.oy, self.board.r, self.board.x, self.board.y)
+
+  if self.direction == 'up' or self.direction == 'down' then
+    self.layer:push(self.x, self.y, self.board.r)
+      self.layer:push(self.x, self.y + self.h/2, self.r + self.constant_wind_r + self.random_wind_r + self.moving_wind_force_r + self.direct_wind_force_r)
+        self.layer:draw_image(self.emoji, self.x, self.y, 0, self.sx, self.sy)
+      self.layer:pop()
+    self.layer:pop()
+  end
+end
+
+
+vine_plant = class:class_new(anchor)
+function vine_plant:new(joint, collider_1, collider_2, args)
+  args.no_collider = true
+  self.emoji = 'leaf_2'
+  self:plant_init(x, y, args)
+  self.sx, self.sy = self.w/self.emoji.w, self.h/self.emoji.h
+  self.joint = joint
+  self.collider_1, self.collider_2 = collider_1, collider_2
+  self.offset = main:random_float(-8, 8)
+end
+
+function vine_plant:update(dt)
+  self:plant_update(dt)
+  -- self.constant_wind_r = 0
+  self.x, self.y = self.joint.joint:getAnchors()
+  local r = 0
+  if self.direction == 'left' then r = math.pi end
+  self.r = self.joint:revolute_joint_get_angle() - math.cos(r)*math.pi/4
+  self.x = self.x + 0.4*self.w*math.cos(r)
+  self.y = self.y + 0.4*self.w*math.sin(r)
+  -- self.x = self.x + self.offset*math.cos(self.r + math.pi/2)
+  -- self.y = self.y + self.offset*math.sin(self.r + math.pi/2)
+  self.layer:push(self.x + self.w*math.cos(r + math.pi), self.y + self.w*math.sin(r + math.pi), self.r + self.constant_wind_r + self.random_wind_r + self.moving_wind_force_r + self.direct_wind_force_r)
+    self.layer:draw_image(self.emoji, self.x, self.y, 0, self.sx, self.sy)
+  self.layer:pop()
 end
 
 

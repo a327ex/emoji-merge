@@ -39,6 +39,16 @@ function joint:joint_draw(layer, color, line_width, z)
   layer:circle(x2, y2, 4, color, line_width, z)
 end
 
+-- Returns the objects attached to this joint.
+function joint:joint_get_objects()
+  local body1, body2 = self.joint:getBodies()
+  return body1:getFixtures()[1]:getUserData(), body2:getFixtures()[1]:getUserData()
+end
+
+function joint:revolute_joint_get_angle()
+  return self.joint:getJointAngle()
+end
+
 function joint:joint_destroy()
   self.joint:destroy()
   self.joint = nil
