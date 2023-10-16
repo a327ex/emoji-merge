@@ -44,10 +44,11 @@ function arena:enter()
   self.best_chain = self.objects:container_add(emoji_chain('vine_chain', self.score_board, self.best_board, self.best_board.x, self.score_board.y + self.score_board.h/2, self.best_board.x, self.best_board.y - self.best_board.h/2))
   self.best_board:collider_apply_impulse(main:random_sign(50)*main:random_float(75, 150), 0)
   self.next = main:random_int(1, 5)
-  self.next_board = self.objects:container_add(board('next', self.next_x, 126))
+  self.next_board = self.objects:container_add(board('next', self.next_x, 108))
   self.next_left_chain = self.objects:container_add(emoji_chain('vine_chain', self.solid_top, self.next_board, self.next_board.x - 21, self.solid_top.y, self.next_board.x - 21, self.next_board.y - self.next_board.h/2))
   self.next_right_chain = self.objects:container_add(emoji_chain('vine_chain', self.solid_top, self.next_board, self.next_board.x + 21, self.solid_top.y, self.next_board.x + 21, self.next_board.y - self.next_board.h/2))
   self.next_board:collider_apply_impulse(main:random_sign(50)*main:random_float(100, 200), 0)
+  self.emojivolution_chain = self.objects:container_add(emoji_chain('emojivolution', self.solid_right, nil, self.solid_right.x + 5, 188, self.solid_right.x + 5 + 14*13, 188, {chain_part_size = 14}))
 
   self:spawn_plants()
 end
@@ -156,7 +157,12 @@ function emoji_chain:new(emoji, collider_1, collider_2, x1, y1, x2, y2, args)
   local r = math.angle_to_point(x1, y1, x2, y2)
   for i = 1, chain_part_amount do
     local d = 0.5*chain_part_size + (i-1)*chain_part_size
-    table.insert(self.chain_parts, main.current_level.objects:container_add(chain_part(emoji, x1 + d*math.cos(r), y1 + d*math.sin(r), {r = r, w = chain_part_size})))
+    if self.emoji == 'emojivolution' then
+      emoji = utf8.sub(self.emoji, i, i)
+      table.insert(self.chain_parts, main.current_level.objects:container_add(chain_part(emoji, x1 + d*math.cos(r), y1 + d*math.sin(r), {character = true, r = r, w = chain_part_size})))
+    else
+      table.insert(self.chain_parts, main.current_level.objects:container_add(chain_part(emoji, x1 + d*math.cos(r), y1 + d*math.sin(r), {r = r, w = chain_part_size})))
+    end
   end
   for i, chain_part in ipairs(self.chain_parts) do
     local next_chain_part = self.chain_parts[i+1]
@@ -168,21 +174,13 @@ function emoji_chain:new(emoji, collider_1, collider_2, x1, y1, x2, y2, args)
   table.insert(self.joints, main.current_level.objects:container_add(joint('revolute', collider_1, self.chain_parts[1], x1, y1)))
   if collider_2 then table.insert(self.joints, main.current_level.objects:container_add(joint('revolute', self.chain_parts[#self.chain_parts], collider_2, x2, y2, true))) end
 
-  self.plants = {}
-  for _, joint in ipairs(self.joints) do
-    local object_1, object_2 = joint:joint_get_objects()
-    if object_1:is('chain_part') and object_2:is('chain_part') then
-      if main:random_bool(80) then
-        local w = main:random_float(11, 13)
-        table.insert(self.plants, main.current_level.plants:container_add(vine_plant(joint, collider_1, collider_2, {layer = game1, w = w, h = 0.42*w, direction = main:random_table{'left', 'right'}})))
-      else
-        if main:random_bool(10) then
-          local w = main:random_float(11, 13)
-          table.insert(self.plants, main.current_level.plants:container_add(vine_plant(joint, collider_1, collider_2, {layer = game1, w = w, h = 0.42*w, direction = 'left'})))
-          local w = main:random_float(11, 13)
-          table.insert(self.plants, main.current_level.plants:container_add(vine_plant(joint, collider_1, collider_2, {layer = game1, w = w, h = 0.42*w, direction = 'right'})))
-        end
-      end
+  if self.emoji == 'emojivolution' then
+    for _, joint in ipairs(self.joints) do
+      joint:revolute_joint_set_limits_enabled(true)
+      joint:revolute_joint_set_limits(0, 0)
+    end
+    for _, chain_part in ipairs(self.chain_parts) do
+      chain_part:collider_set_mass(chain_part:collider_get_mass()*0.05)
     end
   end
 end
@@ -207,9 +205,15 @@ end
 chain_part = class:class_new(anchor)
 function chain_part:new(emoji, x, y, args)
   self:anchor_init('chain_part', args)
-  self.emoji = images[emoji or 'chain']
-  self:prs_init(x, y, self.r, self.w/self.emoji.w, self.w/self.emoji.h)
-  self:collider_init('solid', 'dynamic', 'rectangle', self.w, self.w/2)
+  if self.character then
+    self.emoji = emoji
+    self:prs_init(x, y, self.r, self.w/images[emoji].w, self.w/images[emoji].h)
+    self:collider_init('solid', 'dynamic', 'rectangle', self.w, self.w)
+  else 
+    self.emoji = images[emoji or 'chain']
+    self:prs_init(x, y, self.r, self.w/self.emoji.w, self.w/self.emoji.h)
+    self:collider_init('solid', 'dynamic', 'rectangle', self.w, self.w/2)
+  end
   self:collider_set_damping(0.2)
   self:collider_set_angle(self.r)
   self:timer_init()
@@ -219,8 +223,13 @@ end
 
 function chain_part:update(dt)
   self:collider_update_position_and_angle()
-  game1:draw_image(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0], 
-    (self.dying and shaders.grayscale) or (self.flashes.main.x and shaders.combine))
+  if self.character then
+    draw_emoji_character(game1, self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, 
+      (self.dying and 'gray') or (self.flashes.main.x and 'white') or 'blue_original')
+  else
+    game1:draw_image(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0], 
+      (self.dying and shaders.grayscale) or (self.flashes.main.x and shaders.combine))
+  end
   --self:collider_draw(ui1, colors.blue[0], 1)
 end
 
@@ -751,6 +760,7 @@ function board_plant:new(board, x, y, args)
   self.board = board
 
   self.ox, self.oy = x, y
+  self.emoji_type = args.emoji
   if self.flip_sx == 1 and args.emoji == 'sheaf' then
     self.ox = self.ox + 0.21*self.w
   elseif self.flip_sx == -1 and args.emoji == 'sheaf' then
@@ -760,44 +770,20 @@ end
 
 function board_plant:update(dt)
   self:plant_update(dt)
-  self.constant_wind_r = 0
+  self.constant_wind_r = 0.1*math.sin(1.4*main.time + 0.01*self.x)
   self.x, self.y = math.rotate_point(self.board.x + self.ox, self.board.y + self.oy, self.board.r, self.board.x, self.board.y)
+  local vx, vy = self.board:collider_get_velocity()
+  self:apply_moving_force(-vx, 0, 5*vx)
 
   if self.direction == 'up' or self.direction == 'down' then
+    local r_ox, r_oy = 0, self.h/2
+    if self.emoji_type == 'sheaf' then r_ox, r_oy = -self.flip_sx*0.21*self.w, self.h/2 end
     self.layer:push(self.x, self.y, self.board.r)
-      self.layer:push(self.x, self.y + self.h/2, self.r + self.constant_wind_r + self.random_wind_r + self.moving_wind_force_r + self.direct_wind_force_r)
+      self.layer:push(self.x + r_ox, self.y + r_oy, self.r + self.constant_wind_r + self.random_wind_r + self.moving_wind_force_r + self.direct_wind_force_r)
         self.layer:draw_image(self.emoji, self.x, self.y, 0, self.sx, self.sy)
       self.layer:pop()
     self.layer:pop()
   end
-end
-
-
-vine_plant = class:class_new(anchor)
-function vine_plant:new(joint, collider_1, collider_2, args)
-  args.no_collider = true
-  self.emoji = 'leaf_2'
-  self:plant_init(x, y, args)
-  self.sx, self.sy = self.w/self.emoji.w, self.h/self.emoji.h
-  self.joint = joint
-  self.collider_1, self.collider_2 = collider_1, collider_2
-  self.offset = main:random_float(-8, 8)
-end
-
-function vine_plant:update(dt)
-  self:plant_update(dt)
-  -- self.constant_wind_r = 0
-  self.x, self.y = self.joint.joint:getAnchors()
-  local r = 0
-  if self.direction == 'left' then r = math.pi end
-  self.r = self.joint:revolute_joint_get_angle() - math.cos(r)*math.pi/4
-  self.x = self.x + 0.4*self.w*math.cos(r)
-  self.y = self.y + 0.4*self.w*math.sin(r)
-  -- self.x = self.x + self.offset*math.cos(self.r + math.pi/2)
-  -- self.y = self.y + self.offset*math.sin(self.r + math.pi/2)
-  self.layer:push(self.x + self.w*math.cos(r + math.pi), self.y + self.w*math.sin(r + math.pi), self.r + self.constant_wind_r + self.random_wind_r + self.moving_wind_force_r + self.direct_wind_force_r)
-    self.layer:draw_image(self.emoji, self.x, self.y, 0, self.sx, self.sy)
-  self.layer:pop()
 end
 
 

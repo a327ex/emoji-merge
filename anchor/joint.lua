@@ -49,6 +49,14 @@ function joint:revolute_joint_get_angle()
   return self.joint:getJointAngle()
 end
 
+function joint:revolute_joint_set_limits_enabled(value)
+  self.joint:setLimitsEnabled(value)
+end
+
+function joint:revolute_joint_set_limits(lower, upper)
+  self.joint:setLimits(lower, upper)
+end
+
 function joint:joint_destroy()
   self.joint:destroy()
   self.joint = nil
