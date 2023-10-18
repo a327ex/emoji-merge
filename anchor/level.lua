@@ -2,14 +2,14 @@
 local level = class:class_new()
 function level:level_init()
   self.levels = {}
-  self.current_level = nil
+  self.level = nil
   return self
 end
 
 -- Updates the current level.
 function level:level_update(dt)
-  if self.current_level then
-    self.current_level:update(dt)
+  if self.level then
+    self.level:update(dt)
   end
 end
 
@@ -22,9 +22,9 @@ function level:level_add(name, object)
 end
 
 function level:level_goto(name, ...)
-  if self.current_level and self.current_level.exit then self.current_level:exit(...) end
-  self.current_level = self.levels[name]
-  if self.current_level.enter then self.current_level:enter(...) end
+  if self.level and self.level.exit then self.level:exit(...) end
+  self.level = self.levels[name]
+  if self.level.enter then self.level:enter(...) end
 end
 
 return level
