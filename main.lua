@@ -113,7 +113,7 @@ function init()
   bg_gradient = gradient_image('vertical', color(0.5, 0.5, 0.5, 0), color(0, 0, 0, 0.3))
 
   main:physics_world_set_gravity(0, 360)
-  main:physics_world_set_callbacks_as_collider_events()
+  main:physics_world_set_callbacks()
   main:physics_world_set_collision_tags{'emoji', 'ghost', 'solid'}
   main:physics_world_disable_collision_between('emoji', {'ghost'})
   main:physics_world_disable_collision_between('ghost', {'emoji', 'ghost', 'solid'})
@@ -359,17 +359,6 @@ end
 
 
 --{{{ arena
-function collision_enter(a, b, c)
-  local self = main.level
-  if a.id == self.spawner_emoji.id or b.id == self.spawner_emoji.id then
-    local spawner_emoji = (a.id == self.spawner_emoji.id and a) or (b.id == self.spawner_emoji.id and b)
-    spawner_emoji.dropping = false
-    self.spawner_emoji = nil
-    self:timer_after(0.01, function() self:choose_next_emoji() end)
-  end
-end
-
-
 arena = class:class_new(anchor)
 function arena:new(x, y, args)
   self:anchor_init('arena', args)
@@ -388,6 +377,7 @@ function arena:enter()
   self.plants = container()
   self.objects = container()
 
+  -- Solids
   self.solid_top = self.objects:container_add(solid(main.w/2, -120, 2*self.w, 10))
   self.solid_bottom = self.objects:container_add(solid(main.w/2, self.y2, self.w, 10))
   self.solid_left = self.objects:container_add(solid(self.x1, self.y2 - self.h/2, 10, self.h + 10))
@@ -395,6 +385,7 @@ function arena:enter()
   self.solid_left_joint = self.objects:container_add(joint('weld', self.solid_left, self.solid_bottom, self.x1, self.y2))
   self.solid_right_joint = self.objects:container_add(joint('weld', self.solid_right, self.solid_bottom, self.x2, self.y2))
 
+  -- Boards
   self.score = 0
   self.score_board = self.objects:container_add(board('score', self.score_x, 120))
   self.score_left_chain = self.objects:container_add(emoji_chain('vine_chain', self.solid_top, self.score_board, self.score_board.x - 21, self.solid_top.y, self.score_board.x - 21, self.score_board.y - self.score_board.h/2))
@@ -412,6 +403,7 @@ function arena:enter()
 
   self:spawn_plants()
 
+  -- Emojivolution objects
   self.curving_arrow = self.objects:container_add(evoji_emoji(self.next_x, 249, {emoji = 'curving_arrow'}))
   self.evoji_emojis = {}
   local r = -math.pi/4 + (3*math.pi/2)/22
@@ -428,7 +420,6 @@ function arena:enter()
     end
   end
   local e = self.curving_arrow
-  -- self.curving_chain = self.objects:container_add(emoji_chain('blue_chain', self.next_board, emoji, self.next_board.x, self.next_board.y + self.next_board.h/2, emoji.x, emoji.y - emoji.h/2))
   e = self.evoji_emojis[#self.evoji_emojis]
   local r = math.angle_to_point(self.next_board.x - self.next_board.w/2 + 8, self.next_board.y + self.next_board.h/2, e.x, e.y)
   self.evoji_chain_left = self.objects:container_add(emoji_chain('blue_chain', self.next_board, e, self.next_board.x - self.next_board.w/2 + 8, self.next_board.y + self.next_board.h/2, 
@@ -443,13 +434,7 @@ function arena:enter()
   self.spawner = self.objects:container_add(spawner())
   self.emoji_line_color = colors.green[0]:color_clone()
   self.emoji_line_color.a = 0.32
-  self.spawner_emoji = self.emojis:container_add(emoji(main.w/2, self.y1, {value = 1}))
-
-  --[[
-  local value = main:random_int(1, 5)
-  self.next_emoji = self.emojis:container_add(emoji(self.next_x, 115, {next_emoji = true, value = value}))
-  self.next_emoji_chain = self.objects:container_add(emoji_chain(self.solid_top, self.next_emoji, self.next_emoji.x, -90, self.next_emoji.x, self.next_emoji.y - self.next_emoji.rs))
-  ]]--
+  self:choose_next_emoji()
 end
 
 function arena:update(dt)
@@ -458,7 +443,12 @@ function arena:update(dt)
 
   -- Spawner movement
   if self.spawner then
-    self.spawner.x, self.spawner.y = math.clamp(main.pointer.x, self.x1 + self.spawner.w/2 + 24, self.x2 + 8), 20
+    local left_offset, right_offset = 32, 16
+    if self.spawner_emoji then
+      left_offset = left_offset + self.spawner_emoji.rs
+      right_offset = right_offset - self.spawner_emoji.rs
+    end
+    self.spawner.x, self.spawner.y = math.clamp(main.pointer.x, self.x1 + left_offset, self.x2 + right_offset), 20
     self.spawner:collider_set_position(self.spawner.x, self.spawner.y)
   end
 
@@ -469,6 +459,8 @@ function arena:update(dt)
       self:drop_emoji()
     end
   end
+
+  -- Merge emojis
 
   -- if self.emoji_to_be_dropped and not self.round_ending then bg:line(self.spawner.x - 24, self.spawner.y, self.spawner.x - 24, self.y2, self.emoji_line_color, 2) end
   
@@ -484,40 +476,26 @@ function arena:exit()
   
 end
 
-function arena:start_round()
-  
-end
-
 function arena:drop_emoji()
   local x, y = (self.spawner.x + self.spawner_emoji.x)/2, (self.spawner.y + self.spawner_emoji.y)/2
   self.spawner.drop_x, self.spawner.drop_y = x, y
   self.spawner_emoji.drop_x, self.spawner_emoji.drop_y = x, y
   self.spawner:hitfx_use('drop', 0.25)
   self.spawner_emoji:hitfx_use('drop', 0.25)
+
   self.spawner_emoji:collider_set_gravity_scale(1)
   self.spawner_emoji:collider_apply_impulse(0, 0.01)
   self.spawner_emoji.dropping = true
+  self.spawner_emoji:observer_condition(function() return (self.spawner_emoji.collision_enter.emoji or self.spawner_emoji.collision_enter.solid) and self.spawner_emoji.dropping end, function()
+    self.spawner_emoji.dropping = false
+    self:choose_next_emoji()
+  end)
 end
 
 function arena:choose_next_emoji()
-  self.spawner_emoji = self.emojis:container_add(emoji(self.spawner.x, self.y1, {value = self.next}))
-  --[[
-  self.emoji_to_be_dropped = self.next_emoji
-  self.emoji_to_be_dropped.follow_spawner = true
-  self.emoji_to_be_dropped:collider_set_position(self.spawner.x - 24, self.spawner.y + self.emoji_to_be_dropped.rs)
-  self.emoji_to_be_dropped:collider_set_velocity(0, 0)
-  self.emoji_to_be_dropped:collider_set_angular_velocity(0)
-  self.emoji_to_be_dropped:collider_set_gravity_scale(0)
-  self.emoji_to_be_dropped:collider_set_fixed_rotation(false)
-  self.emoji_to_be_dropped:collider_update_position_and_angle()
-  self.emoji_to_be_dropped:hitfx_use('main', 0.25)
-  self.next_emoji = self.emojis:container_add(emoji(self.next_x, 128, {next_emoji = true, value = value}))
-  self.next_emoji:collider_set_fixed_rotation(true)
-  self.next_emoji:collider_apply_impulse(main:random_float(-50, 50), 0)
-  self.next_emoji:hitfx_use('main', 0.25)
-  self.next_emoji_chain:change_target_collider(self.next_emoji)
-  ]]--
-  
+  self.spawner_emoji = self.emojis:container_add(emoji(self.spawner.x, self.y1, {hitfx_on_spawn_no_flash = 0.5, value = self.next}))
+  self.next = main:random_int(1, 5)
+  self.next_board:hitfx_use('emoji', 0.5)
 end
 
 
@@ -592,8 +570,9 @@ function board:new(board_type, x, y, args)
   end
   self:collider_set_damping(0.2)
   self:timer_init()
-  self:hitfx_init()
   self:shake_init()
+  self:hitfx_init()
+  self:hitfx_add('emoji', 1)
 end
 
 function board:update(dt)
@@ -618,7 +597,9 @@ function board:update(dt)
         local sx = 2*value_to_emoji_data[next].rs/images[value_to_emoji_data[next].emoji].w
         local sy = sx
         next = images[value_to_emoji_data[next].emoji]
-        game3:draw_image(next, self.x + self.shake_amount.x, self.y + 15 + self.shake_amount.y, 0, sx, sy, nil, nil, colors.white[0], (self.dying and shaders.grayscale) or (self.flashes.main.x and shaders.combine))
+        game3:push(self.x, self.y + 15, 0, self.springs.emoji.x, self.springs.emoji.x)
+          game3:draw_image(next, self.x + self.shake_amount.x, self.y + 15 + self.shake_amount.y, 0, sx, sy, nil, nil, colors.white[0], (self.dying and shaders.grayscale) or (self.flashes.main.x and shaders.combine))
+        game3:pop()
       end
       game3:pop()
     end
@@ -1178,10 +1159,12 @@ function emoji:new(x, y, args)
   self:collider_set_gravity_scale(0)
   self:collider_set_mass(value_to_emoji_data[self.value].mass_multiplier*self:collider_get_mass())
   self:timer_init()
+  self:observer_init()
   self:hitfx_init()
   self:shake_init()
 
   if self.hitfx_on_spawn then self:hitfx_use('main', 0.5, nil, nil, 0.15) end
+  if self.hitfx_on_spawn_no_flash then self:hitfx_use('main', 0.5) end
   if self.from_merge then
     self:timer_after(0.01, function()
       local s = math.remap(self.rs, 9, 70, 1, 3)

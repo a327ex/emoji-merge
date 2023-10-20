@@ -135,6 +135,12 @@ function collider:collider_destroy()
     self.body:destroy()
     self.body, self.shape, self.fixture, self.sensor = nil, nil, nil, nil
   end
+  self.collision_enter = {}
+  self.collision_active = {}
+  self.collision_exit = {}
+  self.trigger_enter = {}
+  self.trigger_active = {}
+  self.trigger_exit = {}
 end
 
 -- Returns the object's vertices as a table.

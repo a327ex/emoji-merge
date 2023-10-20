@@ -8,6 +8,12 @@ local physics_world = class:class_new()
 function physics_world:physics_world_init(meter, xg, yg)
   love.physics.setMeter(meter or 64)
   self.world = love.physics.newWorld(xg or 0, yg or 0)
+  self.collision_enter = {}
+  self.collision_active = {}
+  self.collision_exit = {}
+  self.trigger_enter = {}
+  self.trigger_active = {}
+  self.trigger_exit = {}
   return self
 end
 
@@ -15,81 +21,93 @@ function physics_world:physics_world_update(dt)
   self.world:update(dt)
 end
 
--- Sets physics world callbacks such that they populate each collider's .collision_enter/active/exit and .trigger_enter/active/exit tables every frame.
--- These events can then be read on the object's update function as such: "for other, contact in pairs(self.collision_enter['other_type']) do"
--- Where 'other_type' is the collision tag string for the object that this collider collided with.
--- This or :physics_world_set_callbacks_as_collider_events should be called manually by the user at the start of the game once, as it is the case with :physics_world_set_collision_tags.
-function physics_world:physics_world_set_callbacks_as_collider_events()
-  self.world:setCallbacks(
-    function(fa, fb, c)
-      local oa, ob = fa:getUserData(), fb:getUserData()
-      if not oa or not ob then return end
-      if fa:isSensor() and fb:isSensor() then
-        if fa:isSensor() then self:physics_world_add_trigger_enter(oa, ob, c) end
-        if fb:isSensor() then self:physics_world_add_trigger_enter(ob, oa, c) end
-      elseif not fa:isSensor() and not fb:isSensor() then
-        self:physics_world_add_collision_enter(oa, ob, c)
-        self:physics_world_add_collision_enter(ob, oa, c)
-      end
-    end,
-    function(fa, fb, c)
-      local oa, ob = fa:getUserData(), fb:getUserData()
-      if not oa or not ob then return end
-      if fa:isSensor() and fb:isSensor() then
-        if fa:isSensor() then self:physics_world_add_trigger_exit(oa, ob, c) end
-        if fb:isSensor() then self:physics_world_add_trigger_exit(ob, oa, c) end
-      elseif not fa:isSensor() and not fb:isSensor() then
-        self:physics_world_add_collision_exit(oa, ob, c)
-        self:physics_world_add_collision_exit(ob, oa, c)
-      end
-    end,
-    function(fa, fb, c)
-      local oa, ob = fa:getUserData(), fb:getUserData()
-      if not oa or not ob then return end
-      if oa.pre_solve then oa:pre_solve(ob, c) end
-      if ob.pre_solve then ob:pre_solve(oa, c) end
-    end,
-    function(fa, fb, c, ni1, ti1, ni2, ti2)
-      local oa, ob = fa:getUserData(), fb:getUserData()
-      if not oa or not ob then return end
-      if oa.post_solve then oa:post_solve(ob, c, ni1, ti1, ni2, ti2) end
-      if ob.post_solve then ob:post_solve(oa, c, ni1, ti1, ni2, ti2) end
-    end
-  )
+function physics_world:physics_world_post_update(dt)
+  self.collision_enter = {}
+  self.collision_exit = {}
+  self.trigger_enter = {}
+  self.trigger_exit = {}
 end
 
--- Sets physics world callbacks such that they call the global functions collision_enter, collision_exit, trigger_enter, trigger_exit, pre_solve and post_solve.
--- These events can then be handled by the user as they happen, without any other code happening in between (unlike when they're defined as collider events, which necessarily has some code to clean up previous frame's events).
--- This or :physics_world_set_callbacks_as_collider_events should be called manually by the user at the start of the game once, as it is the case with :physics_world_set_collision_tags.
-function physics_world:physics_world_set_callbacks_as_global_functions()
+-- Sets physics world callbacks. These can be set in two ways:
+-- 1. 'collider' - the callbacks will populate each collider's .collision_enter/active/exit and .trigger_enter/active/exit tables every frame.
+-- 2. 'world' - the callbacks will set the physics_world's .collision_enter/active/exit and .trigger_enter/active/exit tables every frame.
+-- For the 'collider' way, these events can then be read on the object's update function as such: "for other, contact in pairs(self.collision_enter['other_type']) do".
+-- For the 'world' way, these events can then be read on the relevant table, say self.collision_enter, in the following way:
+--   self.collision_enter['type_1']['type_2'] - will be true if objects of these two types entered collision this frame, and this value will be a list where each collision is a table of the type {object_1, object_2, ...}
+--
+-- This should be called manually by the user at the start of the game once, as it is the case with :physics_world_set_collision_tags.
+-- callback_type can be either 'collider' or 'main', if it is nil then both modes will be used.
+function physics_world:physics_world_set_callbacks(callback_type)
+  local collider, world = callback_type == 'collider', callback_type == 'world'
+  if not callback_type then collider, world = true, true end
   self.world:setCallbacks(
     function(fa, fb, c)
       local oa, ob = fa:getUserData(), fb:getUserData()
       if not oa or not ob then return end
       if fa:isSensor() and fb:isSensor() then
-        if trigger_enter then trigger_enter(oa, ob) end
+        if collider then
+          if fa:isSensor() then self:physics_world_collider_add_trigger_enter(oa, ob, c) end
+          if fb:isSensor() then self:physics_world_collider_add_trigger_enter(ob, oa, c) end
+        end
+        if world then
+          if fa:isSensor() then self:physics_world_add_trigger_enter(oa, ob, c) end
+          if fb:isSensor() then self:physics_world_add_trigger_enter(ob, oa, c) end
+        end
       elseif not fa:isSensor() and not fb:isSensor() then
-        if collision_enter then collision_enter(oa, ob, c) end
+        if collider then
+          self:physics_world_collider_add_collision_enter(oa, ob, c)
+          self:physics_world_collider_add_collision_enter(ob, oa, c)
+        end
+        if world then
+          self:physics_world_add_collision_enter(oa, ob, c)
+          self:physics_world_add_collision_enter(ob, oa, c)
+        end
       end
     end,
     function(fa, fb, c)
       local oa, ob = fa:getUserData(), fb:getUserData()
       if not oa or not ob then return end
       if fa:isSensor() and fb:isSensor() then
-        if trigger_exit then trigger_exit(oa, ob) end
+        if collider then
+          if fa:isSensor() then self:physics_world_collider_add_trigger_exit(oa, ob, c) end
+          if fb:isSensor() then self:physics_world_collider_add_trigger_exit(ob, oa, c) end
+        end
+        if world then
+          if fa:isSensor() then self:physics_world_add_trigger_exit(oa, ob, c) end
+          if fb:isSensor() then self:physics_world_add_trigger_exit(ob, oa, c) end
+        end
       elseif not fa:isSensor() and not fb:isSensor() then
-        if collision_exit then collision_exit(oa, ob, c) end
+        if collider then
+          self:physics_world_collider_add_collision_exit(oa, ob, c)
+          self:physics_world_collider_add_collision_exit(ob, oa, c)
+        end
+        if world then
+          self:physics_world_add_collision_exit(oa, ob, c)
+          self:physics_world_add_collision_exit(ob, oa, c)
+        end
       end
     end,
     function(fa, fb, c)
       local oa, ob = fa:getUserData(), fb:getUserData()
       if not oa or not ob then return end
-      if pre_solve then pre_solve(oa, ob, c) end
+      if collider then
+        if oa.pre_solve then oa:pre_solve(ob, c) end
+        if ob.pre_solve then ob:pre_solve(oa, c) end
+      end
+      if world then
+        if self.pre_solve then self:pre_solve(oa, ob, c) end
+      end
     end,
     function(fa, fb, c, ni1, ti1, ni2, ti2)
       local oa, ob = fa:getUserData(), fb:getUserData()
       if not oa or not ob then return end
-      if post_solve then post_solve(oa, ob, c, ni1, ti1, ni2, ti2) end
+      if collider then
+        if oa.post_solve then oa:post_solve(ob, c, ni1, ti1, ni2, ti2) end
+        if ob.post_solve then ob:post_solve(oa, c, ni1, ti1, ni2, ti2) end
+      end
+      if world then
+        if self.post_solve then self:post_solve(oa, ob, c, ni1, ti1, ni2, ti2) end
+      end
     end
   )
 end
@@ -143,45 +161,108 @@ function physics_world:physics_world_disable_trigger_between(tag1, tags)
   end
 end
 
--- Adds collision_enter and collision_active events to the target object.
+-- Adds collision_enter and collision_active events to the target collider.
 -- These events can be read by doing: "for other, contact in pairs(self.collision_enter['other_type']) do"
 -- Every collision event lasts 1 frame only, except for collision_active ones which last however many frames there are between collision_enter and collision_exit events.
-function physics_world:physics_world_add_collision_enter(target, other, contact)
+function physics_world:physics_world_collider_add_collision_enter(target, other, contact)
   if not target.collision_enter[other.type] then target.collision_enter[other.type] = {} end
   if not target.collision_active[other.type] then target.collision_active[other.type] = {} end
+  table.insert(target.collision_enter[other.type], {other, contact})
   target.collision_enter[other.type][other] = contact
   target.collision_active[other.type][other] = target.id
 end
 
--- Adds collision_exit and removes collision_active events from the target object.
+-- Adds collision_exit and removes collision_active events from the target collider.
 -- These events can be read by doing: "for other, contact in pairs(self.collision_exit['other_type']) do"
 -- Every collision event lasts 1 frame only, except for collision_active ones which last however many frames there are between collision_enter and collision_exit events.
-function physics_world:physics_world_add_collision_exit(target, other, contact)
+function physics_world:physics_world_collider_add_collision_exit(target, other, contact)
   if not target.collision_exit[other.type] then target.collision_exit[other.type] = {} end
   if not target.collision_active[other.type] then target.collision_active[other.type] = {} end
+  table.insert(target.collision_exit[other.type], {other, contact})
   target.collision_exit[other.type][other] = contact
   target.collision_active[other.type][other] = false
 end
 
--- Adds trigger_enter and trigger_active events to the target object.
+-- Adds collision_enter and collision_active events to this object.
+-- These events can be read by doing: "self.collision_enter['type_1']['type_2']"
+-- Every collision event lasts 1 frame only, except for collision_active ones which last however many frames there are between collision_enter and collision_exit events.
+function physics_world:physics_world_add_collision_enter(a, b, contact)
+  if not self.collision_enter[a.type] then self.collision_enter[a.type] = {} end
+  if not self.collision_enter[a.type][b.type] then self.collision_enter[a.type][b.type] = {} end
+  if not self.collision_active[a.type] then self.collision_active[a.type] = {} end
+  if not self.collision_active[a.type][b.type] then self.collision_active[a.type][b.type] = {} end
+  table.insert(self.collision_enter[a.type][b.type], {a, b, contact})
+  table.insert(self.collision_active[a.type][b.type], {a, b, contact})
+end
+
+-- Adds collision_exit and removes collision_active events from this object.
+-- These events can be read by doing: "self.collision_exit['type_1']['type_2']"
+-- Every collision event lasts 1 frame only, except for collision_active ones which last however many frames there are between collision_enter and collision_exit events.
+function physics_world:physics_world_add_collision_exit(a, b, contact)
+  if not self.collision_exit[a.type] then self.collision_exit[a.type] = {} end
+  if not self.collision_exit[a.type][b.type] then self.collision_exit[a.type][b.type] = {} end
+  if not self.collision_active[a.type] then self.collision_active[a.type] = {} end
+  if not self.collision_active[a.type][b.type] then self.collision_active[a.type][b.type] = {} end
+  table.insert(self.collision_exit[a.type][b.type], {a, b, contact})
+  for i = #self.collision_active[a.type][b.type], 1, -1 do
+    local c = self.collision_active[a.type][b.type][i]
+    if c[1].id == a.id and c[2].id == b.id then
+      table.remove(self.collision_active[a.type][b.type], i)
+    end
+  end
+end
+
+-- Adds trigger_enter and trigger_active events to the target collider.
 -- These events can be read by doing: "for other, contact in pairs(self.trigger_enter['other_type']) do"
 -- Every trigger event lasts 1 frame only, except for trigger_active ones which last however many frames there are between trigger_enter and trigger_exit events.
-function physics_world:physics_world_add_trigger_enter(target, other)
+function physics_world:physics_world_collider_add_trigger_enter(target, other)
   if not target.trigger_enter[other.type] then target.trigger_enter[other.type] = {} end
   if not target.trigger_active[other.type] then target.trigger_active[other.type] = {} end
+  table.insert(target.trigger_enter[other.type], other)
   target.trigger_enter[other.type][other] = target.id
   target.trigger_active[other.type][other] = target.id
 end
 
--- Adds trigger_exit and removes trigger_active events from the target object.
+-- Adds trigger_exit and removes trigger_active events from the target collider.
 -- These events can be read by doing: "for other, contact in pairs(self.trigger_exit['other_type']) do"
 -- Every trigger event lasts 1 frame only, except for trigger_active ones which last however many frames there are between trigger_enter and trigger_exit events.
-function physics_world:physics_world_add_trigger_exit(target, other)
+function physics_world:physics_world_collider_add_trigger_exit(target, other)
   if not target.trigger_exit[other.type] then target.trigger_exit[other.type] = {} end
   if not target.trigger_active[other.type] then target.trigger_active[other.type] = {} end
+  table.insert(target.trigger_exit[other.type], other)
   target.trigger_exit[other.type][other] = target.id
   target.trigger_active[other.type][other] = false
 end
+
+-- Adds trigger_enter and trigger_active events to this object.
+-- These events can be read by doing: "self.trigger_enter['type_1']['type_2']"
+-- Every trigger event lasts 1 frame only, except for trigger_active ones which last however many frames there are between trigger_enter and trigger_exit events.
+function physics_world:physics_world_add_trigger_enter(a, b, contact)
+  if not self.trigger_enter[a.type] then self.trigger_enter[a.type] = {} end
+  if not self.trigger_enter[a.type][b.type] then self.trigger_enter[a.type][b.type] = {} end
+  if not self.trigger_active[a.type] then self.trigger_active[a.type] = {} end
+    if not self.trigger_active[a.type][b.type] then self.trigger_active[a.type][b.type] = {} end
+  table.insert(self.trigger_enter[a.type][b.type], {a, b, contact})
+  table.insert(self.trigger_active[a.type][b.type], {a, b, contact})
+end
+
+-- Adds trigger_exit and removes trigger_active events from this object.
+-- These events can be read by doing: "self.trigger_exit['type_1']['type_2']"
+-- Every trigger event lasts 1 frame only, except for trigger_active ones which last however many frames there are between trigger_enter and trigger_exit events.
+function physics_world:physics_world_add_trigger_exit(a, b, contact)
+  if not self.trigger_exit[a.type] then self.trigger_exit[a.type] = {} end
+  if not self.trigger_exit[a.type][b.type] then self.trigger_exit[a.type][b.type] = {} end
+  if not self.trigger_active[a.type] then self.trigger_active[a.type] = {} end
+  if not self.trigger_active[a.type][b.type] then self.trigger_active[a.type][b.type] = {} end
+  table.insert(self.trigger_exit[a.type][b.type], {a, b, contact})
+  for i = #self.trigger_active[a.type][b.type], 1, -1 do
+    local c = self.trigger_active[a.type][b.type][i]
+    if c[1].id == a.id and c[2].id == b.id then
+      table.remove(self.trigger_active[a.type][b.type], i)
+    end
+  end
+end
+
 
 function physics_world:physics_world_set_meter(meter)
   love.physics.setMeter(meter)

@@ -366,10 +366,10 @@ function love.run()
       for _, x in ipairs(main.sound_objects) do x:sound_update(main.rate*main.slow_amount) end
       for _, x in ipairs(main.music_player_objects) do x:music_player_update(main.rate*main.slow_amount) end
       for _, x in ipairs(main.input_objects) do x:input_update(main.rate*main.slow_amount) end
+      main:physics_world_update(main.rate*main.slow_amount)
       for _, x in ipairs(main.area_objects) do x:area_update(main.rate*main.slow_amount) end
       for _, x in ipairs(main.observer_objects) do x:observer_update(main.rate*main.slow_amount) end
       for _, x in ipairs(main.timer_objects) do x:timer_update(main.rate*main.slow_amount) end
-      main:physics_world_update(main.rate*main.slow_amount)
       for _, x in ipairs(main.hitfx_objects) do x:hitfx_update(main.rate*main.slow_amount) end
       for _, x in ipairs(main.shake_objects) do x:shake_update(main.rate*main.slow_amount) end
       main.camera:camera_update(main.rate*main.slow_amount)
@@ -378,6 +378,7 @@ function love.run()
       for _, x in ipairs(main.area_objects) do x:area_update_vertices(main.rate*main.slow_amount) end
       for _, x in ipairs(main.collider_objects) do x:collider_post_update(main.rate*main.slow_amount) end
       for _, x in ipairs(main.stats_objects) do x:stats_post_update(main.rate*main.slow_amount) end
+      main:physics_world_post_update(main.rate*main.slow_amount)
       for _, x in ipairs(main.input_objects) do x:input_post_update(main.rate*main.slow_amount) end
       for i = #main.area_objects, 1, -1 do if main.area_objects[i].dead then table.remove(main.area_objects, i) end end
       for i = #main.collider_objects, 1, -1 do if main.collider_objects[i].dead then table.remove(main.collider_objects, i) end end
