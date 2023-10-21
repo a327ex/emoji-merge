@@ -7,6 +7,8 @@
 * Emojis shoot spikes/objects on merge
 * The arena is slightly expandable (side solids are dynamic but connected by joints at the bottom edges)
 * Freezes emojis it touches; frozen emojis get broken if an emoji of higher size hits them from above
+* Black hole: creates a hole that sucks emojis in
+* Resonance cascade: triggers an effect after N emojis are merged in a row
 
 ### General
 

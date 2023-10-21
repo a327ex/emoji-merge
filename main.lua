@@ -379,9 +379,13 @@ function arena:enter()
 
   -- Solids
   self.solid_top = self.objects:container_add(solid(main.w/2, -120, 2*self.w, 10))
+  self.objects:container_add(solid_cover(main.w/2, -120, 2*self.w, 10))
   self.solid_bottom = self.objects:container_add(solid(main.w/2, self.y2, self.w, 10))
+  self.objects:container_add(solid_cover(main.w/2, self.y2, self.w, 10))
   self.solid_left = self.objects:container_add(solid(self.x1, self.y2 - self.h/2, 10, self.h + 10))
+  self.objects:container_add(solid_cover(self.x1, self.y2 - self.h/2, 10, self.h + 10))
   self.solid_right = self.objects:container_add(solid(self.x2, self.y2 - self.h/2, 10, self.h + 10))
+  self.objects:container_add(solid_cover(self.x2, self.y2 - self.h/2, 10, self.h + 10))
   self.solid_left_joint = self.objects:container_add(joint('weld', self.solid_left, self.solid_bottom, self.x1, self.y2))
   self.solid_right_joint = self.objects:container_add(joint('weld', self.solid_right, self.solid_bottom, self.x2, self.y2))
 
@@ -461,6 +465,38 @@ function arena:update(dt)
   end
 
   -- Merge emojis
+  for _, c in ipairs(main:physics_world_get_collision_enter('emoji', 'emoji')) do
+    local a, b = c[1], c[2]
+    if not a.dead and not b.dead and a.has_dropped and b.has_dropped then
+      if a.value == b.value then
+        self:merge_emojis(a, b, c[3])
+      end
+    end
+  end
+
+  -- Apply moving force to plants
+  for _, c in ipairs(main:physics_world_get_trigger_enter('emoji', 'plant')) do
+    local a, b = c[1], c[2]
+    local vx, vy = a:collider_get_velocity()
+    b:apply_moving_force(vx, vy, 0.5*math.abs(math.max(vx, vy)))
+  end
+
+  -- Apply direct force to plants when hitting bottom solid
+  for _, c in ipairs(main:physics_world_get_collision_enter('emoji', 'solid')) do
+    local a, b = c[1], c[2]
+    local x, y = c[3]:getPositions()
+    if b.id == self.solid_bottom.id then
+      local plants = self:get_nearby_plants(x, y, 50)
+      for _, plant in ipairs(plants) do
+        local dx = a.x - plant.x
+        local vx, vy = a:collider_get_velocity()
+        if math.abs(vy) > 30 and plant.direction == 'up' then
+          local mass = a:collider_get_mass()
+          plant:apply_direct_force(-math.sign(dx), nil, 2*mass*math.remap(math.abs(dx), 0, 50, 75, 25))
+        end
+      end
+    end
+  end
 
   -- if self.emoji_to_be_dropped and not self.round_ending then bg:line(self.spawner.x - 24, self.spawner.y, self.spawner.x - 24, self.y2, self.emoji_line_color, 2) end
   
@@ -486,6 +522,7 @@ function arena:drop_emoji()
   self.spawner_emoji:collider_set_gravity_scale(1)
   self.spawner_emoji:collider_apply_impulse(0, 0.01)
   self.spawner_emoji.dropping = true
+  self.spawner_emoji.has_dropped = true
   self.spawner_emoji:observer_condition(function() return (self.spawner_emoji.collision_enter.emoji or self.spawner_emoji.collision_enter.solid) and self.spawner_emoji.dropping end, function()
     self.spawner_emoji.dropping = false
     self:choose_next_emoji()
@@ -499,44 +536,21 @@ function arena:choose_next_emoji()
 end
 
 
-function arena:merge_emojis()
-  --[[
-  -- do after merge
-  if self.vx and self.vy then
-    self:collider_apply_impulse(self.vx/3, self.vy/3)
-  end
-
-  -- emoji spawn
-  if self.next_emoji then self:collider_set_gravity_scale(1) end
-  if main.level.round_ending then self:die() end
-
-  -- emoji update 1
-  if self.follow_spawner then end
-  if self.dying and not self.dying_and_falling then
-    self:collider_set_velocity(0, 0)
-    self:collider_set_angular_velocity(0)
-  end
-  
-  -- emoji update 2 (merge)
-  -- If it's the second emoji's update and it has already been killed this frame by the collision, do nothing
-  -- If this emoji is attached to the spawner still, do nothing
-  -- If the round is ending, do nothing
-  if not self.dead and not self.follow_spawner and not main.level.round_ending then 
-    for other, contact in pairs(self.collision_enter['emoji'] or {}) do
-      if self.value == other.value and not other.follow_spawner then
-        local x, y = contact:getPositions()
-        self.dead = true
-        other.dead = true
-        main.level.objects:container_add(emoji_merge_effect(self.x, self.y, {emoji = self.emoji, r = self.r, sx = self.sx, sy = self.sy, target_x = x, target_y = y}))
-        main.level.objects:container_add(emoji_merge_effect(other.x, other.y, {emoji = other.emoji, r = other.r, sx = other.sx, sy = other.sy, target_x = x, target_y = y}))
-        local svx, svy = self:collider_get_velocity()
-        local ovx, ovy = other:collider_get_velocity()
-        main.level.score = main.level.score + value_to_emoji_data[self.value].score
-        main:timer_after(0.15, function() main.level.emojis:container_add(emoji(x, y, {from_merge = true, hitfx_on_spawn = true, value = self.value + 1, vx = (svx+ovx)/2, vy = (svy+ovy)/2})):drop() end)
-      end
-    end
-  end
-  ]]--
+function arena:merge_emojis(a, b, contact)
+  local x, y = contact:getPositions()
+  a.dead = true
+  b.dead = true
+  self.objects:container_add(emoji_merge_effect(a.x, a.y, {emoji = a.emoji, r = a.r, sx = a.sx, sy = a.sy, target_x = x, target_y = y}))
+  self.objects:container_add(emoji_merge_effect(b.x, b.y, {emoji = b.emoji, r = b.r, sx = b.sx, sy = b.sy, target_x = x, target_y = y}))
+  local avx, avy = a:collider_get_velocity()
+  local bvx, bvy = b:collider_get_velocity()
+  self.score = self.score + value_to_emoji_data[a.value].score
+  self:timer_after(0.15, function()
+    local emoji = self.emojis:container_add(emoji(x, y, {from_merge = true, hitfx_on_spawn = true, value = a.value + 1}))
+    emoji.has_dropped = true
+    emoji:collider_set_gravity_scale(1)
+    emoji:collider_apply_impulse((avx+bvx)/6, (avy+bvy)/6)
+  end)
 end
 
 function arena:end_round()
@@ -932,7 +946,9 @@ end
 function plant:apply_direct_force(vx, vy, force)
   local direction
   if self.direction == 'up' then direction = math.sign(vx)
-  elseif self.direction == 'left' or self.direction == 'right' then direction = math.sign(vy) end
+  elseif self.direction == 'down' then direction = -math.sign(vx)
+  elseif self.direction == 'left' then direction = -math.sign(vy)
+  elseif self.direction == 'right' then direction = math.sign(vy) end
 
   force = force + main:random_float(-force/3, force/3)
   self.applying_direct_force = true
@@ -944,7 +960,9 @@ end
 function plant:apply_moving_force(vx, vy, force)
   local direction
   if self.direction == 'up' then direction = math.sign(vx)
-  elseif self.direction == 'left' or self.direction == 'right' then direction = math.sign(vy) end
+  elseif self.direction == 'down' then direction = -math.sign(vx)
+  elseif self.direction == 'left' then direction = -math.sign(vy)
+  elseif self.direction == 'right' then direction = math.sign(vy) end
 
   self.applying_moving_force = true
   local f = math.remap(math.abs(force), 0, 200, 0, self.init_max_moving_wind_force_rv)
@@ -1069,6 +1087,25 @@ function solid:update(dt)
 end
 
 
+solid_cover = class:class_new(anchor)
+function solid_cover:new(x, y, w, h, args)
+  self:anchor_init('solid_cover', args)
+  self:prs_init(x, y)
+  self.w, self.h = w, h
+  self:hitfx_init()
+  self:timer_init()
+  self:shake_init()
+  self.gray_color = color(161, 161, 161)
+end
+
+function solid_cover:update(dt)
+  game3:push(self.x, self.y, self.r)
+  game3:rectangle(self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.w*self.springs.main.x, self.h*self.springs.main.x, 4, 4, 
+    (self.dying and self.gray_color) or (self.flashes.main.x and colors.white[0]) or (colors.green[0]))
+  game3:pop()
+end
+
+
 emoji_merge_effect = class:class_new(anchor)
 function emoji_merge_effect:new(x, y, args)
   self:anchor_init('emoji_merge_effect', args)
@@ -1177,6 +1214,7 @@ function emoji:new(x, y, args)
     end)
   end
 
+  self.has_dropped = false -- if the emoji has been dropped from the cloud, used to prevent the current .spawner_emoji from merging; merged emojis should have this set to true so they can merge again
   self:hitfx_add('drop', 1)
   self.drop_x, self.drop_y = 0, 0
 end
