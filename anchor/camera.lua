@@ -43,9 +43,13 @@ end
 -- If you look at camera:get_mouse_position you'll see that it uses this function on the values returned by love.mouse.getPosition (which return values in screen coordinates).
 -- :camera_get_world_coords(love.mouse.getPosition())
 function camera:camera_get_world_coords(x, y)
-  x, y = (x - main.sx*self.w/2)/main.sx*self.sx, (y - main.sy*self.h/2)/main.sy*self.sy
+  x, y = x/main.sx, y/main.sy
+  x, y = x - self.x, y - self.y
   x, y = x*math.cos(-self.r) - y*math.sin(-self.r), x*math.sin(-self.r) + y*math.cos(-self.r)
-  return self.x + x, self.y + y
+  x, y = x/self.sx, y/self.sy
+  x, y = x + self.x, y + self.y
+  x, y = x + (self.x - self.w/2)/self.sx, y + (self.y - self.h/2)/self.sy
+  return x, y
 end
 
 -- Returns the values passed in in local coordinates. This is useful when transforming things from world space to screen space, like when displaying UI according to the position of game objects.

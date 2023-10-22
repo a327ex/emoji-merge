@@ -38,7 +38,7 @@ function input:input_bind(action, controls)
   if not table.contains(self.input_actions, action) then table.insert(self.input_actions, action) end
 end
 
--- Binds all keyboard keys to their own actions, so you can easily say "input.a.pressed" without having to bind it for every key.
+-- Binds all keyboard and mouse keys to their own actions, so you can easily say "input.a.pressed" without having to bind it for every key.
 function input:input_bind_all()
   local controls = {
     'key:a', 'key:b', 'key:c', 'key:d', 'key:e', 'key:f', 'key:g', 'key:h', 'key:i', 'key:j', 'key:k', 'key:l', 'key:m', 'key:n', 'key:o',
@@ -49,7 +49,7 @@ function input:input_bind_all()
     'key:kp.', 'key:kp,', 'key:kp/', 'key:kp*', 'key:kp-', 'key:kp+', 'key:kpenter', 'key:kp=', 'key:up', 'key:down', 'key:right', 'key:left',
     'key:home', 'key:end', 'key:pageup', 'key:pagedown', 'key:insert', 'key:backspace', 'key:tab', 'key:clear', 'key:return', 'key:delete',
     'key:f1', 'key:f2', 'key:f3', 'key:f4', 'key:f5', 'key:f6', 'key:f7', 'key:f8', 'key:f9', 'key:f10', 'key:f11', 'key:f12',
-    'mouse:1', 'mouse:2', 'mouse:3', 'mouse:4', 'mouse:5',
+    'mouse:1', 'mouse:2', 'mouse:3', 'mouse:4', 'mouse:5', 'mouse:wheel_up', 'mouse:wheel_down',
   }
   for _, control in ipairs(controls) do
     self:input_bind(control:right(':'), {control})

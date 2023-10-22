@@ -113,6 +113,32 @@ function container:container_get_closest_object(x, y, condition)
   return self.objects[min_i]
 end
 
+-- Returns the object with the smallest .y position.
+-- "condition" is an optional function that receives an object and returns true if it should be considered for the calculation.
+function container:container_get_highest_object(condition)
+  local min_y, min_i = 1000000, -1
+  for i, object in ipairs(self.objects) do
+    if object.y < min_y and (not condition or (condition and condition(object))) then
+      min_y = object.y
+      min_i = i
+    end
+  end
+  return self.objects[min_i]
+end
+
+-- Returns the object with the biggest .y position.
+-- "condition" is an optional function that receives an object and returns true if it should be considered for the calculation.
+function container:container_get_lowest_object(condition)
+  local max_y, max_i = -1000000, -1
+  for i, object in ipairs(self.objects) do
+    if object.y > max_y and (not condition or (condition and condition(object))) then
+      max_y = object.y
+      max_i = i
+    end
+  end
+  return self.objects[max_i]
+end
+
 -- Returns all objects inside the circle of radius rs centered on x, y.
 -- enemies:get_objects_in_radius(0, 0, 20) -> returns all objects in the 0, 0 circle with radius 20.
 function container:container_get_objects_in_radius(x, y, rs)
