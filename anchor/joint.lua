@@ -58,6 +58,7 @@ function joint:revolute_joint_set_limits(lower, upper)
 end
 
 function joint:joint_destroy()
+  self.dead = true
   self.joint:destroy()
   self.joint = nil
 end

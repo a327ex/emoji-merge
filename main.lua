@@ -109,6 +109,7 @@ function init()
   images.chain = image('assets/chain.png')
   images.curving_arrow = image('assets/curving_arrow.png')
   images.blue_chain = image('assets/blue_chain.png')
+  images.retry = image('assets/retry.png')
   
   bg_gradient = gradient_image('vertical', color(0.5, 0.5, 0.5, 0), color(0, 0, 0, 0.3))
 
@@ -133,6 +134,7 @@ function init()
     purple = {1.41666, 1.18333, 1.78333},
     brown = {1.60833, 0.875, 0.65833},
   }
+  color_multipliers = {'black', 'yellow', 'yellow_original', 'yellow_star', 'orange', 'red', 'green', 'blue', 'blue_original', 'purple', 'brown'}
 
   value_to_emoji_data = {
     [1] = {emoji = 'slight_smile', rs = 9, score = 1, mass_multiplier = 1, stars = 2},
@@ -246,6 +248,7 @@ function arena:enter()
   self.next_right_chain = self.objects:container_add(emoji_chain('vine_chain', self.solid_top, self.next_board, self.next_board.x + 21, self.solid_top.y, self.next_board.x + 21, self.next_board.y - self.next_board.h/2))
   self.next_board:collider_apply_impulse(main:random_sign(50)*main:random_float(100, 200), 0)
 
+
   self:spawn_plants()
 
   -- Emojivolution objects
@@ -287,7 +290,7 @@ function arena:update(dt)
   bg_gradient:gradient_image_draw(bg_fixed, 0.5*main.w, 0.5*main.h, 2*main.w, 2*main.h)
 
   -- Spawner movement
-  if self.spawner then
+  if self.spawner and not self.round_ending then
     local left_offset, right_offset = 32, 16
     if self.spawner_emoji then
       left_offset = left_offset + self.spawner_emoji.rs
@@ -298,7 +301,7 @@ function arena:update(dt)
   end
 
   -- Spawner emoji movement
-  if self.spawner_emoji and not self.spawner_emoji.dropping then
+  if self.spawner_emoji and not self.spawner_emoji.dropping and not self.round_ending then
     self.spawner_emoji:collider_set_position(self.spawner.x - 24, self.spawner.y + self.spawner_emoji.rs)
     if main:input_is_pressed('action_1') then
       self:drop_emoji()
@@ -349,7 +352,17 @@ function arena:update(dt)
     end
   end
 
-  if main:input_is_pressed'k' then
+  -- Apply mouse movement to colliders
+  if self.score_ending and main:input_is_down'1' then
+    for _, object in ipairs(self.objects.objects) do
+      if (object:is('emoji_collider') or object:is('emoji_character') or object:is('chain_part')) and math.point_polygon(main.camera.mouse.x, main.camera.mouse.y, unpack(object:collider_get_vertices())) then
+        print(object)
+        object:collider_apply_force(100*main.camera.mouse_dt.x, 100*main.camera.mouse_dt.y, main.camera.mouse.x, main.camera.mouse.y)
+      end
+    end
+  end
+
+  if main:input_is_pressed'2' then
     self:end_round()
   end
 
@@ -411,6 +424,7 @@ end
 
 
 function arena:merge_emojis(a, b, contact)
+  if self.round_ending then return end
   local x, y = contact:getPositions()
   a.dead = true
   b.dead = true
@@ -428,74 +442,141 @@ function arena:merge_emojis(a, b, contact)
 end
 
 function arena:end_round()
+  if self.round_ending then return end
   self.round_ending = true
   self:timer_cancel('drop_emoji')
   self:timer_cancel('drop_safety')
   self:timer_cancel('merge_emojis')
 
   local top_emoji = self.emojis:container_get_highest_object(function(v) return v.id ~= self.spawner_emoji.id end)
-  table.sort(main.objects, function(a, b)
-    if a.x and b.x then
-      return math.distance(top_emoji.x, top_emoji.y, a.x, a.y) < math.distance(top_emoji.x, top_emoji.y, b.x, b.y)
-    end
-  end)
-
-  -- Turn objects black and white by setting .dying to true
-  local i = 1
+  local objects = {}
   for _, object in ipairs(main.objects) do
-    if object:is('board') or object:is('solid') or object:is('emoji') or object:is('plant') or object:is('chain_part') or object:is('evoji_emoji') then
-      self:timer_after(0.025*i, function()
-        if object.dying then return end
-        object.dying = true
-        object:hitfx_use('main', 0.25)
-        object:timer_after(0.15, function() object:shake_shake(4, 0.5) end)
-      end)
-      i = i + 1
+    if object:is('board') or object:is('solid') or object:is('emoji') or object:is('plant') or object:is('chain_part') or object:is('evoji_emoji') or object:is('spawner') then
+      table.insert(objects, object)
     end
   end
+  table.sort(objects, function(a, b) return math.distance(top_emoji.x, top_emoji.y, a.x, a.y) < math.distance(top_emoji.x, top_emoji.y, b.x, b.y) end)
 
-  --[[
+  -- Turn objects black and white by setting .dying to true
+  for i, object in ipairs(objects) do
+    self:timer_after(0.02*i, function()
+      if object.dying then return end
+      object.dying = true
+      if object:is('solid') or object:is('board') or object:is('evoji_emoji') then
+        object:hitfx_use('main', 0.125)
+        object:timer_after(0.15, function() object:shake_shake(2, 0.5) end)
+      else
+        object:hitfx_use('main', 0.25)
+        object:timer_after(0.15, function() object:shake_shake(4, 0.5) end)
+      end
+    end)
+  end
 
-  self:timer_after(0.025*i + 1, function()
-    for _, object in ipairs(main.objects) do
+  -- Prevent dying objects from moving
+  self:timer_run(function()
+    for _, object in ipairs(objects) do
+      if object.body then
+        object:collider_set_awake(false)
+      end
+    end
+  end, nil, 'prevent_dying_movement')
+
+  -- Make all objects fall
+  self:timer_after(0.02*#objects, function()
+    self:timer_cancel('prevent_dying_movement')
+
+    -- Remove joints
+    local solid_joints = {self.solid_left_joint, self.solid_right_joint}
+    main:random_table_remove(solid_joints):joint_destroy()
+    self:timer_after({0.5, 1.5}, function() main:random_table_remove(solid_joints):joint_destroy() end)
+    self:timer_after({1, 2}, function() self.best_chain:remove_random_joint() end)
+    local score_chains = {self.score_left_chain, self.score_right_chain}
+    self:timer_after({0, 1}, function()
+      main:random_table_remove(score_chains):remove_random_joint()
+      self:timer_after({0.5, 1.5}, function() main:random_table_remove(score_chains):remove_random_joint() end)
+    end)
+    local evoji_chains = {self.evoji_chain_left, self.evoji_chain_right}
+    self:timer_after({0, 1}, function()
+      main:random_table_remove(evoji_chains):remove_random_joint()
+      self:timer_after({0.5, 1.5}, function() main:random_table_remove(evoji_chains):remove_random_joint() end)
+    end)
+    local next_chains = {self.next_left_chain, self.next_right_chain}
+    self:timer_after({0, 1}, function()
+      main:random_table_remove(next_chains):remove_random_joint()
+      self:timer_after({0.5, 1.5}, function() main:random_table_remove(next_chains):remove_random_joint() end)
+    end)
+
+    -- Apply impulses
+    for _, object in ipairs(objects) do
       if object:is('solid') then
-        object:collider_set_body_type('dynamic')
         if object.id == self.solid_left.id then
+          object:collider_set_body_type('dynamic')
           object:collider_apply_impulse(-100, 0, object.x, object.y - object.h/4 + main:random_float(-object.h/8, object.h/8))
           object:collider_set_gravity_scale(main:random_float(0.3, 0.5))
         elseif object.id == self.solid_right.id then
+          object:collider_set_body_type('dynamic')
           object:collider_apply_impulse(100, 0, object.x, object.y - object.h/4 + main:random_float(-object.h/8, object.h/8))
           object:collider_set_gravity_scale(main:random_float(0.3, 0.5))
         elseif object.id == self.solid_bottom.id then
-          object:collider_set_gravity_scale(main:random_float(0.1, 0.3))
+          object:collider_set_body_type('dynamic')
+          object:collider_set_gravity_scale(main:random_float(0.3, 0.5))
         end
+
       elseif object:is('emoji') then
-        if self.emoji_to_be_dropped and object.id == self.emoji_to_be_dropped.id then object.follow_spawner = false end
-        if self.next_emoji and object.id == self.next_emoji.id then object.next_emoji = false end
-        object.dying_and_falling = true
+        local mass_multiplier = 4*object:collider_get_mass()
         object:collider_set_gravity_scale(main:random_float(0.8, 1.2))
-        object:collider_apply_impulse(main:random_float(-20, 20), main:random_float(-40, 0))
-        object:collider_apply_angular_impulse(main:random_float(-4*math.pi, 4*math.pi))
+        object:collider_apply_impulse(mass_multiplier*main:random_float(-20, 20), mass_multiplier*main:random_float(-40, 0))
+        object:collider_apply_angular_impulse(mass_multiplier*main:random_float(-4*math.pi, 4*math.pi))
+
       elseif object:is('spawner') then
-        object.dying_and_falling = true
         object:collider_set_gravity_scale(main:random_float(1, 1.2))
         local vx = main:random_float(-40, 40)
         object:collider_apply_impulse(vx, main:random_float(-60, -20))
         object:collider_apply_angular_impulse(-math.sign(vx)*main:random_float(-24*math.pi, -8*math.pi))
-      elseif object:is('emoji_character') then
-        object.dying_and_falling = true
-        object:collider_set_gravity_scale(main:random_float(1, 1.2))
-        local vx = main:random_float(-20, 20)
-        object:collider_apply_impulse(vx, main:random_float(-20, -10))
-        object:collider_apply_angular_impulse(-math.sign(vx)*main:random_float(-12*math.pi, -6*math.pi))
+
+      elseif object:is('plant') and not object.board then
+        object:collider_set_body_type('dynamic')
+        object:collider_set_gravity_scale(main:random_float(0.1, 0.3))
+        object:collider_apply_impulse(main:random_float(-10, 10), main:random_float(-10, 0))
+        object:collider_apply_angular_impulse(main:random_float(-12*math.pi, 12*math.pi))
+        object:timer_after({0.2, 1}, function()
+          object:timer_every(0.05, function() object.hidden = not object.hidden end, 7, true, function() object.dead = true end)
+        end)
       end
     end
-  end, 'end_round_timer_1')
+  end)
 
-  self:timer_after(4.5, function()
-    main:level_goto('main_menu')
-  end, 'end_round_timer_2')
-  --]]
+  -- Spawn score
+  self:timer_after(0.02*#objects + 4, function()
+    self.score_ending = true
+
+    local text = 'score ' .. '9999'
+    local x = -40*utf8.len(text)
+    for i = 1, utf8.len(text) do
+      local c = utf8.sub(text, i, i)
+      if c == ' ' then
+        x = x + 40
+      else
+        local character = emoji_character(x + main:random_float(-2, 2), main.h/2 + 48 + main:random_float(-8, 8), {character = c, color = 'blue_original', w = 32})
+        character:collider_set_angle(main:random_float(-math.pi/8, math.pi/8))
+        character:collider_apply_angular_impulse(main:random_float(-math.pi, math.pi))
+        character:collider_apply_impulse(48 - i, 0)
+        self:timer_after(4, function() character:collider_set_damping(0.5) end)
+        self.objects:container_add(character)
+        x = x + 40
+      end
+    end
+
+    local retry_button = emoji_collider(main.w + 64 + main:random_float(-2, 2), main.h/2 - 48 + main:random_float(-8, 8), {emoji = 'retry', w = 64})
+    retry_button:collider_apply_angular_impulse(main:random_sign(50)*main:random_float(48, 96)*math.pi)
+    retry_button:collider_apply_impulse(-128, 0)
+    self:timer_after(4, function() 
+      retry_button:collider_set_damping(0.5)
+      retry_button:collider_set_angular_damping(0.5)
+    end)
+    self.objects:container_add(retry_button)
+    self.objects:container_add(text_chain('retry', retry_button, retry_button.x + retry_button.w/2, retry_button.y, 16))
+  end)
 end
 --}}}
 
@@ -503,7 +584,7 @@ end
 --{{{ boards + chains
 board = class:class_new(anchor)
 function board:new(board_type, x, y, args)
-  self:anchor_init('score_board', args)
+  self:anchor_init('board', args)
   self.board_type = board_type
   if self.board_type == 'score' then
     self.emoji = images.red_board
@@ -590,6 +671,11 @@ function emoji_chain:update(dt)
 
 end
 
+function emoji_chain:remove_random_joint()
+  local joint = main:random_table_remove(self.joints)
+  joint:joint_destroy()
+end
+
 
 text_chain = class:class_new(anchor)
 function text_chain:new(text, collider, x, y, chain_part_size, args)
@@ -622,6 +708,7 @@ function text_chain:new(text, collider, x, y, chain_part_size, args)
     joint:revolute_joint_set_limits(0, 0)
   end
   for _, chain_part in ipairs(self.chain_parts) do
+    chain_part:collider_set_gravity_scale(0)
     chain_part:collider_set_mass(chain_part:collider_get_mass()*0.05)
   end
 end
@@ -842,6 +929,8 @@ function plant:plant_update(dt)
     self.constant_wind_r = 0.2*math.sin(1.4*main.time + 0.01*self.y)
   end
 
+  if self.dying then self.constant_wind_r = 0 end
+
   if self.applying_wind_stream then
     self.random_wind_rv = math.min(self.random_wind_rv + main:random_float(0.6, 1.4)*self.random_wind_ra*dt, self.max_random_wind_rv)
     self.random_wind_r = self.random_wind_r + main:random_float(0.6, 1.4)*self.random_wind_rv*dt
@@ -869,6 +958,7 @@ function plant:plant_update(dt)
 end
 
 function plant:plant_draw()
+  if self.hidden then return end
   if self.direction == 'up' or self.direction == 'down' then
     self.layer:push(self.x, self.y + self.h/2, self.r + self.constant_wind_r + self.random_wind_r + self.moving_wind_force_r + self.direct_wind_force_r)
       self.layer:draw_image(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, 0, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0],
@@ -959,6 +1049,8 @@ function board_plant:update(dt)
   self:apply_moving_force(-vx, 0, 5*vx)
   self:collider_set_position(self.x, self.y)
 
+  if self.dying then self.constant_wind_r = 0 end
+
   if self.direction == 'up' or self.direction == 'down' then
     local r_ox, r_oy = 0, self.h/2
     if self.emoji_type == 'sheaf' then r_ox, r_oy = -self.flip_sx*0.21*self.w, self.h/2 end
@@ -974,37 +1066,13 @@ end
 
 
 --{{{ misc + effects
-emoji_text = class:class_new(anchor)
-function emoji_text:new(text, x, y, args)
-  self:anchor_init('emoji_text', args)
-  self:prs_init(x, y)
-  self.text = text
-  self.character_size = self.character_size or 24
-  self.character_spacing = self.character_spacing or 6
-  self.text_length = utf8.len(self.text)
-  self.w, self.h = self.character_size*self.text_length + self.character_spacing*(self.text_length-1), self.character_size
-
-  self.characters = {}
-  local x = self.x - self.w/2 + self.character_size/2
-  for i = 1, utf8.len(self.text) do
-    local c = utf8.sub(self.text, i, i)
-    table.insert(self.characters, emoji_character(x, self.y, {character = c, color = self.color, w = self.character_size}))
-    x = x + (self.character_size + self.character_spacing)
-  end
-end
-
-function emoji_text:update(dt)
-  for _, character in ipairs(self.characters) do character:update(dt) end
-end
-
-
 emoji_character = class:class_new(anchor)
 function emoji_character:new(x, y, args)
   self:anchor_init('emoji_character', args)
   self.emoji = images[self.character]
   self.color = self.color or 'blue_original'
   self:prs_init(x, y, 0, self.w/self.emoji.w, self.w/self.emoji.h)
-  self:collider_init('ghost', 'dynamic', 'rectangle', self.w, self.w)
+  self:collider_init('emoji', 'dynamic', 'rectangle', self.w, self.w)
   self:collider_set_gravity_scale(0)
   self:hitfx_init()
   self:timer_init()
@@ -1013,7 +1081,7 @@ end
 
 function emoji_character:update(dt)
   self:collider_update_position_and_angle()
-  draw_emoji_character(ui2, self.character, self.x + self.shake_amount.x, self.y + self.shake_amount.y + self.oy, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, 
+  draw_emoji_character(game2, self.character, self.x + self.shake_amount.x, self.y + self.shake_amount.y + self.oy, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, 
     (self.flashes.main.x and 'white') or (self.dying and 'gray') or self.color)
 end
 
@@ -1023,12 +1091,23 @@ function emoji_character:change_effect()
   self:timer_tween(0.2, self, {oy = 0}, math.linear, function() self.oy = 0 end, 'oy')
 end
 
-function emoji_character:die()
-  if self.dying then return end
-  self.dying = true
+
+emoji_collider = class:class_new(anchor)
+function emoji_collider:new(x, y, args)
+  self:anchor_init('emoji_collider', args)
+  self.emoji = images[self.emoji]
+  self:prs_init(x, y, 0, self.w/self.emoji.w, self.w/self.emoji.h)
+  self:collider_init('emoji', 'dynamic', 'rectangle', self.w, self.w)
   self:collider_set_gravity_scale(0)
-  self:hitfx_use('main', 0.25, nil, nil, 0.15)
-  self:timer_after(0.15, function() self:shake_shake(4, 0.5) end)
+  self:hitfx_init()
+  self:timer_init()
+  self:shake_init()
+end
+
+function emoji_collider:update(dt)
+  self:collider_update_position_and_angle()
+  game2:draw_image(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0], 
+    (self.dying and shaders.grayscale) or (self.flashes.main.x and shaders.combine))
 end
 
 
@@ -1162,6 +1241,7 @@ function spawner:new(x, y, args)
 end
 
 function spawner:update(dt)
+  self:collider_update_position_and_angle()
   game1:push(self.drop_x, self.drop_y, 0, self.springs.drop.x, self.springs.drop.x)
     game1:draw_image(images.cloud, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0], 
       (self.dying and shaders.grayscale) or (self.flashes.main.x and shaders.combine))

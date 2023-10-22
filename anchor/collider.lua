@@ -305,6 +305,12 @@ function collider:collider_set_sleeping_allowed(v)
   self.body:setSleepingAllowed(v)
 end
 
+-- Sets the collider to sleep or not.
+-- self:collider_set_awake(false)
+function collider:collider_set_awake(v)
+  self.body:setAwake(v)
+end
+
 -- Locks the collider horizontally, meaning it can never move up or down.
 -- Call this after calling other movement functions.
 -- self:collider_lock_horizontally()
