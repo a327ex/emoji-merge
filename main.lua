@@ -35,7 +35,7 @@ function init()
   shaders.multiply_emoji = shader(nil, 'assets/multiply_emoji.frag')
   shaders.multiply_emoji:shader_send('multiplier', {1, 1, 1})
 
-  main:input_set_mouse_visible(false)
+  -- main:input_set_mouse_visible(false)
   -- main:input_set_mouse_locked(true)
 
   frames = {}
@@ -110,8 +110,16 @@ function init()
   images.curving_arrow = image('assets/curving_arrow.png')
   images.blue_chain = image('assets/blue_chain.png')
   images.retry = image('assets/retry.png')
+  images.index = image('assets/index.png')
+  images.sound = image('assets/sound.png')
+  images.no_sound = image('assets/no_sound.png')
+  images.screen = image('assets/screen.png')
   
   bg_gradient = gradient_image('vertical', color(0.5, 0.5, 0.5, 0), color(0, 0, 0, 0.3))
+
+  sfx = sound_tag{volume = 0.5}
+  music = sound_tag{volume = 0.5}
+
 
   main:physics_world_set_gravity(0, 360)
   main:physics_world_set_callbacks()
@@ -153,6 +161,22 @@ function init()
   main:level_add('classic_arena', arena())
   main:level_goto('classic_arena')
   main.pointer:hitfx_init()
+  main.sound_enabled = true
+  main.sound_button = emoji_button(20, main.h - 20, {emoji = 'sound', w = 18, action = function(self)
+    main.sound_enabled = not main.sound_enabled
+    if main.sound_enabled then
+      self.emoji = images.sound
+      sfx.volume = 0.5
+      music.volume = 0.5
+    else
+      self.emoji = images.no_sound
+      sfx.volume = 0
+      music.volume = 0
+    end
+  end})
+  main.screen_button = emoji_button(48, main.h - 20, {emoji = 'screen', w = 18, action = function(self)
+
+  end})
 end
 
 function draw_emoji_character(layer, character, x, y, r, sx, sy, ox, oy, color)
@@ -205,6 +229,13 @@ function update(dt)
   if main.transitioning then
     ui2:circle(main.w/2, main.h/2, main.transition_rs, colors.yellow[0])
   end
+
+  local s = 18/images.index.w
+  ui2:draw_image(images.index, main.camera.mouse.x + 6, main.camera.mouse.y + 6, -math.pi/6, s*main.pointer.springs.main.x, s*main.pointer.springs.main.x, 0, 0, colors.white[0], (main.pointer.flashes.main.x and shaders.combine))
+  if main:input_is_pressed'action_1' then main.pointer:hitfx_use(0.5) end
+
+  main.sound_button:update(dt)
+  main.screen_button:update(dt)
 end
 --}}}
 
@@ -234,7 +265,6 @@ function arena:enter()
   self.solid_right = self.objects:container_add(solid(self.x2, self.y2 - self.h/2, 10, self.h + 10))
   self.solid_left_joint = self.objects:container_add(joint('weld', self.solid_left, self.solid_bottom, self.x1, self.y2))
   self.solid_right_joint = self.objects:container_add(joint('weld', self.solid_right, self.solid_bottom, self.x2, self.y2))
-
 
   -- Boards
   self.score = 0
@@ -361,15 +391,15 @@ function arena:update(dt)
   if self.score_ending then
     for _, object in ipairs(self.objects.objects) do
       if (object:is('emoji_collider') or object:is('emoji_character') or object:is('chain_part')) and object.pointer_active then
-        if main:input_is_pressed'1' then
+        if main:input_is_pressed'action_1' then
           self.held_object = object
           object:hitfx_use('main', 0.25)
         end
         if object.pointer_enter then object:hitfx_use('main', 0.125) end
       end
     end
-    if main:input_is_released'1' then self.held_object = nil end
-    if self.held_object and main:input_is_down'1' then
+    if main:input_is_released'action_1' then self.held_object = nil end
+    if self.held_object and main:input_is_down'action_1' then
       self.held_object:collider_set_angular_damping(4)
       local d = math.remap(math.distance(main.camera.mouse.x, main.camera.mouse.y, self.held_object.x, self.held_object.y), 0, 300, 64, 16)
       self.held_object:collider_apply_force(d*main.camera.mouse_dt.x, d*main.camera.mouse_dt.y, self.held_object.x, self.held_object.y)
@@ -384,7 +414,7 @@ function arena:update(dt)
       self.retry_button.hot = false
     end
 
-    if self.retry_button.hot and main:input_is_pressed'1' then
+    if self.retry_button.hot and main:input_is_pressed'action_1' then
       self.retry_button:hitfx_use('main', 0.25, nil, nil, 0.15)
       self:timer_after(0.066, function() self.retry_chain:flash_text() end)
       main.transitioning = true
@@ -1186,6 +1216,28 @@ end
 
 
 --{{{ misc + effects
+emoji_button = class:class_new(anchor)
+function emoji_button:new(x, y, args)
+  self:anchor_init('emoji_button', args)
+  self.emoji = images[self.emoji]
+  self:prs_init(x, y, 0, self.w/self.emoji.w, self.w/self.emoji.h)
+  self:area_init('rectangle', self.w, self.w)
+  self:hitfx_init()
+  self:timer_init()
+end
+
+function emoji_button:update(dt)
+  if self.pointer_enter then
+    self:hitfx_use('main', 0.25)
+  end
+  if self.pointer_active and main:input_is_pressed'action_1' then
+    self:hitfx_use('main', 0.5, nil, nil, 0.15)
+    self:action()
+  end
+  game3:draw_image(self.emoji, self.x, self.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0], self.flashes.main.x and shaders.combine)
+end
+
+
 emoji_character = class:class_new(anchor)
 function emoji_character:new(x, y, args)
   self:anchor_init('emoji_character', args)
