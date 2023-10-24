@@ -2,7 +2,7 @@ require 'anchor'
 
 --{{{ init
 function init()
-  main:init{title = 'super emoji merge', theme = 'twitter_emoji', w = 640, h = 360, sx = 2.5, sy = 2.5}
+  main:init{title = 'emoji merge', theme = 'twitter_emoji', w = 640, h = 360, sx = 2.5, sy = 2.5}
 
   bg, bg_fixed, game1, game2, game3, effects, ui1, ui2, shadow = layer(), layer({fixed = true}), layer(), layer(), layer(), layer(), layer({fixed = true}), layer({fixed = true}), layer({x = 4*main.sx, y = 4*main.sy, shadow = true})
   game1:layer_add_canvas('outline')
@@ -35,7 +35,7 @@ function init()
   shaders.multiply_emoji = shader(nil, 'assets/multiply_emoji.frag')
   shaders.multiply_emoji:shader_send('multiplier', {1, 1, 1})
 
-  -- main:input_set_mouse_visible(false)
+  main:input_set_mouse_visible(false)
   -- main:input_set_mouse_locked(true)
 
   frames = {}
@@ -152,6 +152,7 @@ function init()
 
   main:level_add('classic_arena', arena())
   main:level_goto('classic_arena')
+  main.pointer:hitfx_init()
 end
 
 function draw_emoji_character(layer, character, x, y, r, sx, sy, ox, oy, color)
@@ -201,7 +202,9 @@ function main:draw_all_layers_to_main_layer()
 end
 
 function update(dt)
-  if main:input_is_pressed'f11' then love.event.restart() end
+  if main.transitioning then
+    ui2:circle(main.w/2, main.h/2, main.transition_rs, colors.yellow[0])
+  end
 end
 --}}}
 
@@ -232,6 +235,7 @@ function arena:enter()
   self.solid_left_joint = self.objects:container_add(joint('weld', self.solid_left, self.solid_bottom, self.x1, self.y2))
   self.solid_right_joint = self.objects:container_add(joint('weld', self.solid_right, self.solid_bottom, self.x2, self.y2))
 
+
   -- Boards
   self.score = 0
   self.score_board = self.objects:container_add(board('score', self.score_x, 120))
@@ -247,7 +251,6 @@ function arena:enter()
   self.next_left_chain = self.objects:container_add(emoji_chain('vine_chain', self.solid_top, self.next_board, self.next_board.x - 21, self.solid_top.y, self.next_board.x - 21, self.next_board.y - self.next_board.h/2))
   self.next_right_chain = self.objects:container_add(emoji_chain('vine_chain', self.solid_top, self.next_board, self.next_board.x + 21, self.solid_top.y, self.next_board.x + 21, self.next_board.y - self.next_board.h/2))
   self.next_board:collider_apply_impulse(main:random_sign(50)*main:random_float(100, 200), 0)
-
 
   self:spawn_plants()
 
@@ -280,14 +283,16 @@ function arena:enter()
   self.curving_chain = self.objects:container_add(emoji_chain('blue_chain', self.curving_arrow, e, self.curving_arrow.x, self.curving_arrow.y + self.curving_arrow.h/2, e.x, e.y - e.rs))
 
   self.spawner = self.objects:container_add(spawner())
-  self.emoji_line_color = colors.blue[0]:color_clone()
-  self.emoji_line_color.a = 0.32
+  self.emoji_line_color = colors.green[0]:color_clone()
+  self.emoji_line_color.a = 0.16
   self:choose_next_emoji()
 end
 
 function arena:update(dt)
   bg:rectangle(main.w/2, main.h/2, 3*main.w, 3*main.h, 0, 0, colors.fg[0])
+  bg_fixed:push(0.5*main.w, 0.5*main.h, -math.pi/6)
   bg_gradient:gradient_image_draw(bg_fixed, 0.5*main.w, 0.5*main.h, 2*main.w, 2*main.h)
+  bg_fixed:pop()
 
   -- Spawner movement
   if self.spawner and not self.round_ending then
@@ -353,19 +358,51 @@ function arena:update(dt)
   end
 
   -- Apply mouse movement to colliders
-  if self.score_ending and main:input_is_down'1' then
+  if self.score_ending then
     for _, object in ipairs(self.objects.objects) do
-      if (object:is('emoji_collider') or object:is('emoji_character') or object:is('chain_part')) and math.point_polygon(main.camera.mouse.x, main.camera.mouse.y, unpack(object:collider_get_vertices())) then
-        print(object)
-        object:collider_apply_force(100*main.camera.mouse_dt.x, 100*main.camera.mouse_dt.y, main.camera.mouse.x, main.camera.mouse.y)
+      if (object:is('emoji_collider') or object:is('emoji_character') or object:is('chain_part')) and object.pointer_active then
+        if main:input_is_pressed'1' then
+          self.held_object = object
+          object:hitfx_use('main', 0.25)
+        end
+        if object.pointer_enter then object:hitfx_use('main', 0.125) end
       end
+    end
+    if main:input_is_released'1' then self.held_object = nil end
+    if self.held_object and main:input_is_down'1' then
+      self.held_object:collider_set_angular_damping(4)
+      local d = math.remap(math.distance(main.camera.mouse.x, main.camera.mouse.y, self.held_object.x, self.held_object.y), 0, 300, 64, 16)
+      self.held_object:collider_apply_force(d*main.camera.mouse_dt.x, d*main.camera.mouse_dt.y, self.held_object.x, self.held_object.y)
+    end
+  end
+
+  -- Retry button hot
+  if self.score_ending then
+    if self.retry_button.pointer_active then
+      self.retry_button.hot = true
+    else
+      self.retry_button.hot = false
+    end
+
+    if self.retry_button.hot and main:input_is_pressed'1' then
+      self.retry_button:hitfx_use('main', 0.25, nil, nil, 0.15)
+      self:timer_after(0.066, function() self.retry_chain:flash_text() end)
+      main.transitioning = true
+      main.transition_rs = 0
+      main:timer_after(0.066*7, function()
+        main:timer_tween(0.8, main, {transition_rs = 0.75*main.w}, math.cubic_in_out, function()
+          main:timer_after(1, function()
+            main:level_goto('classic_arena')
+            main:timer_tween(0.8, main, {transition_rs = 0}, math.cubic_in_out, function() main.transitioning = false end)
+          end)
+        end)
+      end)
     end
   end
 
   if main:input_is_pressed'2' then
     self:end_round()
   end
-
   
   self.emojis:container_update(dt)
   self.plants:container_update(dt)
@@ -376,20 +413,40 @@ function arena:update(dt)
 end
 
 function arena:exit()
-  --[[
-  self.emoji_to_be_dropped = nil
-  self.spawner = nil
+  self.solid_top = nil
   self.solid_bottom = nil
   self.solid_left = nil
   self.solid_right = nil
+  self.solid_left_joint = nil
   self.score_board = nil
+  self.score_left_chain = nil
+  self.score_right_chain = nil
+  self.best_board = nil
+  self.best_chain = nil
+  self.next_board = nil
+  self.next_left_chain = nil
+  self.next_right_chain = nil
+  self.next_board = nil
+  self.curving_arrow = nil
+  self.evoji_emojis = nil
+  self.joints = nil
+  self.evoji_chain_left = nil
+  self.evoji_chain_right = nil
+  self.curving_chain = nil
+  self.spawner = nil
+  self.spawner_emoji = nil
   self.round_ending = false
-  self:timer_cancel('end_round_timer_1')
-  self:timer_cancel('end_round_timer_2')
-  self:timer_cancel('end_round_observer')
+  self.score_ending = false
+  self.retry_button = nil
+  self.retry_chain = nil
+  self.final_score_chain = nil
+  self.plants:container_destroy()
   self.emojis:container_destroy()
   self.objects:container_destroy()
-  ]]--
+  self.plants = nil
+  self.emojis = nil
+  self.objects = nil
+  main:container_remove_dead_without_destroying()
 end
 
 function arena:drop_emoji()
@@ -536,8 +593,8 @@ function arena:end_round()
 
       elseif object:is('plant') and not object.board then
         object:collider_set_body_type('dynamic')
-        object:collider_set_gravity_scale(main:random_float(0.1, 0.3))
-        object:collider_apply_impulse(main:random_float(-10, 10), main:random_float(-10, 0))
+        object:collider_set_gravity_scale(main:random_float(0.1, 0.6))
+        object:collider_apply_impulse(main:random_float(-5, 5), main:random_float(-5, 0))
         object:collider_apply_angular_impulse(main:random_float(-12*math.pi, 12*math.pi))
         object:timer_after({0.2, 1}, function()
           object:timer_every(0.05, function() object.hidden = not object.hidden end, 7, true, function() object.dead = true end)
@@ -550,7 +607,9 @@ function arena:end_round()
   self:timer_after(0.02*#objects + 4, function()
     self.score_ending = true
 
-    local text = 'score ' .. '9999'
+    local text = 'score ' .. self.score
+    self.final_score_chain = text_roped_chain(text, -46*utf8.len(text), main.h/2 + 48)
+    --[[
     local x = -40*utf8.len(text)
     for i = 1, utf8.len(text) do
       local c = utf8.sub(text, i, i)
@@ -566,16 +625,17 @@ function arena:end_round()
         x = x + 40
       end
     end
+    ]]--
 
-    local retry_button = emoji_collider(main.w + 64 + main:random_float(-2, 2), main.h/2 - 48 + main:random_float(-8, 8), {emoji = 'retry', w = 64})
-    retry_button:collider_apply_angular_impulse(main:random_sign(50)*main:random_float(48, 96)*math.pi)
-    retry_button:collider_apply_impulse(-128, 0)
+    self.retry_button = emoji_collider(main.w + 64 + main:random_float(-2, 2), main.h/2 - 48 + main:random_float(-8, 8), {emoji = 'retry', w = 64})
+    self.retry_button:collider_apply_angular_impulse(main:random_sign(50)*main:random_float(48, 96)*math.pi)
+    self.retry_button:collider_apply_impulse(-128, 0)
     self:timer_after(4, function() 
-      retry_button:collider_set_damping(0.5)
-      retry_button:collider_set_angular_damping(0.5)
+      self.retry_button:collider_set_damping(0.5)
+      self.retry_button:collider_set_angular_damping(0.5)
     end)
-    self.objects:container_add(retry_button)
-    self.objects:container_add(text_chain('retry', retry_button, retry_button.x + retry_button.w/2, retry_button.y, 16))
+    self.objects:container_add(self.retry_button)
+    self.retry_chain = self.objects:container_add(text_chain('retry', self.retry_button, self.retry_button.x + self.retry_button.w/2, self.retry_button.y, 16))
   end)
 end
 --}}}
@@ -676,10 +736,17 @@ function emoji_chain:remove_random_joint()
   joint:joint_destroy()
 end
 
+function emoji_chain:set_gravity_scale(g)
+  for _, chain_part in ipairs(self.chain_parts) do
+    chain_part:collider_set_gravity_scale(g)
+  end
+end
+
 
 text_chain = class:class_new(anchor)
 function text_chain:new(text, collider, x, y, chain_part_size, args)
   self:anchor_init('text_chain', args)
+  self:timer_init()
   self.text = text
   self.x, self.y = x, y
 
@@ -717,6 +784,57 @@ function text_chain:update(dt)
 
 end
 
+function text_chain:flash_text()
+  for i, chain_part in ipairs(self.chain_parts) do
+    self:timer_after((i-1)*0.066, function()
+      chain_part:hitfx_use('main', 0.5, nil, nil, 0.15)
+    end)
+  end
+end
+
+
+text_roped_chain = class:class_new(anchor)
+function text_roped_chain:new(text, x, y, args)
+  self:anchor_init('text_roped_chain', args)
+  self.text = text
+  self.x, self.y = x, y
+
+  self.characters = {}
+  local x = self.x
+  for i = 1, utf8.len(self.text) do
+    local c = utf8.sub(self.text, i, i)
+    if c == ' ' then
+      x = x + 38
+    else
+      local character = emoji_character(x, main.h/2 + 48, {character = c, color = 'blue_original', w = 32})
+      table.insert(self.characters, character)
+      main.level.objects:container_add(character)
+      x = x + 48
+    end
+  end
+
+  self.chains = {}
+  for i, character in ipairs(self.characters) do
+    local next_character = self.characters[i+1]
+    if next_character then
+      local chain = main.level.objects:container_add(emoji_chain('blue_chain', character, next_character, character.x + character.w/2, character.y, next_character.x - next_character.w/2, next_character.y, 
+        {chain_part_size = 9}))
+      table.insert(self.chains, chain)
+      chain:set_gravity_scale(0)
+    end
+  end
+
+  for _, character in ipairs(self.characters) do
+    character:collider_apply_angular_impulse(main:random_float(8, 12)*main:random_float(math.pi/2, math.pi))
+    character:collider_apply_impulse(48, 0)
+    character:timer_after(4, function() character:collider_set_damping(0.5) end)
+  end
+end
+
+function text_roped_chain:update(dt)
+
+end
+
 
 chain_part = class:class_new(anchor)
 function chain_part:new(emoji, x, y, args)
@@ -725,10 +843,12 @@ function chain_part:new(emoji, x, y, args)
     self.emoji = emoji
     self:prs_init(x, y, self.r, self.w/images[emoji].w, self.w/images[emoji].h)
     self:collider_init('solid', 'dynamic', 'rectangle', self.w, self.w)
+    self:area_init('rectangle', self.w, self.w)
   else 
     self.emoji = images[emoji or 'chain']
     self:prs_init(x, y, self.r, self.w/self.emoji.w, self.w/self.emoji.h)
     self:collider_init('solid', 'dynamic', 'rectangle', self.w, self.w/2)
+    self:area_init('rectangle', self.w, self.w/2)
   end
   self:collider_set_damping(0.2)
   self:collider_set_angle(self.r)
@@ -1074,6 +1194,7 @@ function emoji_character:new(x, y, args)
   self:prs_init(x, y, 0, self.w/self.emoji.w, self.w/self.emoji.h)
   self:collider_init('emoji', 'dynamic', 'rectangle', self.w, self.w)
   self:collider_set_gravity_scale(0)
+  self:area_init('rectangle', self.w, self.w)
   self:hitfx_init()
   self:timer_init()
   self:shake_init()
@@ -1099,15 +1220,38 @@ function emoji_collider:new(x, y, args)
   self:prs_init(x, y, 0, self.w/self.emoji.w, self.w/self.emoji.h)
   self:collider_init('emoji', 'dynamic', 'rectangle', self.w, self.w)
   self:collider_set_gravity_scale(0)
+  self:area_init('rectangle', self.w, self.w)
   self:hitfx_init()
   self:timer_init()
   self:shake_init()
+  self.hot_offset = 0
+  self.hot_animation = animation_logic(0.08, 4, 'bounce', {
+    [1] = function() self.hot_offset = 0 end,
+    [2] = function() self.hot_offset = 2 end,
+    [3] = function() self.hot_offset = 4 end,
+    [4] = function() self.hot_offset = 6 end,
+  })
 end
 
 function emoji_collider:update(dt)
+  self.hot_animation:animation_logic_update(dt)
   self:collider_update_position_and_angle()
+
   game2:draw_image(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0], 
     (self.dying and shaders.grayscale) or (self.flashes.main.x and shaders.combine))
+  if self.hot and not main.transitioning then
+    game3:push(self.x, self.y, self.r, self.springs.main.x, self.springs.main.x)
+    local x1, y1, x2, y2 = self.x - 1.3*self.w/2 + self.hot_offset, self.y - 1.3*self.h/2 + self.hot_offset, self.x + 1.3*self.w/2 - self.hot_offset, self.y + 1.3*self.h/2 - self.hot_offset
+    game3:line(x1, y1, x1 + 6, y1, colors.fg[0], 2)
+    game3:line(x1, y1, x1, y1 + 6, colors.fg[0], 2)
+    game3:line(x2 - 6, y1, x2, y1, colors.fg[0], 2)
+    game3:line(x2, y1, x2, y1 + 6, colors.fg[0], 2)
+    game3:line(x2 - 6, y2, x2, y2, colors.fg[0], 2)
+    game3:line(x2, y2, x2, y2 - 6, colors.fg[0], 2)
+    game3:line(x1, y2 - 6, x1, y2, colors.fg[0], 2)
+    game3:line(x1, y2, x1 + 6, y2, colors.fg[0], 2)
+    game3:pop()
+  end
 end
 
 
@@ -1118,6 +1262,7 @@ function evoji_emoji:new(x, y, args)
     self.emoji = images[self.emoji]
     self:prs_init(x, y, 0, 2*self.rs/self.emoji.w, 2*self.rs/self.emoji.h)
     self:collider_init('solid', 'dynamic', 'circle', self.rs)
+    self:area_init('circle', self.rs)
     self:collider_set_restitution(1)
     self:collider_set_mass(self:collider_get_mass()*0.1)
     self:collider_set_damping(0.1)
@@ -1127,6 +1272,7 @@ function evoji_emoji:new(x, y, args)
     self.w, self.h = self.w or 48, self.h or 48
     self:prs_init(x, y, 0, self.w/self.emoji.w, self.h/self.emoji.h)
     self:collider_init('solid', 'dynamic', 'rectangle', self.w*0.95, self.h*0.95)
+    self:area_init('rectangle', 0.95*self.w, 0.95*self.h)
     self:collider_set_restitution(1)
     self:collider_set_mass(self:collider_get_mass()*0.1)
     self:collider_set_damping(0.25)
@@ -1258,6 +1404,7 @@ function emoji:new(x, y, args)
   self.stars = value_to_emoji_data[self.value].stars
   self:prs_init(x, y, 0, 2*self.rs/self.emoji.w, 2*self.rs/self.emoji.h)
   self:collider_init('emoji', 'dynamic', 'circle', self.rs)
+  self:area_init('circle', self.rs)
   self:collider_set_restitution(0.1)
   self:collider_set_gravity_scale(0)
   self:collider_set_mass(value_to_emoji_data[self.value].mass_multiplier*self:collider_get_mass())

@@ -59,8 +59,10 @@ end
 
 function joint:joint_destroy()
   self.dead = true
-  self.joint:destroy()
-  self.joint = nil
+  if self.joint and not self.joint:isDestroyed() then
+    self.joint:destroy()
+    self.joint = nil
+  end
 end
 
 return joint
