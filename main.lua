@@ -290,7 +290,6 @@ function arena:enter()
   self.plants = container()
   self.objects = container()
   self.merge_objects = {}
-  self.emoji_scores = {}
   self.chain_amount = 0
 
   -- Solids
@@ -463,13 +462,6 @@ function arena:update(dt)
     end
   end
 
-  -- Remove dead emoji scores
-  for i = #self.emoji_scores, 1, -1 do
-    if self.emoji_scores[i].dead then
-      table.remove(self.emoji_scores, i)
-    end
-  end
-
   --[[
   if main:input_is_pressed'2' then
     self:end_round()
@@ -513,7 +505,6 @@ function arena:exit()
   self.retry_chain = nil
   self.final_score_chain = nil
   self.merge_objects = nil
-  self.emoji_scores = nil
   self.plants:container_destroy()
   self.emojis:container_destroy()
   self.objects:container_destroy()
@@ -569,17 +560,14 @@ function arena:merge_emojis(a, b, x, y)
   local avx, avy = a:collider_get_velocity()
   local bvx, bvy = b:collider_get_velocity()
   self.chain_amount = self.chain_amount + 1
-  local added_score = value_to_emoji_data[a.value].score*self.chain_amount
+  local added_score = value_to_emoji_data[a.value].score
   self.score = self.score + added_score
   self:timer_after(1, function() self.chain_amount = 0 end, 'chain_amount')
-  local chain_amount = self.chain_amount
-
 
   if a.value < 11 and b.value < 11 then
     local merge_object = self.objects:container_add(anchor('merge_object'):timer_init():action(function() end))
     table.insert(self.merge_objects, merge_object)
     merge_object:timer_after(0.15, function()
-      table.insert(self.emoji_scores, self.objects:container_add(emoji_score(x, y, {text = tostring(added_score), chain_amount = chain_amount})))
       local emoji = self.emojis:container_add(emoji(x, y, {from_merge = true, hitfx_on_spawn = 1, value = a.value + 1}))
       emoji.has_dropped = true
       emoji:collider_set_gravity_scale(1)
@@ -1286,51 +1274,6 @@ end
 
 
 --{{{ misc + effects
-emoji_score = class:class_new(anchor)
-function emoji_score:new(x, y, args)
-  self:anchor_init('emoji_score', args)
-
-  local chain_amount_to_w = {14, 16, 18, 22, 28}
-  self.color = 'blue_original'
-  self.character_w = math.remap(self.chain_amount, 1, 8, 14, 36)
-  self.duration = math.remap(self.chain_amount, 1, 8, 1, 3)*main:random_float(0.3, 0.4)
-
-  self:prs_init(x, y, 0, self.character_w/images.star.w, self.character_w/images.star.h)
-  -- self.y = self.y - #main.level.emoji_scores*1.5*self.character_w
-  self:timer_init()
-  self:hitfx_init()
-  self:hitfx_use('main', 0.5)
-
-  self.characters = {}
-  for i = 1, utf8.len(self.text) do
-    local c = utf8.sub(self.text, i, i)
-    table.insert(self.characters, {character = c, r = main:random_float(-math.pi/16, math.pi/16), vr = main:random_float(-math.pi/4, math.pi/4), oy = 0})
-  end
-  self.chain_amount_r = main:random_float(0, math.pi/16)
-
-  self.vy = -24*math.remap(self.chain_amount, 1, 8, 0.5, 2)
-  self:timer_after(self.duration, function()
-    self:timer_tween(self.duration/2, self, {sx = 0, sy = 0}, math.cubic_in, function() self.dead = true end)
-  end)
-end
-
-function emoji_score:update(dt)
-  for i, c in ipairs(self.characters) do c.oy = 2.5*math.sin(main.time + i) end
-  -- self.y = self.y + self.vy*dt
-
-  local w, h = #self.characters*self.character_w, self.character_w
-  local x, y = self.x - 0.5*w, self.y
-  for i, c in ipairs(self.characters) do
-    draw_emoji_character(game3, c.character, x + (i-1)*self.character_w + self.character_w/2, y + c.oy, c.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, self.color)
-  end
-  if self.chain_amount > 1 and self.chain_amount < 10 then
-    draw_emoji_character(game3, 'x', x + w + 8, y + self.characters[1].oy - h/2, self.chain_amount_r, self.sx*0.4*self.springs.main.x, self.sy*0.4*self.springs.main.x, 0, 0, self.color)
-    draw_emoji_character(game3, tostring(self.chain_amount), x + w + 8 + self.character_w*0.5, y + self.characters[1].oy - h*0.45, self.chain_amount_r, 
-      self.sx*0.5*self.springs.main.x, self.sy*0.5*self.springs.main.x, 0, 0, self.color)
-  end
-end
-
-
 emoji_button = class:class_new(anchor)
 function emoji_button:new(x, y, args)
   self:anchor_init('emoji_button', args)
