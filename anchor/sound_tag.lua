@@ -5,6 +5,7 @@ local sound_tag = class:class_new()
 function sound_tag:sound_tag_init(args)
   self.volume = args and args.volume or 1
   self.effects = args and args.effects
+  return self
 end
 
 return sound_tag

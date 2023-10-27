@@ -134,7 +134,7 @@ function main:init(args)
     main.display = 1
     main.borderless = false
     main.resizable = false
-    love.window.setMode(main.w*main.sx, main.h*main.sy, {borderless = false, minwidth = main.w, minheight = main.h, resizable = false})
+    love.window.setMode(main.w*main.sx, main.h*main.sy, {borderless = false, minwidth = main.w, minheight = main.h, resizable = true})
     love.window.setTitle(main.title)
     main:layer_init()
     main.camera = camera(main.w/2, main.h/2)
@@ -153,7 +153,7 @@ function main:init(args)
       main.display = flags.displayindex
       main.borderless = true
       main.resizable = false
-      main:calculate_main_scale(desktop_w, desktop_h)
+      main:resize(desktop_w, desktop_h)
       love.window.setMode(main.w*main.sx, main.h*main.sy, {borderless = true, minwidth = main.w, minheight = main.h, resizable = false})
       love.window.setTitle(main.title)
       main:layer_init()
@@ -174,13 +174,14 @@ function main:init(args)
       main:layer_init()
       main.camera = camera(main.w/2, main.h/2)
     end
-    self:set_graphics_state()
+    self:update_mode_and_set_window_state()
   end
 
   self:set_theme(args.theme)
 end
 
-function main:calculate_main_scale(w, h)
+-- Resizes the game's canvas to the given width and height while maintaining the same aspect ratio.
+function main:resize(w, h)
   if w/main.w == h/main.h then -- can multiply on x and y by the same value
     main.rx, main.ry = 0, 0
     main.sx, main.sy = w/main.w, h/main.h
@@ -189,7 +190,17 @@ function main:calculate_main_scale(w, h)
     main.rx, main.ry = w-scale*main.w, h-scale*main.h -- remainder on both x and y to be used later for letterboxing
     main.sx, main.sy = scale, scale
   end
-  self:set_graphics_state()
+  self:update_mode_and_set_window_state()
+end
+
+-- Resizes the game's canvas by s (defaults to 1) on both x and y scales.
+-- If the value goes beyond what the current display can support then it wraps down to the lowest value possible.
+function main:resize_up(s)
+  local sx, sy = main.sx + s or 1, main.sy + s or 1
+  local _, _, flags = love.window.getMode()
+  local wx, wy = love.window.getDesktopDimensions(flags.displayindex)
+  if main.w*sx > wx or main.h*sy > wy then sx, sy = 1, 1 end
+  main:resize(main.w*sx, main.h*sy)
 end
 
 -- Redefine this function from game's side if needed for more complex layer drawing with shader effects and so on.
@@ -218,7 +229,21 @@ function main:save_state()
   main:save_table('game_state.txt', main.game_state)
 end
 
-function main:set_graphics_state()
+function main:update_mode_and_set_window_state()
+  local _, _, flags = love.window.getMode()
+  local wx, wy = love.window.getDesktopDimensions(flags.displayindex)
+  if main.w*main.sx == wx and main.h*main.sy == wy then
+    main.borderless = true
+    main.resizable = false
+    main.logical_fullscreen = true
+  else
+    main.borderless = false
+    main.resizable = true
+    main.logical_fullscreen = false
+  end
+  main.display = flags.displayindex
+  love.window.updateMode(main.w*main.sx, main.h*main.sy, {borderless = main.borderless, resizable = main.resizable, displayindex = main.display})
+
   main.device_state.sx, main.device_state.sy = main.sx, main.sy
   main.device_state.rx, main.device_state.ry = main.rx, main.ry
   main.device_state.display = main.display
@@ -307,6 +332,10 @@ function main:set_theme(theme)
   end
   love.graphics.setBackgroundColor(unpack(colors.bg[0]:color_to_table()))
   love.graphics.setColor(unpack(colors.fg[0]:color_to_table()))
+end
+
+function main:quit()
+  love.event.quit()
 end
 
 
