@@ -29,6 +29,7 @@ anchor = class:class_new()
 function anchor:new(type, t) if t then for k, v in pairs(t) do self[k] = v end end; self.type = type end
 function anchor:anchor_init(type, t) if t then for k, v in pairs(t) do self[k] = v end end; self.type = type; return self end
 function anchor:is(type) return self.type == type end
+function anchor:init(f) f(self); return self end
 function anchor:action(f) self.update = f; return self end
 
 anchor:class_add(require('anchor.animation'))
@@ -46,6 +47,8 @@ function color(r, g, b, a) return anchor('color'):color_init(r, g, b, a) end
 anchor:class_add(require('anchor.color_ramp'))
 function color_ramp(color, step) return anchor('color_ramp'):color_ramp_init(color, step) end
 anchor:class_add(require('anchor.color_sequence'))
+anchor:class_add(require('anchor.contact'))
+function contact(c) return anchor('contact'):contact_init(c) end
 anchor:class_add(require('anchor.container'))
 function container() return anchor('container'):container_init() end
 anchor:class_add(require('anchor.duration'))

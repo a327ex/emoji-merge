@@ -11,7 +11,6 @@ function init()
   effects:layer_add_canvas('outline')
   ui2:layer_add_canvas('outline')
 
-  font_1 = font('assets/fusion-pixel-12px-monospaced-latin.ttf', 12, 'mono')
   font_2 = font('assets/volkswagen-serial-bold.ttf', 26, 'mono')
   font_3 = font('assets/volkswagen-serial-bold.ttf', 36, 'mono')
   font_4 = font('assets/volkswagen-serial-bold.ttf', 46, 'mono')
@@ -180,7 +179,48 @@ function init()
   main.screen_button = emoji_button(48, main.h - 20, {emoji = 'screen', w = 18, action = function(self) main:resize_up(0.5) end})
   main.close_button = emoji_button(main.w - 20, 20, {emoji = 'close', w = 18, action = function(self) main:quit() end})
   main.stars = {}
-  -- TODO: stars + score text effect and multiplier + sounds
+  main.distance_to_top = 294
+  local r = math.pi/6 + math.pi
+  local w, h = main.w/8, main.h/6
+  for j = 1, 8 do
+    for i = 1, 10 do
+      local x_offset = 0
+      if j % 2 == 0 then x_offset = w/2 end
+      table.insert(main.stars, anchor('background_star'):init(function(self)
+        self:prs_init((i-1)*w + x_offset, (j-1)*h, main:random_angle(), 32/images.star_gray.w, 32/images.star_gray.w)
+      end):action(function(self, dt)
+        local v = math.remap(main.distance_to_top, 0, 294, 16, 4)
+        local vr = math.remap(main.distance_to_top, 0, 294, -0.2*math.pi, -0.05*math.pi)
+        self.x = self.x + v*math.cos(r)*dt
+        self.y = self.y + v*math.sin(r)*dt
+        self.r = self.r + vr*dt
+        if self.x <= -80 then self.x = main.w + 80 end
+        if self.y <= -60 then self.y = main.h + 60 end
+        bg:draw_image(images.star_gray, self.x, self.y, self.r, self.sx, self.sy)
+      end))
+    end
+  end
+end
+
+function update(dt)
+  bg:rectangle(main.w/2, main.h/2, 3*main.w, 3*main.h, 0, 0, colors.fg[0])
+  bg_fixed:push(0.5*main.w, 0.5*main.h, -math.pi/6)
+  bg_gradient:gradient_image_draw(bg_fixed, 0.5*main.w, 0.5*main.h, 2*main.w, 2*main.h)
+  bg_fixed:pop()
+
+  if main.transitioning then ui2:circle(main.w/2, main.h/2, main.transition_rs, colors.yellow[0]) end
+
+  if not main.transitioning then
+    local s = 18/images.index.w
+    ui2:draw_image(images.index, main.camera.mouse.x + 6, main.camera.mouse.y + 6, -math.pi/6, s*main.pointer.springs.main.x, s*main.pointer.springs.main.x, 0, 0, colors.white[0], (main.pointer.flashes.main.x and shaders.combine))
+  end
+  if main:input_is_pressed'action_1' then main.pointer:hitfx_use(0.5) end
+
+  main.sound_button:update(dt)
+  main.screen_button:update(dt)
+  if main.logical_fullscreen then main.close_button:update(dt) end
+
+  for _, star in ipairs(main.stars) do star:update(dt) end
 end
 
 function draw_emoji_character(layer, character, x, y, r, sx, sy, ox, oy, color)
@@ -229,22 +269,6 @@ function main:draw_all_layers_to_main_layer()
     ui2:layer_draw()
   end)
 end
-
-function update(dt)
-  if main.transitioning then ui2:circle(main.w/2, main.h/2, main.transition_rs, colors.yellow[0]) end
-
-  if not main.transitioning then
-    local s = 18/images.index.w
-    ui2:draw_image(images.index, main.camera.mouse.x + 6, main.camera.mouse.y + 6, -math.pi/6, s*main.pointer.springs.main.x, s*main.pointer.springs.main.x, 0, 0, colors.white[0], (main.pointer.flashes.main.x and shaders.combine))
-  end
-  if main:input_is_pressed'action_1' then main.pointer:hitfx_use(0.5) end
-
-  main.sound_button:update(dt)
-  main.screen_button:update(dt)
-  if main.logical_fullscreen then main.close_button:update(dt) end
-
-  for _, star in ipairs(main.stars) do star:update(dt) end
-end
 --}}}
 
 
@@ -258,6 +282,7 @@ function arena:new(x, y, args)
   self.w, self.h = 252, 294
   self.x1, self.y1, self.x2, self.y2 = main.w/2 - self.w/2, self.top_spacing, main.w/2 + self.w/2, main.h - self.bottom_spacing
   self.score_x, self.next_x = (self.x1-5)/2, self.x2 + 5 + (main.w - (self.x2 + 5))/2 + 1
+  self.chain_amount = 0
 end
 
 function arena:enter()
@@ -265,6 +290,8 @@ function arena:enter()
   self.plants = container()
   self.objects = container()
   self.merge_objects = {}
+  self.emoji_scores = {}
+  self.chain_amount = 0
 
   -- Solids
   self.solid_top = self.objects:container_add(solid(main.w/2, -120, 2*self.w, 10))
@@ -326,11 +353,6 @@ function arena:enter()
 end
 
 function arena:update(dt)
-  bg:rectangle(main.w/2, main.h/2, 3*main.w, 3*main.h, 0, 0, colors.fg[0])
-  bg_fixed:push(0.5*main.w, 0.5*main.h, -math.pi/6)
-  bg_gradient:gradient_image_draw(bg_fixed, 0.5*main.w, 0.5*main.h, 2*main.w, 2*main.h)
-  bg_fixed:pop()
-
   -- Spawner movement
   if self.spawner and not self.round_ending then
     local left_offset, right_offset = 0, 0
@@ -356,7 +378,7 @@ function arena:update(dt)
     local a, b = c[1], c[2]
     if not a.dead and not b.dead and a.has_dropped and b.has_dropped then
       if a.value == b.value then
-        self:merge_emojis(a, b, c[3])
+        self:merge_emojis(a, b, c[3], c[4])
       end
     end
   end
@@ -371,7 +393,7 @@ function arena:update(dt)
   -- Apply direct force to plants when hitting bottom solid
   for _, c in ipairs(main:physics_world_get_collision_enter('emoji', 'solid')) do
     local a, b = c[1], c[2]
-    local x, y = c[3]:getPositions()
+    local x, y = c[3], c[4]
     if b.id == self.solid_bottom.id then
       local plants = self:get_nearby_plants(x, y, 50)
       for _, plant in ipairs(plants) do
@@ -387,6 +409,10 @@ function arena:update(dt)
 
   -- Round end condition
   if not self.round_ending then
+    local top_emoji = self.emojis:container_get_highest_object(function(v) return v.id ~= self.spawner_emoji.id end)
+    if top_emoji then main.distance_to_top = top_emoji.y - self.y1
+    else main.distance_to_top = self.y2 - self.y1 end
+
     for _, emoji in ipairs(self.emojis.objects) do
       if emoji.y < self.y1 and emoji.id ~= self.spawner_emoji.id and not emoji.dropping then
         self:end_round()
@@ -437,9 +463,18 @@ function arena:update(dt)
     end
   end
 
+  -- Remove dead emoji scores
+  for i = #self.emoji_scores, 1, -1 do
+    if self.emoji_scores[i].dead then
+      table.remove(self.emoji_scores, i)
+    end
+  end
+
+  --[[
   if main:input_is_pressed'2' then
     self:end_round()
   end
+  ]]--
   
   self.emojis:container_update(dt)
   self.plants:container_update(dt)
@@ -478,6 +513,7 @@ function arena:exit()
   self.retry_chain = nil
   self.final_score_chain = nil
   self.merge_objects = nil
+  self.emoji_scores = nil
   self.plants:container_destroy()
   self.emojis:container_destroy()
   self.objects:container_destroy()
@@ -524,21 +560,26 @@ function arena:choose_next_emoji()
   self.next_board:hitfx_use('emoji', 0.5)
 end
 
-function arena:merge_emojis(a, b, contact)
+function arena:merge_emojis(a, b, x, y)
   if self.round_ending then return end
-  local x, y = contact:getPositions()
   a.dead = true
   b.dead = true
   self.objects:container_add(emoji_merge_effect(a.x, a.y, {emoji = a.emoji, r = a.r, sx = a.sx, sy = a.sy, target_x = x, target_y = y}))
   self.objects:container_add(emoji_merge_effect(b.x, b.y, {emoji = b.emoji, r = b.r, sx = b.sx, sy = b.sy, target_x = x, target_y = y}))
   local avx, avy = a:collider_get_velocity()
   local bvx, bvy = b:collider_get_velocity()
-  self.score = self.score + value_to_emoji_data[a.value].score
+  self.chain_amount = self.chain_amount + 1
+  local added_score = value_to_emoji_data[a.value].score*self.chain_amount
+  self.score = self.score + added_score
+  self:timer_after(1, function() self.chain_amount = 0 end, 'chain_amount')
+  local chain_amount = self.chain_amount
+
 
   if a.value < 11 and b.value < 11 then
     local merge_object = self.objects:container_add(anchor('merge_object'):timer_init():action(function() end))
     table.insert(self.merge_objects, merge_object)
     merge_object:timer_after(0.15, function()
+      table.insert(self.emoji_scores, self.objects:container_add(emoji_score(x, y, {text = tostring(added_score), chain_amount = chain_amount})))
       local emoji = self.emojis:container_add(emoji(x, y, {from_merge = true, hitfx_on_spawn = 1, value = a.value + 1}))
       emoji.has_dropped = true
       emoji:collider_set_gravity_scale(1)
@@ -592,7 +633,7 @@ function arena:end_round()
   end, nil, 'prevent_dying_movement')
 
   -- Make all objects fall
-  self:timer_after(0.02*#objects + 2, function()
+  self:timer_after(0.02*#objects + 0.5, function()
     self:timer_cancel('prevent_dying_movement')
 
     -- Remove joints
@@ -618,6 +659,7 @@ function arena:end_round()
 
     -- Apply impulses
     for _, object in ipairs(objects) do
+      if not object.body then goto continue end -- BUG: when the game ends and the arena is filled it happened once that an emoji object didn't have a body anymore, don't know why so this is here
       if object:is('solid') then
         if object.id == self.solid_left.id then
           object:collider_set_body_type('dynamic')
@@ -653,11 +695,12 @@ function arena:end_round()
           object:timer_every(0.05, function() object.hidden = not object.hidden end, 7, true, function() object.dead = true end)
         end)
       end
+      ::continue::
     end
   end)
 
   -- Spawn score
-  self:timer_after(0.02*#objects + 6, function()
+  self:timer_after(0.02*#objects + 4, function()
     self.score_ending = true
 
     local text = 'score ' .. self.score
@@ -1243,6 +1286,51 @@ end
 
 
 --{{{ misc + effects
+emoji_score = class:class_new(anchor)
+function emoji_score:new(x, y, args)
+  self:anchor_init('emoji_score', args)
+
+  local chain_amount_to_w = {14, 16, 18, 22, 28}
+  self.color = 'blue_original'
+  self.character_w = math.remap(self.chain_amount, 1, 8, 14, 36)
+  self.duration = math.remap(self.chain_amount, 1, 8, 1, 3)*main:random_float(0.3, 0.4)
+
+  self:prs_init(x, y, 0, self.character_w/images.star.w, self.character_w/images.star.h)
+  -- self.y = self.y - #main.level.emoji_scores*1.5*self.character_w
+  self:timer_init()
+  self:hitfx_init()
+  self:hitfx_use('main', 0.5)
+
+  self.characters = {}
+  for i = 1, utf8.len(self.text) do
+    local c = utf8.sub(self.text, i, i)
+    table.insert(self.characters, {character = c, r = main:random_float(-math.pi/16, math.pi/16), vr = main:random_float(-math.pi/4, math.pi/4), oy = 0})
+  end
+  self.chain_amount_r = main:random_float(0, math.pi/16)
+
+  self.vy = -24*math.remap(self.chain_amount, 1, 8, 0.5, 2)
+  self:timer_after(self.duration, function()
+    self:timer_tween(self.duration/2, self, {sx = 0, sy = 0}, math.cubic_in, function() self.dead = true end)
+  end)
+end
+
+function emoji_score:update(dt)
+  for i, c in ipairs(self.characters) do c.oy = 2.5*math.sin(main.time + i) end
+  -- self.y = self.y + self.vy*dt
+
+  local w, h = #self.characters*self.character_w, self.character_w
+  local x, y = self.x - 0.5*w, self.y
+  for i, c in ipairs(self.characters) do
+    draw_emoji_character(game3, c.character, x + (i-1)*self.character_w + self.character_w/2, y + c.oy, c.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, self.color)
+  end
+  if self.chain_amount > 1 and self.chain_amount < 10 then
+    draw_emoji_character(game3, 'x', x + w + 8, y + self.characters[1].oy - h/2, self.chain_amount_r, self.sx*0.4*self.springs.main.x, self.sy*0.4*self.springs.main.x, 0, 0, self.color)
+    draw_emoji_character(game3, tostring(self.chain_amount), x + w + 8 + self.character_w*0.5, y + self.characters[1].oy - h*0.45, self.chain_amount_r, 
+      self.sx*0.5*self.springs.main.x, self.sy*0.5*self.springs.main.x, 0, 0, self.color)
+  end
+end
+
+
 emoji_button = class:class_new(anchor)
 function emoji_button:new(x, y, args)
   self:anchor_init('emoji_button', args)
@@ -1496,7 +1584,7 @@ function emoji:new(x, y, args)
   self:prs_init(x, y, 0, 2*self.rs/self.emoji.w, 2*self.rs/self.emoji.h)
   self:collider_init('emoji', 'dynamic', 'circle', self.rs)
   self:area_init('circle', self.rs)
-  self:collider_set_restitution(0.1)
+  self:collider_set_restitution(0.2)
   self:collider_set_gravity_scale(0)
   self:collider_set_mass(value_to_emoji_data[self.value].mass_multiplier*self:collider_get_mass())
   self:timer_init()
@@ -1527,9 +1615,11 @@ function emoji:update(dt)
   self:collider_update_position_and_angle()
   if self.pointer_active and main:input_is_pressed'action_1' then
     self:hitfx_use('main', 0.25)
+    --[[
     for i = 1, main:random_int(2, 3) do 
       main.level.objects:container_add(emoji_particle('star', main.camera.mouse.x, main.camera.mouse.y, {hitfx_on_spawn_no_flash = 0.75, r = main:random_angle(), rotation_v = main:random_float(-2*math.pi, 2*math.pi)}))
     end
+    ]]--
   end
   game2:push(self.drop_x, self.drop_y, 0, self.springs.drop.x, self.springs.drop.x)
     game2:draw_image(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0], 

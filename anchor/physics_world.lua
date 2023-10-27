@@ -47,21 +47,23 @@ function physics_world:physics_world_set_callbacks(callback_type, tag_or_type)
       if not oa or not ob then return end
       if fa:isSensor() and fb:isSensor() then
         if collider then
-          if fa:isSensor() then self:physics_world_collider_add_trigger_enter(oa, ob, c) end
-          if fb:isSensor() then self:physics_world_collider_add_trigger_enter(ob, oa, c) end
+          if fa:isSensor() then self:physics_world_collider_add_trigger_enter(oa, ob) end
+          if fb:isSensor() then self:physics_world_collider_add_trigger_enter(ob, oa) end
         end
         if world then
-          if fa:isSensor() then self:physics_world_add_trigger_enter(oa, ob, c) end
-          if fb:isSensor() then self:physics_world_add_trigger_enter(ob, oa, c) end
+          if fa:isSensor() then self:physics_world_add_trigger_enter(oa, ob) end
+          if fb:isSensor() then self:physics_world_add_trigger_enter(ob, oa) end
         end
       elseif not fa:isSensor() and not fb:isSensor() then
+        local x1, y1, x2, y2 = c:getPositions()
+        local nx, ny = c:getNormal() 
         if collider then
-          self:physics_world_collider_add_collision_enter(oa, ob, c)
-          self:physics_world_collider_add_collision_enter(ob, oa, c)
+          self:physics_world_collider_add_collision_enter(oa, ob, x1, y1, x2, y2, nx, ny)
+          self:physics_world_collider_add_collision_enter(ob, oa, x1, y1, x2, y2, nx, ny)
         end
         if world then
-          self:physics_world_add_collision_enter(oa, ob, c)
-          self:physics_world_add_collision_enter(ob, oa, c)
+          self:physics_world_add_collision_enter(oa, ob, x1, y1, x2, y2, nx, ny)
+          self:physics_world_add_collision_enter(ob, oa, x1, y1, x2, y2, nx, ny)
         end
       end
     end,
@@ -78,13 +80,15 @@ function physics_world:physics_world_set_callbacks(callback_type, tag_or_type)
           if fb:isSensor() then self:physics_world_add_trigger_exit(ob, oa, c) end
         end
       elseif not fa:isSensor() and not fb:isSensor() then
+        local x1, y1, x2, y2 = c:getPositions()
+        local nx, ny = c:getNormal() 
         if collider then
-          self:physics_world_collider_add_collision_exit(oa, ob, c)
-          self:physics_world_collider_add_collision_exit(ob, oa, c)
+          self:physics_world_collider_add_collision_exit(oa, ob, x1, y1, x2, y2, nx, ny)
+          self:physics_world_collider_add_collision_exit(ob, oa, x1, y1, x2, y2, nx, ny)
         end
         if world then
-          self:physics_world_add_collision_exit(oa, ob, c)
-          self:physics_world_add_collision_exit(ob, oa, c)
+          self:physics_world_add_collision_exit(oa, ob, x1, y1, x2, y2, nx, ny)
+          self:physics_world_add_collision_exit(ob, oa, x1, y1, x2, y2, nx, ny)
         end
       end
     end,
@@ -163,54 +167,57 @@ function physics_world:physics_world_disable_trigger_between(tag1, tags)
 end
 
 -- Adds collision_enter and collision_active events to the target collider.
--- These events can be read by doing: "for other, contact in pairs(self.collision_enter['other_type']) do"
+-- These events can be read by doing: "self.collision_enter['other_type']" on the target collider.
 -- Every collision event lasts 1 frame only, except for collision_active ones which last however many frames there are between collision_enter and collision_exit events.
-function physics_world:physics_world_collider_add_collision_enter(target, other, contact)
+function physics_world:physics_world_collider_add_collision_enter(target, other, x1, y1, x2, y2, xn, yn)
   local other_type = (self.tag_or_type == 'tag' and other.physics_tag) or (self.tag_or_type == 'type' and other.type)
   if not target.collision_enter[other_type] then target.collision_enter[other_type] = {} end
   if not target.collision_active[other_type] then target.collision_active[other_type] = {} end
-  table.insert(target.collision_enter[other_type], {other, contact})
-  target.collision_enter[other_type][other] = contact
-  target.collision_active[other_type][other] = target.id
+  table.insert(target.collision_enter[other_type], {other, x1, y1, x2, y2, xn, yn})
+  table.insert(target.collision_active[other_type], {other, x1, y1, x2, y2, xn, yn})
 end
 
 -- Adds collision_exit and removes collision_active events from the target collider.
--- These events can be read by doing: "for other, contact in pairs(self.collision_exit['other_type']) do"
+-- These events can be read by doing: "self.collision_exit['other_type']" on the target collider.
 -- Every collision event lasts 1 frame only, except for collision_active ones which last however many frames there are between collision_enter and collision_exit events.
-function physics_world:physics_world_collider_add_collision_exit(target, other, contact)
+function physics_world:physics_world_collider_add_collision_exit(target, other, x1, y1, x2, y2, xn, yn)
   local other_type = (self.tag_or_type == 'tag' and other.physics_tag) or (self.tag_or_type == 'type' and other.type)
   if not target.collision_exit[other_type] then target.collision_exit[other_type] = {} end
   if not target.collision_active[other_type] then target.collision_active[other_type] = {} end
-  table.insert(target.collision_exit[other_type], {other, contact})
-  target.collision_exit[other_type][other] = contact
-  target.collision_active[other_type][other] = false
+  table.insert(target.collision_exit[other_type], {other, x1, y1, x2, y2, xn, yn})
+  for i = #target.collision_active[other_type], 1, -1 do
+    local c = target.collision_active[other_type][i]
+    if c[1].id == other.id then
+      table.remove(target.collision_active[other_type], i)
+    end
+  end
 end
 
 -- Adds collision_enter and collision_active events to this object.
 -- These events can be read by doing: "self.collision_enter['type_1']['type_2']"
 -- Every collision event lasts 1 frame only, except for collision_active ones which last however many frames there are between collision_enter and collision_exit events.
-function physics_world:physics_world_add_collision_enter(a, b, contact)
+function physics_world:physics_world_add_collision_enter(a, b, x1, y1, x2, y2, xn, yn)
   local a_type = (self.tag_or_type == 'tag' and a.physics_tag) or (self.tag_or_type == 'type' and a.type)
   local b_type = (self.tag_or_type == 'tag' and b.physics_tag) or (self.tag_or_type == 'type' and b.type)
   if not self.collision_enter[a_type] then self.collision_enter[a_type] = {} end
   if not self.collision_enter[a_type][b_type] then self.collision_enter[a_type][b_type] = {} end
   if not self.collision_active[a_type] then self.collision_active[a_type] = {} end
   if not self.collision_active[a_type][b_type] then self.collision_active[a_type][b_type] = {} end
-  table.insert(self.collision_enter[a_type][b_type], {a, b, contact})
-  table.insert(self.collision_active[a_type][b_type], {a, b, contact})
+  table.insert(self.collision_enter[a_type][b_type], {a, b, x1, y1, x2, y2, xn, yn})
+  table.insert(self.collision_active[a_type][b_type], {a, b, x1, y1, x2, y2, xn, yn})
 end
 
 -- Adds collision_exit and removes collision_active events from this object.
 -- These events can be read by doing: "self.collision_exit['type_1']['type_2']"
 -- Every collision event lasts 1 frame only, except for collision_active ones which last however many frames there are between collision_enter and collision_exit events.
-function physics_world:physics_world_add_collision_exit(a, b, contact)
+function physics_world:physics_world_add_collision_exit(a, b, x1, y1, x2, y2, xn, yn)
   local a_type = (self.tag_or_type == 'tag' and a.physics_tag) or (self.tag_or_type == 'type' and a.type)
   local b_type = (self.tag_or_type == 'tag' and b.physics_tag) or (self.tag_or_type == 'type' and b.type)
   if not self.collision_exit[a_type] then self.collision_exit[a_type] = {} end
   if not self.collision_exit[a_type][b_type] then self.collision_exit[a_type][b_type] = {} end
   if not self.collision_active[a_type] then self.collision_active[a_type] = {} end
   if not self.collision_active[a_type][b_type] then self.collision_active[a_type][b_type] = {} end
-  table.insert(self.collision_exit[a_type][b_type], {a, b, contact})
+  table.insert(self.collision_exit[a_type][b_type], {a, b, x1, y1, x2, y2, xn, yn})
   for i = #self.collision_active[a_type][b_type], 1, -1 do
     local c = self.collision_active[a_type][b_type][i]
     if c[1].id == a.id and c[2].id == b.id then
@@ -246,28 +253,28 @@ end
 -- Adds trigger_enter and trigger_active events to this object.
 -- These events can be read by doing: "self.trigger_enter['type_1']['type_2']"
 -- Every trigger event lasts 1 frame only, except for trigger_active ones which last however many frames there are between trigger_enter and trigger_exit events.
-function physics_world:physics_world_add_trigger_enter(a, b, contact)
+function physics_world:physics_world_add_trigger_enter(a, b)
   local a_type = (self.tag_or_type == 'tag' and a.physics_tag) or (self.tag_or_type == 'type' and a.type)
   local b_type = (self.tag_or_type == 'tag' and b.physics_tag) or (self.tag_or_type == 'type' and b.type)
   if not self.trigger_enter[a_type] then self.trigger_enter[a_type] = {} end
   if not self.trigger_enter[a_type][b_type] then self.trigger_enter[a_type][b_type] = {} end
   if not self.trigger_active[a_type] then self.trigger_active[a_type] = {} end
     if not self.trigger_active[a_type][b_type] then self.trigger_active[a_type][b_type] = {} end
-  table.insert(self.trigger_enter[a_type][b_type], {a, b, contact})
-  table.insert(self.trigger_active[a_type][b_type], {a, b, contact})
+  table.insert(self.trigger_enter[a_type][b_type], {a, b})
+  table.insert(self.trigger_active[a_type][b_type], {a, b})
 end
 
 -- Adds trigger_exit and removes trigger_active events from this object.
 -- These events can be read by doing: "self.trigger_exit['type_1']['type_2']"
 -- Every trigger event lasts 1 frame only, except for trigger_active ones which last however many frames there are between trigger_enter and trigger_exit events.
-function physics_world:physics_world_add_trigger_exit(a, b, contact)
+function physics_world:physics_world_add_trigger_exit(a, b)
   local a_type = (self.tag_or_type == 'tag' and a.physics_tag) or (self.tag_or_type == 'type' and a.type)
   local b_type = (self.tag_or_type == 'tag' and b.physics_tag) or (self.tag_or_type == 'type' and b.type)
   if not self.trigger_exit[a_type] then self.trigger_exit[a_type] = {} end
   if not self.trigger_exit[a_type][b_type] then self.trigger_exit[a_type][b_type] = {} end
   if not self.trigger_active[a_type] then self.trigger_active[a_type] = {} end
   if not self.trigger_active[a_type][b_type] then self.trigger_active[a_type][b_type] = {} end
-  table.insert(self.trigger_exit[a_type][b_type], {a, b, contact})
+  table.insert(self.trigger_exit[a_type][b_type], {a, b})
   for i = #self.trigger_active[a_type][b_type], 1, -1 do
     local c = self.trigger_active[a_type][b_type][i]
     if c[1].id == a.id and c[2].id == b.id then
