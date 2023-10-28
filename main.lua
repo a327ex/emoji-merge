@@ -160,8 +160,13 @@ function init()
     [11] = {emoji = 'sunglasses', rs = 70, score = 66, mass_multiplier = 0.25, stars = 24},
   }
 
-  main:level_add('classic_arena', arena())
-  main:level_goto('classic_arena')
+  main:level_add('arena', arena())
+  main:level_goto('arena')
+  --[[
+  main:level_add('title', title())
+  main:level_goto('title')
+  ]]--
+
   main.pointer:hitfx_init()
   main.sound_enabled = true
   main.sound_button = emoji_button(20, main.h - 20, {emoji = 'sound', w = 18, action = function(self)
@@ -200,6 +205,8 @@ function init()
       end))
     end
   end
+
+  -- TODO: texture atlas, sounds, layer refactor
 end
 
 function update(dt)
@@ -210,11 +217,15 @@ function update(dt)
 
   if main.transitioning then ui2:circle(main.w/2, main.h/2, main.transition_rs, colors.yellow[0]) end
 
+  if main:input_is_pressed'action_1' then
+    main.pointer:hitfx_use('main', 0.25)
+  end
+
   if not main.transitioning then
     local s = 18/images.index.w
     ui2:draw_image(images.index, main.camera.mouse.x + 6, main.camera.mouse.y + 6, -math.pi/6, s*main.pointer.springs.main.x, s*main.pointer.springs.main.x, 0, 0, colors.white[0], (main.pointer.flashes.main.x and shaders.combine))
   end
-  if main:input_is_pressed'action_1' then main.pointer:hitfx_use(0.5) end
+
 
   main.sound_button:update(dt)
   main.screen_button:update(dt)
@@ -268,6 +279,44 @@ function main:draw_all_layers_to_main_layer()
     ui2:layer_draw('outline')
     ui2:layer_draw()
   end)
+end
+--}}}
+
+
+--{{{ title
+title = class:class_new(anchor)
+function title:new(x, y, args)
+  self:anchor_init('title', args)
+end
+
+function title:enter()
+  self.objects = container()
+  self.objects:container_add(text_roped_chain('emoji merge', main.w/2, main.h/2, {w = 24, chain_part_size = 12, no_impulse = true}))
+  self.objects:container_add(emoji_collider(main.w/2, main.h/2 - 40, {emoji = 'sunglasses', w = 56, damping = 0.5}))
+  self.objects:container_add(emoji_collider(main.w/2 - 60, main.h/2 - 40, {emoji = 'sob', w = 42, r = math.pi/16, damping = 0.5}))
+  self.objects:container_add(emoji_collider(main.w/2 + 60, main.h/2 - 40, {emoji = 'joy', w = 42, r = -math.pi/16, damping = 0.5}))
+end
+
+function title:update(dt)
+  -- Apply mouse movement to colliders
+  for _, object in ipairs(self.objects.objects) do
+    if (object:is('emoji_collider') or object:is('emoji_character') or object:is('chain_part')) and object.pointer_active then
+      if main:input_is_pressed'action_1' then
+        self.held_object = object
+        object:hitfx_use('main', 0.25)
+      end
+      if object.pointer_enter then object:hitfx_use('main', 0.125) end
+    end
+  end
+  if main:input_is_released'action_1' then self.held_object = nil end
+  if self.held_object and main:input_is_down'action_1' then
+    self.held_object:collider_set_angular_damping(4)
+    local d = math.remap(math.distance(main.camera.mouse.x, main.camera.mouse.y, self.held_object.x, self.held_object.y), 0, 300, 64, 16)
+    self.held_object:collider_apply_force(d*main.camera.mouse_dt.x, d*main.camera.mouse_dt.y, self.held_object.x, self.held_object.y)
+  end
+
+  self.objects:container_update(dt)
+  self.objects:container_remove_dead()
 end
 --}}}
 
@@ -454,7 +503,7 @@ function arena:update(dt)
       main:timer_after(0.066*7, function()
         main:timer_tween(0.8, main, {transition_rs = 0.75*main.w}, math.cubic_in_out, function()
           main:timer_after(1, function()
-            main:level_goto('classic_arena')
+            main:level_goto('arena')
             main:timer_tween(0.8, main, {transition_rs = 0}, math.cubic_in_out, function() main.transitioning = false end)
           end)
         end)
@@ -547,7 +596,7 @@ function arena:choose_next_emoji()
   local x, y = (self.spawner.x + self.spawner_emoji.x)/2, (self.spawner.y + self.spawner_emoji.y)/2
   self.spawner.drop_x, self.spawner.drop_y = x, y
   self.spawner:hitfx_use('drop', 0.25)
-  self.next = main:random_int(1, 5)
+  self.next = main:random_weighted_pick(30, 25, 20, 15, 10)
   self.next_board:hitfx_use('emoji', 0.5)
 end
 
@@ -878,18 +927,19 @@ function text_roped_chain:new(text, x, y, args)
   self:anchor_init('text_roped_chain', args)
   self.text = text
   self.x, self.y = x, y
+  self.w = self.w or 32
 
   self.characters = {}
   local x = self.x
   for i = 1, utf8.len(self.text) do
     local c = utf8.sub(self.text, i, i)
     if c == ' ' then
-      x = x + 38
+      x = x + self.w*1.1875
     else
-      local character = emoji_character(x, main.h/2 + 48, {character = c, color = 'blue_original', w = 32})
+      local character = emoji_character(x, main.h/2 + 48, {character = c, color = 'blue_original', w = self.w})
       table.insert(self.characters, character)
       main.level.objects:container_add(character)
-      x = x + 48
+      x = x + self.w*1.5
     end
   end
 
@@ -898,15 +948,17 @@ function text_roped_chain:new(text, x, y, args)
     local next_character = self.characters[i+1]
     if next_character then
       local chain = main.level.objects:container_add(emoji_chain('blue_chain', character, next_character, character.x + character.w/2, character.y, next_character.x - next_character.w/2, next_character.y, 
-        {chain_part_size = 9}))
+        {chain_part_size = self.chain_part_size or 9}))
       table.insert(self.chains, chain)
       chain:set_gravity_scale(0)
     end
   end
 
   for _, character in ipairs(self.characters) do
-    character:collider_apply_angular_impulse(main:random_float(8, 12)*main:random_float(math.pi/2, math.pi))
-    character:collider_apply_impulse(48, 0)
+    if not self.no_impulse then
+      character:collider_apply_angular_impulse(main:random_float(8, 12)*main:random_float(math.pi/2, math.pi))
+      character:collider_apply_impulse(48, 0)
+    end
     character:timer_after(4, function() character:collider_set_damping(0.5) end)
   end
 end
@@ -1327,9 +1379,10 @@ emoji_collider = class:class_new(anchor)
 function emoji_collider:new(x, y, args)
   self:anchor_init('emoji_collider', args)
   self.emoji = images[self.emoji]
-  self:prs_init(x, y, 0, self.w/self.emoji.w, self.w/self.emoji.h)
+  self:prs_init(x, y, self.r or 0, self.w/self.emoji.w, self.w/self.emoji.h)
   self:collider_init('emoji', 'dynamic', 'rectangle', self.w, self.w)
   self:collider_set_gravity_scale(0)
+  self:collider_set_angle(self.r)
   self:area_init('rectangle', self.w, self.w)
   self:hitfx_init()
   self:timer_init()
@@ -1341,6 +1394,7 @@ function emoji_collider:new(x, y, args)
     [3] = function() self.hot_offset = 4 end,
     [4] = function() self.hot_offset = 6 end,
   })
+  if self.damping then self:collider_set_damping(0.5) end
 end
 
 function emoji_collider:update(dt)
