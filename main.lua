@@ -35,18 +35,18 @@ function init()
   shaders.multiply_emoji:shader_send('multiplier', {1, 1, 1})
 
   main:input_set_mouse_visible(false)
-  -- main:input_set_mouse_locked(true)
 
-  frames = {}
-  frames.hit = animation_frames('assets/hit.png', 96, 48)
-  frames.disappear = animation_frames('assets/disappear.png', 40, 40)
+  --[[
+  images = image('assets/texture.png'):image_load_texture_atlas(128, 128, {
+    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'angry', 'b', 'blossom', 'blue_board', 'blue_chain', 'blush', 'c', 'close', 'closed_hand', 'curving_arrow', 'd', 'devil', 'e', 'f', 'four_leaf_clover',
+    'g', 'green_board', 'h', 'i', 'index', 'j', 'joy', 'k', 'l', 'm', 'n', 'no_sound', 'o', 'open_hand', 'p', 'q', 'r', 'red_board', 'relieved', 'retry', 's', 'screen', 'seedling', 'sheaf', 'slight_smile', 'smirk',
+    'sob', 'sound', 'star', 'star_gray', 'sunflower', 'sunglasses', 't', 'thinking', 'tulip', 'u', 'v', 'vine_chain', 'w', 'x', 'y', 'yum', 'z'
+  }, 1, 1)
+  ]]--
 
   images = {}
   images.blossom = image('assets/blossom.png')
   images.four_leaf_clover = image('assets/four_leaf_clover.png')
-  images.herb = image('assets/herb.png')
-  images.leaf = image('assets/leaf.png')
-  images.leaf_2 = image('assets/leaf_2.png')
   images.seedling = image('assets/seedling.png')
   images.sheaf = image('assets/sheaf.png')
   images.sunflower = image('assets/sunflower.png')
@@ -88,7 +88,6 @@ function init()
   images['x'] = image('assets/x.png')
   images['y'] = image('assets/y.png')
   images['z'] = image('assets/z.png')
-  images.cloud = image('assets/cloud.png')
   images.star = image('assets/star.png')
   images.slight_smile = image('assets/slight_smile.png')
   images.blush = image('assets/blush.png')
@@ -98,30 +97,33 @@ function init()
   images.yum = image('assets/yum.png')
   images.joy = image('assets/joy.png')
   images.sob = image('assets/sob.png')
-  images.skull = image('assets/skull.png')
+  images.smirk = image('assets/smirk.png')
   images.thinking = image('assets/thinking.png')
   images.sunglasses = image('assets/sunglasses.png')
-  images.board = image('assets/board.png')
   images.blue_board = image('assets/blue_board.png')
   images.red_board = image('assets/red_board.png')
   images.green_board = image('assets/green_board.png')
-  images.chain = image('assets/chain.png')
   images.curving_arrow = image('assets/curving_arrow.png')
   images.blue_chain = image('assets/blue_chain.png')
   images.retry = image('assets/retry.png')
   images.index = image('assets/index.png')
-  images.sound = image('assets/sound.png')
-  images.no_sound = image('assets/no_sound.png')
+  images.sound_4 = image('assets/sound_4.png')
+  images.sound_3 = image('assets/sound_3.png')
+  images.sound_2 = image('assets/sound_2.png')
+  images.sound_1 = image('assets/sound_1.png')
+  images.sound_0 = image('assets/sound_0.png')
   images.screen = image('assets/screen.png')
   images.closed_hand = image('assets/closed_hand.png')
   images.open_hand = image('assets/open_hand.png')
   images.close = image('assets/close.png')
   images.star_gray = image('assets/star_gray.png')
-  
+
   bg_gradient = gradient_image('vertical', color(0.5, 0.5, 0.5, 0), color(0, 0, 0, 0.3))
 
   sfx = sound_tag{volume = 0.5}
   music = sound_tag{volume = 0.5}
+  sounds = {}
+  sounds.closed_shop = sound('assets/Recettear OST - Closed Shop.ogg', {tag = music})
 
   main:physics_world_set_gravity(0, 360)
   main:physics_world_set_callbacks()
@@ -149,14 +151,14 @@ function init()
   value_to_emoji_data = {
     [1] = {emoji = 'slight_smile', rs = 9, score = 1, mass_multiplier = 8, stars = 2, spawner_offset = vec2(0, 18)},
     [2] = {emoji = 'blush', rs = 11.5, score = 3, mass_multiplier = 6, stars = 2, spawner_offset = vec2(0, 20)},
-    [3] = {emoji = 'devil', rs = 16.5, score = 6, mass_multiplier = 4, stars = 3, spawner_offset = vec2(0, 25)},
-    [4] = {emoji = 'angry', rs = 18.5, score = 10, mass_multiplier = 2, stars = 3, spawner_offset = vec2(0, 27)},
-    [5] = {emoji = 'relieved', rs = 23, score = 15, mass_multiplier = 1, stars = 4, spawner_offset = vec2(0, 32)},
-    [6] = {emoji = 'yum', rs = 29.5, score = 21, mass_multiplier = 1, stars = 4},
-    [7] = {emoji = 'joy', rs = 35, score = 28, mass_multiplier = 1, stars = 5},
-    [8] = {emoji = 'sob', rs = 41.5, score = 36, mass_multiplier = 1, stars = 6},
-    [9] = {emoji = 'skull', rs = 47.5, score = 45, mass_multiplier = 0.5, stars = 8},
-    [10] = {emoji = 'thinking', rs = 59, score = 56, mass_multiplier = 0.5, stars = 12},
+    [3] = {emoji = 'thinking', rs = 16.5, score = 6, mass_multiplier = 4, stars = 3, spawner_offset = vec2(0, 25)},
+    [4] = {emoji = 'devil', rs = 18.5, score = 10, mass_multiplier = 2, stars = 3, spawner_offset = vec2(0, 27)},
+    [5] = {emoji = 'angry', rs = 23, score = 15, mass_multiplier = 1, stars = 4, spawner_offset = vec2(0, 32)},
+    [6] = {emoji = 'relieved', rs = 29.5, score = 21, mass_multiplier = 1, stars = 4},
+    [7] = {emoji = 'yum', rs = 35, score = 28, mass_multiplier = 1, stars = 5},
+    [8] = {emoji = 'joy', rs = 41.5, score = 36, mass_multiplier = 1, stars = 6},
+    [9] = {emoji = 'sob', rs = 47.5, score = 45, mass_multiplier = 0.5, stars = 8},
+    [10] = {emoji = 'smirk', rs = 59, score = 56, mass_multiplier = 0.5, stars = 12},
     [11] = {emoji = 'sunglasses', rs = 70, score = 66, mass_multiplier = 0.25, stars = 24},
   }
 
@@ -168,18 +170,14 @@ function init()
   ]]--
 
   main.pointer:hitfx_init()
-  main.sound_enabled = true
-  main.sound_button = emoji_button(20, main.h - 20, {emoji = 'sound', w = 18, action = function(self)
-    main.sound_enabled = not main.sound_enabled
-    if main.sound_enabled then
-      self.emoji = images.sound
-      sfx.volume = 0.5
-      music.volume = 0.5
-    else
-      self.emoji = images.no_sound
-      sfx.volume = 0
-      music.volume = 0
-    end
+  main.sound_level = 4
+  local level_to_volume = {0, 0.12, 0.25, 0.37, 0.5}
+  main.sound_button = emoji_button(20, main.h - 20, {emoji = 'sound_4', w = 18, action = function(self)
+    main.sound_level = main.sound_level - 1
+    if main.sound_level < 0 then main.sound_level = 4 end
+    self.emoji = images['sound_' .. main.sound_level]
+    sfx:sound_tag_set_volume(level_to_volume[main.sound_level + 1])
+    music:sound_tag_set_volume(level_to_volume[main.sound_level + 1])
   end})
   main.screen_button = emoji_button(48, main.h - 20, {emoji = 'screen', w = 18, action = function(self) main:resize_up(0.5) end})
   main.close_button = emoji_button(main.w - 20, 20, {emoji = 'close', w = 18, action = function(self) main:quit() end})
@@ -201,12 +199,12 @@ function init()
         self.r = self.r + vr*dt
         if self.x <= -80 then self.x = main.w + 80 end
         if self.y <= -60 then self.y = main.h + 60 end
-        bg:draw_image(images.star_gray, self.x, self.y, self.r, self.sx, self.sy)
+        bg:draw_image_or_quad(images.star_gray, self.x, self.y, self.r, self.sx, self.sy)
       end))
     end
   end
 
-  -- TODO: texture atlas, sounds, layer refactor
+  -- TODO: sounds
 end
 
 function update(dt)
@@ -223,7 +221,8 @@ function update(dt)
 
   if not main.transitioning then
     local s = 18/images.index.w
-    ui2:draw_image(images.index, main.camera.mouse.x + 6, main.camera.mouse.y + 6, -math.pi/6, s*main.pointer.springs.main.x, s*main.pointer.springs.main.x, 0, 0, colors.white[0], (main.pointer.flashes.main.x and shaders.combine))
+    ui2:draw_image_or_quad(images.index, main.camera.mouse.x + 6, main.camera.mouse.y + 6, -math.pi/6, s*main.pointer.springs.main.x, s*main.pointer.springs.main.x, 0, 0, colors.white[0], 
+      (main.pointer.flashes.main.x and shaders.combine))
   end
 
 
@@ -237,7 +236,7 @@ end
 function draw_emoji_character(layer, character, x, y, r, sx, sy, ox, oy, color)
   layer:send(shaders.multiply_emoji, 'base', 161/255)
   layer:send(shaders.multiply_emoji, 'multiplier', color_to_emoji_multiplier[color])
-  layer:draw_image(images[character], x, y, r, sx, sy, ox, oy, nil, shaders.multiply_emoji)
+  layer:draw_image_or_quad(images[character], x, y, r, sx, sy, ox, oy, nil, shaders.multiply_emoji)
 end
 
 function main:draw_all_layers_to_main_layer()
@@ -335,6 +334,8 @@ function arena:new(x, y, args)
 end
 
 function arena:enter()
+  main:music_player_play_song(sounds.closed_shop)
+
   self.emojis = container()
   self.plants = container()
   self.objects = container()
@@ -798,7 +799,7 @@ function board:update(dt)
   end
 
   game2:push(self.x, self.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x)
-    game2:draw_image(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, 0, 1, 1, 0, 0, colors.white[0], (self.dying and shaders.grayscale) or (self.flashes.main.x and shaders.combine))
+    game2:draw_image_or_quad(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, 0, 1, 1, 0, 0, colors.white[0], (self.dying and shaders.grayscale) or (self.flashes.main.x and shaders.combine))
   game2:pop()
   game2:push(self.x, self.y, self.r, self.springs.main.x, self.springs.main.x)
     if self.board_type == 'score' then
@@ -818,7 +819,7 @@ function board:update(dt)
         local sy = sx
         next = images[value_to_emoji_data[next].emoji]
         game3:push(self.x, self.y + 15, 0, self.springs.emoji.x, self.springs.emoji.x)
-          game3:draw_image(next, self.x + self.shake_amount.x, self.y + 15 + self.shake_amount.y, 0, sx*self.springs.main.x, sy*self.springs.main.x, 0, 0, colors.white[0], 
+          game3:draw_image_or_quad(next, self.x + self.shake_amount.x, self.y + 15 + self.shake_amount.y, 0, sx*self.springs.main.x, sy*self.springs.main.x, 0, 0, colors.white[0], 
             (self.dying and shaders.grayscale) or (self.flashes.main.x and shaders.combine))
         game3:pop()
       end
@@ -996,7 +997,7 @@ function chain_part:update(dt)
     draw_emoji_character(game1, self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, 
       (self.dying and 'gray') or (self.flashes.main.x and 'white') or 'blue_original')
   else
-    game1:draw_image(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0], 
+    game1:draw_image_or_quad(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0], 
       (self.dying and shaders.grayscale) or (self.flashes.main.x and shaders.combine))
   end
   --self:collider_draw(ui1, colors.blue[0], 1)
@@ -1010,8 +1011,8 @@ function arena:spawn_plants()
     local n = main:random_weighted_pick(20, 20, 20, 10, 10, 10, 5, 5)
     local r = (direction == 'up' and -math.pi/2) or (direction == 'down' and math.pi/2) or (direction == 'left' and math.pi) or (direction == 'right' and 0)
     if n == 1 then
-      self.plants:container_add(arena_plant(x + 5*math.cos(r - math.pi/2), y + 5*math.sin(r - math.pi/2), {w = 11, h = 11, layer = game3, emoji = 'seedling', direction = direction}))
-      self.plants:container_add(arena_plant(x + 5*math.cos(r + math.pi/2), y + 5*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'sheaf', direction = direction}))
+      self.plants:container_add(arena_plant(x + 5*math.cos(r - math.pi/2), y + 5*math.sin(r - math.pi/2), {w = 11, h = 11, layer = game1, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(arena_plant(x + 5*math.cos(r + math.pi/2), y + 5*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game1, emoji = 'sheaf', direction = direction}))
     elseif n == 2 then
       self.plants:container_add(arena_plant(x + 5*math.cos(r - math.pi/2), y + 5*math.sin(r - math.pi/2), {w = 11, h = 11, layer = game1, emoji = 'seedling', direction = direction}))
       self.plants:container_add(arena_plant(x + 5*math.cos(r + math.pi/2), y + 5*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'seedling', direction = direction}))
@@ -1026,7 +1027,7 @@ function arena:spawn_plants()
     elseif n == 5 then
       self.plants:container_add(arena_plant(x + 12*math.cos(r - math.pi/2), y + 12*math.sin(r - math.pi/2), {w = 16, h = 16, layer = game1, emoji = 'sheaf', direction = direction}))
       self.plants:container_add(arena_plant(x + 0*math.cos(r + math.pi/2), y + 0*math.sin(r + math.pi/2), {w = 20, h = 20, layer = game3, emoji = 'tulip', direction = direction}))
-      self.plants:container_add(arena_plant(x + 12*math.cos(r + math.pi/2), y + 12*math.sin(r + math.pi/2), {w = 12, h = 12, layer = game3, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(arena_plant(x + 12*math.cos(r + math.pi/2), y + 12*math.sin(r + math.pi/2), {w = 12, h = 12, layer = game1, emoji = 'seedling', direction = direction}))
     elseif n == 6 then
       self.plants:container_add(arena_plant(x + 12*math.cos(r - math.pi/2), y + 12*math.sin(r - math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'sheaf', direction = direction}))
       self.plants:container_add(arena_plant(x + 0*math.cos(r - math.pi/2), y + 0*math.sin(r - math.pi/2), {w = 17, h = 17, layer = game1, emoji = 'four_leaf_clover', direction = direction}))
@@ -1034,12 +1035,12 @@ function arena:spawn_plants()
     elseif n == 7 then
       self.plants:container_add(arena_plant(x + 0*math.cos(r - math.pi/2), y + 0*math.sin(r - math.pi/2), {w = 20, h = 20, layer = game1, emoji = 'blossom', direction = direction}))
       self.plants:container_add(arena_plant(x + 10*math.cos(r - math.pi/2), y + 10*math.sin(r - math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'sheaf', direction = direction}))
-      self.plants:container_add(arena_plant(x + 5*math.cos(r + math.pi/2), y + 5*math.sin(r + math.pi/2), {w = 11, h = 11, layer = game3, emoji = 'seedling', direction = direction}))
-      self.plants:container_add(arena_plant(x + 10*math.cos(r + math.pi/2), y + 10*math.sin(r + math.pi/2), {w = 11, h = 11, layer = game3, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(arena_plant(x + 5*math.cos(r + math.pi/2), y + 5*math.sin(r + math.pi/2), {w = 11, h = 11, layer = game1, emoji = 'seedling', direction = direction}))
+      self.plants:container_add(arena_plant(x + 10*math.cos(r + math.pi/2), y + 10*math.sin(r + math.pi/2), {w = 11, h = 11, layer = game1, emoji = 'seedling', direction = direction}))
       self.plants:container_add(arena_plant(x + 20*math.cos(r + math.pi/2), y + 20*math.sin(r + math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'sheaf', direction = direction}))
     elseif n == 8 then
       self.plants:container_add(arena_plant(x + 0*math.cos(r - math.pi/2), y + 0*math.sin(r - math.pi/2), {w = 20, h = 20, layer = game3, emoji = 'tulip', direction = direction}))
-      self.plants:container_add(arena_plant(x + 16*math.cos(r - math.pi/2), y + 16*math.sin(r - math.pi/2), {w = 15, h = 15, layer = game3, emoji = 'tulip', direction = direction}))
+      self.plants:container_add(arena_plant(x + 16*math.cos(r - math.pi/2), y + 16*math.sin(r - math.pi/2), {w = 15, h = 15, layer = game1, emoji = 'tulip', direction = direction}))
       self.plants:container_add(arena_plant(x + 16*math.cos(r + math.pi/2), y + 16*math.sin(r + math.pi/2), {w = 12, h = 12, layer = game1, emoji = 'tulip', direction = direction}))
     end
   end
@@ -1047,7 +1048,7 @@ function arena:spawn_plants()
   -- Bottom solid
   local plant_positions = {}
   for x = self.x1 + 25, self.x1 + self.w - 25, 25 do table.insert(plant_positions, {x = x, y = self.y2 - 15, direction = 'up'}) end
-  for i = 1, main:random_int(4, 5) do
+  for i = 1, main:random_int(2, 3) do
     local p = main:random_table_remove(plant_positions)
     spawn_plant_set(p.x, p.y, p.direction)
   end
@@ -1218,13 +1219,13 @@ function plant:plant_draw()
   if self.hidden then return end
   if self.direction == 'up' or self.direction == 'down' then
     self.layer:push(self.x, self.y + self.h/2, self.r + self.constant_wind_r + self.random_wind_r + self.moving_wind_force_r + self.direct_wind_force_r)
-      self.layer:draw_image(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, 0, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0],
+      self.layer:draw_image_or_quad(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, 0, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0],
         (self.dying and shaders.grayscale) or (self.flashes.main.x and shaders.combine))
     self.layer:pop()
   elseif self.direction == 'right' or self.direction == 'left' then
     self.layer:push(self.x, self.y, self.r)
       self.layer:push(self.x, self.y + self.h/2, self.constant_wind_r + self.random_wind_r + self.moving_wind_force_r + self.direct_wind_force_r)
-        self.layer:draw_image(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, 0, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0],
+        self.layer:draw_image_or_quad(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, 0, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0],
           (self.dying and shaders.grayscale) or (self.flashes.main.x and shaders.combine))
       self.layer:pop()
     self.layer:pop()
@@ -1314,7 +1315,7 @@ function board_plant:update(dt)
     if self.emoji_type == 'sheaf' then r_ox, r_oy = -self.flip_sx*0.21*self.w, self.h/2 end
     self.layer:push(self.x, self.y, self.board.r)
       self.layer:push(self.x + r_ox, self.y + r_oy, self.r + self.constant_wind_r + self.random_wind_r + self.moving_wind_force_r + self.direct_wind_force_r)
-        self.layer:draw_image(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, 0, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0],
+        self.layer:draw_image_or_quad(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, 0, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0],
           (self.dying and shaders.grayscale) or (self.flashes.main.x and shaders.combine))
       self.layer:pop()
     self.layer:pop()
@@ -1344,7 +1345,7 @@ function emoji_button:update(dt)
     self:hitfx_use('main', 0.5, nil, nil, 0.15)
     self:action()
   end
-  game3:draw_image(self.emoji, self.x, self.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0], self.flashes.main.x and shaders.combine)
+  game3:draw_image_or_quad(self.emoji, self.x, self.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0], self.flashes.main.x and shaders.combine)
 end
 
 
@@ -1401,7 +1402,7 @@ function emoji_collider:update(dt)
   self.hot_animation:animation_logic_update(dt)
   self:collider_update_position_and_angle()
 
-  game2:draw_image(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0], 
+  game2:draw_image_or_quad(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0], 
     (self.dying and shaders.grayscale) or (self.flashes.main.x and shaders.combine))
   if self.hot and not main.transitioning then
     game3:push(self.x, self.y, self.r, self.springs.main.x, self.springs.main.x)
@@ -1460,7 +1461,7 @@ function evoji_emoji:update(dt)
       main.level.objects:container_add(emoji_particle('star', main.camera.mouse.x, main.camera.mouse.y, {hitfx_on_spawn_no_flash = 0.75, r = main:random_angle(), rotation_v = main:random_float(-2*math.pi, 2*math.pi)}))
     end
   end
-  game2:draw_image(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r + (self.r_offset or 0), self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0], 
+  game2:draw_image_or_quad(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r + (self.r_offset or 0), self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0], 
     (self.dying and shaders.grayscale) or (self.flashes.main.x and shaders.combine))
 end
 
@@ -1502,7 +1503,7 @@ function emoji_merge_effect:new(x, y, args)
 end
 
 function emoji_merge_effect:update(dt)
-  game2:draw_image(self.emoji, self.x, self.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, nil, nil, colors.white[0], self.flashes.main.x and shaders.combine)
+  game2:draw_image_or_quad(self.emoji, self.x, self.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, nil, nil, colors.white[0], self.flashes.main.x and shaders.combine)
 end
 
 
@@ -1528,19 +1529,7 @@ function emoji_particle:update(dt)
   self.x = self.x + self.v*math.cos(self.r)*dt
   self.y = self.y + self.v*math.sin(self.r)*dt
   self.visual_r = self.visual_r + self.rotation_v*dt
-  effects:draw_image(self.emoji, self.x, self.y, self.r + self.visual_r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, nil, nil, colors.white[0], self.flashes.main.x and shaders.combine)
-end
-
-
-hit_effect = class:class_new(anchor)
-function hit_effect:new(x, y, args)
-  self:anchor_init('hit_effect', args)
-  self:prs_init(x, y, self.r or main:random_angle())
-  self.animation = animation(0.04, frames.hit, 'once', {[0] = function() self.dead = true end})
-end
-
-function hit_effect:update(dt)
-  self.animation:animation_update(dt, effects, self.x, self.y, self.r, self.sx, self.sy)
+  effects:draw_image_or_quad(self.emoji, self.x, self.y, self.r + self.visual_r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, nil, nil, colors.white[0], self.flashes.main.x and shaders.combine)
 end
 --}}}
 
@@ -1564,7 +1553,7 @@ end
 function spawner:update(dt)
   self:collider_update_position_and_angle()
   game3:push(self.drop_x, self.drop_y, 0, self.springs.drop.x, self.springs.drop.x)
-    game3:draw_image(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0], 
+    game3:draw_image_or_quad(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0], 
       (self.dying and shaders.grayscale) or (self.flashes.main.x and shaders.combine))
   game3:pop()
 end
@@ -1619,7 +1608,7 @@ function emoji:update(dt)
     ]]--
   end
   game2:push(self.drop_x, self.drop_y, 0, self.springs.drop.x, self.springs.drop.x)
-    game2:draw_image(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0], 
+    game2:draw_image_or_quad(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0], 
       (self.dying and shaders.grayscale) or (self.flashes.main.x and shaders.combine))
   game2:pop()
 end

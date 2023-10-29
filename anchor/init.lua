@@ -75,6 +75,8 @@ anchor:class_add(require('anchor.music_player'))
 anchor:class_add(require('anchor.observer'))
 anchor:class_add(require('anchor.physics_world'))
 anchor:class_add(require('anchor.prs'))
+anchor:class_add(require('anchor.quad'))
+function quad(source, x, y, w, h) return anchor('quad'):quad_init(source, x, y, w, h) end
 anchor:class_add(require('anchor.random'))
 function random(seed) return anchor('random'):random_init(seed) end
 anchor:class_add(require('anchor.shader'))
@@ -128,6 +130,7 @@ function main:init(args)
   main.web = args.web
 
   if main.web then
+    main:load_state()
     love.graphics.setLineStyle('rough')
     love.graphics.setDefaultFilter('nearest', 'nearest', 0)
     main.w, main.h = args.w or 480, args.h or 270
@@ -141,6 +144,7 @@ function main:init(args)
     love.window.setTitle(main.title)
     main:layer_init()
     main.camera = camera(main.w/2, main.h/2)
+    main:save_state()
 
   else
     main:load_state()
@@ -217,7 +221,6 @@ function main:draw_all_layers_to_main_layer()
 end
 
 function main:load_state()
-  if main.web then return end
   main.device_state = main:load_table('device_state.txt')
   main.game_state = main:load_table('game_state.txt')
   if not main.device_state then main.device_state = {first_run = true} end
@@ -225,7 +228,6 @@ function main:load_state()
 end
 
 function main:save_state()
-  if main.web then return end
   if main.device_state.first_run then main.device_state.first_run = false end
   if main.game_state.first_run then main.game_state.first_run = false end
   main:save_table('device_state.txt', main.device_state)

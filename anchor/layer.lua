@@ -127,7 +127,7 @@ function graphics.draw_image(drawable, x, y, r, sx, sy, ox, oy, color, shader)
     love.graphics.setColor(color.r, color.g, color.b, color.a)
   end
   if shader then love.graphics.setShader(shader.object) end
-  love.graphics.draw(drawable.object, x, y, r or 0, sx or 1, sy or sx or 1, drawable.w*0.5 + (ox or 0), drawable.w*0.5 + (oy or 0))
+  love.graphics.draw(drawable.object, x, y, r or 0, sx or 1, sy or sx or 1, drawable.w*0.5 + (ox or 0), drawable.h*0.5 + (oy or 0))
   if shader then love.graphics.setShader() end
   if color then love.graphics.setColor(_r, g, b, a) end
 end
@@ -136,20 +136,40 @@ function layer:draw_image(drawable, x, y, r, sx, sy, ox, oy, color, shader, z)
   table.insert(self.draw_commands, {type = 'draw_image', args = {drawable, x, y, r, sx, sy, ox, oy, color, shader}, z = z or 0})
 end
 
-function graphics.draw_quad(drawable, quad, x, y, r, sx, sy, ox, oy, color, shader)
+function graphics.draw_quad(drawable, x, y, r, sx, sy, ox, oy, color, shader)
   local _r, g, b, a
   if color then
     _r, g, b, a = love.graphics.getColor()
     love.graphics.setColor(color.r, color.g, color.b, color.a)
   end
   if shader then love.graphics.setShader(shader.object) end
-  love.graphics.draw(drawable.object, quad, x, y, r or 0, sx or 1, sy or sx or 1, ox, oy)
+  love.graphics.draw(drawable.source, drawable.object, x, y, r or 0, sx or 1, sy or sx or 1, drawable.w*0.5 + (ox or 0), drawable.h*0.5 + (oy or 0))
   if shader then love.graphics.setShader() end
   if color then love.graphics.setColor(_r, g, b, a) end
 end
 
-function layer:draw_quad(drawable, quad, x, y, r, sx, sy, ox, oy, color, shader, z)
-  table.insert(self.draw_commands, {type = 'draw_quad', args = {drawable, quad, x, y, r, sx, sy, ox, oy, color, shader}, z = z or 0})
+function layer:draw_quad(drawable, x, y, r, sx, sy, ox, oy, color, shader, z)
+  table.insert(self.draw_commands, {type = 'draw_quad', args = {drawable, x, y, r, sx, sy, ox, oy, color, shader}, z = z or 0})
+end
+
+function graphics.draw_image_or_quad(drawable, x, y, r, sx, sy, ox, oy, color, shader)
+  local _r, g, b, a
+  if color then
+    _r, g, b, a = love.graphics.getColor()
+    love.graphics.setColor(color.r, color.g, color.b, color.a)
+  end
+  if shader then love.graphics.setShader(shader.object) end
+  if drawable:is('image') then
+    love.graphics.draw(drawable.object, x, y, r or 0, sx or 1, sy or sx or 1, drawable.w*0.5 + (ox or 0), drawable.h*0.5 + (oy or 0))
+  elseif drawable:is('quad') then
+    love.graphics.draw(drawable.source, drawable.object, x, y, r or 0, sx or 1, sy or sx or 1, drawable.w*0.5 + (ox or 0), drawable.h*0.5 + (oy or 0))
+  end
+  if shader then love.graphics.setShader() end
+  if color then love.graphics.setColor(_r, g, b, a) end
+end
+
+function layer:draw_image_or_quad(drawable, x, y, r, sx, sy, ox, oy, color, shader, z)
+  table.insert(self.draw_commands, {type = 'draw_image_or_quad', args = {drawable, x, y, r, sx, sy, ox, oy, color, shader}, z = z or 0})
 end
 
 -- Prints text to the screen, alternative to using an object with a text mixin.

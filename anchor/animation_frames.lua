@@ -7,6 +7,7 @@
 -- In the example above we first load an image, and then load 3 player animations.
 -- Each animation comes from different rows in the same spritesheet, and that's reflected by the last argument in each call.
 -- If your animation comes from a single spritesheet that doesn't have multiple animations, then you can omit the last argument and it will automatically go through it.
+-- TODO: make this use the quad object
 local animation_frames = class:class_new()
 function animation_frames:animation_frames_init(filename, frame_w, frame_h, frames_list)
   self.source = image(filename)

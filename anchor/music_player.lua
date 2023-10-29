@@ -21,6 +21,12 @@ function music_player:music_player_update(dt)
   end
 end
 
+-- Plays a song infinitely.
+-- :music_player_play_song(sound('assets/song1.ogg'), 0.5) -> plays song1 looping at 0.5 volume
+function music_player:music_player_play_song(song, volume)
+  self:music_player_play_songs({song = song}, {'song'}, volume)
+end
+
 -- Plays multiple songs infinitely.
 -- If play_sequence is provided then it will play the songs in that sequence, otherwise it will play them on a random order such that no song is repeated before all others have been played at least once per loop.
 -- The currently playing song will always be .current_song.
@@ -33,7 +39,7 @@ function music_player:music_player_play_songs(songs, play_sequence, volume)
     for song_name, _ in pairs(self.songs) do table.insert(self.play_sequence, song_name) end
     table.shuffle(self.play_sequence)
   end
-  self.play_volume = volume
+  self.play_volume = volume or 1
   self.current_song = self.songs[self.play_sequence[self.play_index]]:sound_play(volume)
 end
 
