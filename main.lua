@@ -30,8 +30,6 @@ function init()
   shaders.outline = shader(nil, 'assets/outline.frag')
   shaders.combine = shader(nil, 'assets/combine.frag')
   shaders.grayscale = shader(nil, 'assets/grayscale.frag')
-  shaders.hue_shift = shader(nil, 'assets/hue_shift.frag')
-  shaders.hue_shift:shader_send('hue', 0)
   shaders.multiply_emoji = shader(nil, 'assets/multiply_emoji.frag')
   shaders.multiply_emoji:shader_send('multiplier', {1, 1, 1})
 
