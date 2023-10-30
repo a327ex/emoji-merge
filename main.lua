@@ -3,6 +3,7 @@ require 'anchor'
 --{{{ init
 function init()
   main:init{title = 'emoji merge', theme = 'twitter_emoji', w = 640, h = 360, sx = 2.5, sy = 2.5}
+  main:set_icon('assets/sunglasses_icon.png')
 
   bg, bg_fixed, game1, game2, game3, effects, ui1, ui2, shadow = layer(), layer({fixed = true}), layer(), layer(), layer(), layer(), layer({fixed = true}), layer({fixed = true}), layer({x = 4*main.sx, y = 4*main.sy, shadow = true})
   game1:layer_add_canvas('outline')
@@ -117,13 +118,33 @@ function init()
   images.open_hand = image('assets/open_hand.png')
   images.close = image('assets/close.png')
   images.star_gray = image('assets/star_gray.png')
+  images.cloud = image('assets/cloud.png')
+  images.cloud_gray = image('assets/cloud_gray.png')
 
-  bg_gradient = gradient_image('vertical', color(0.5, 0.5, 0.5, 0), color(0, 0, 0, 0.3))
+  -- bg_1 = gradient_image('vertical', color(0.5, 0.5, 0.5, 0), color(0, 0, 0, 0.3))
+  bg_1 = gradient_image('vertical', color(colors.fg[0].r, colors.fg[0].g, colors.fg[0].b, 1), color(colors.blue[10].r, colors.blue[10].g, colors.blue[10].b, 1))
+  bg_2 = gradient_image('vertical', color(colors.fg[0].r, colors.fg[0].g, colors.fg[0].b, 1), color(colors.fg[0].r, colors.fg[0].g, colors.fg[0].b, 0.4))
+  bg_gradient = bg_1
+  bg_color = colors.blue[10]:color_clone()
 
   sfx = sound_tag{volume = 0.5}
   music = sound_tag{volume = 0.5}
   sounds = {}
   sounds.closed_shop = sound('assets/Recettear OST - Closed Shop.ogg', {tag = music})
+  sounds.drop = sound('assets/パパッ.ogg', {tag = sfx})
+  sounds.merge_1 = sound('assets/スイッチを押す.ogg', {tag = sfx})
+  sounds.merge_2 = sound('assets/ぷよん.ogg', {tag = sfx})
+  sounds.final_merge = sound('assets/可愛い動作1.ogg', {tag = sfx})
+  sounds.its_over = sound('assets/ショック1.ogg', {tag = sfx})
+  sounds.button_press = sound('assets/カーソル移動2.ogg', {tag = sfx})
+  sounds.collider_button_press = sound('assets/カーソル移動12.ogg', {tag = sfx})
+  sounds.button_hover = sound('assets/hover.ogg', {tag = sfx})
+  sounds.end_round_retry = sound('assets/se_19.ogg', {tag = sfx})
+  sounds.end_round_retry_press = sound('assets/se_17.ogg', {tag = sfx})
+  sounds.end_round_score = sound('assets/se_13.ogg', {tag = sfx})
+  sounds.end_round_fall = sound('assets/se_11.ogg', {tag = sfx})
+  sounds.end_round = sound('assets/se_14.ogg', {tag = sfx})
+  sounds.death_hit = sound('assets/se_22.ogg', {tag = sfx})
 
   main:physics_world_set_gravity(0, 360)
   main:physics_world_set_callbacks()
@@ -162,25 +183,32 @@ function init()
     [11] = {emoji = 'sunglasses', rs = 70, score = 66, mass_multiplier = 0.25, stars = 24},
   }
 
-  main:level_add('arena', arena())
-  main:level_goto('arena')
-  --[[
-  main:level_add('title', title())
-  main:level_goto('title')
-  ]]--
-
   main.pointer:hitfx_init()
-  main.sound_level = 4
-  local level_to_volume = {0, 0.12, 0.25, 0.37, 0.5}
-  main.sound_button = emoji_button(20, main.h - 20, {emoji = 'sound_4', w = 18, action = function(self)
+  main.sound_level = main.game_state.sound_level or 4
+  main.any_button_hot = false
+  local level_to_volume = {0, 0.0625, 0.125, 0.25, 0.5}
+  sfx.volume = level_to_volume[main.sound_level + 1]
+  music.volume = level_to_volume[main.sound_level + 1]
+  main.sound_button = emoji_button(20, main.h - 20, {emoji = 'sound_' .. main.sound_level, w = 18, action = function(self)
+    sounds.button_press:sound_play(1, main:random_float(0.95, 1.05))
     main.sound_level = main.sound_level - 1
     if main.sound_level < 0 then main.sound_level = 4 end
+    main.game_state.sound_level = main.sound_level
+    main:save_state()
     self.emoji = images['sound_' .. main.sound_level]
-    sfx:sound_tag_set_volume(level_to_volume[main.sound_level + 1])
-    music:sound_tag_set_volume(level_to_volume[main.sound_level + 1])
+    sfx.volume = level_to_volume[main.sound_level + 1]
+    music.volume = level_to_volume[main.sound_level + 1]
   end})
-  main.screen_button = emoji_button(48, main.h - 20, {emoji = 'screen', w = 18, action = function(self) main:resize_up(0.5) end})
-  main.close_button = emoji_button(main.w - 20, 20, {emoji = 'close', w = 18, action = function(self) main:quit() end})
+
+  main.screen_button = emoji_button(48, main.h - 20, {emoji = 'screen', w = 18, action = function(self)
+    sounds.button_press:sound_play(0.5, main:random_float(0.95, 1.05))
+    main:resize_up(0.5)
+  end})
+  main.close_button = emoji_button(main.w - 20, 20, {emoji = 'close', w = 18, action = function(self)
+    sounds.button_press:sound_play(0.5, main:random_float(0.95, 1.05))
+    main:quit()
+  end})
+
   main.stars = {}
   main.distance_to_top = 294
   local r = math.pi/6 + math.pi
@@ -191,6 +219,7 @@ function init()
       if j % 2 == 0 then x_offset = w/2 end
       table.insert(main.stars, anchor('background_star'):init(function(self)
         self:prs_init((i-1)*w + x_offset, (j-1)*h, main:random_angle(), 32/images.star_gray.w, 32/images.star_gray.w)
+        self.color = colors.fg[10]:color_clone()
       end):action(function(self, dt)
         local v = math.remap(main.distance_to_top, 0, 294, 16, 4)
         local vr = math.remap(main.distance_to_top, 0, 294, -0.2*math.pi, -0.05*math.pi)
@@ -199,38 +228,69 @@ function init()
         self.r = self.r + vr*dt
         if self.x <= -80 then self.x = main.w + 80 end
         if self.y <= -60 then self.y = main.h + 60 end
-        bg:draw_image_or_quad(images.star_gray, self.x, self.y, self.r, self.sx, self.sy)
+        if self.y < main.h - 120 then self.color.a = math.clamp(math.remap(self.y - (main.h - 120), -60, 0, 0, 1), 0, 1)
+        else self.color.a = 1 end
+        bg:draw_image_or_quad(images.star_gray, self.x, self.y, self.r, self.sx, self.sy, 0, 0, self.color)
       end))
     end
   end
 
-  -- TODO: sounds
+  main.clouds = {}
+  local w, h = main.w/8, main.h/6
+  for j = 1, 3 do
+    for i = 1, 10 do
+      local x_offset = 0
+      if j % 2 == 0 then x_offset = w/2 end
+      table.insert(main.clouds, anchor('background_cloud'):init(function(self)
+        self:prs_init((i-1)*w + x_offset, (j-1)*h + 14, 0, 32/images.cloud.w, 32/images.cloud.w)
+        self.flip_sx = main:random_sign(50)
+        self.emoji = images.cloud
+      end):action(function(self, dt)
+        self.x = self.x + 10*dt
+        if self.x >= main.w + w + x_offset then self.x = -w + x_offset end
+        bg:draw_image_or_quad(self.emoji, self.x, self.y, self.r, self.flip_sx*self.sx, self.sy)
+      end))
+    end
+  end
+
+  main:level_add('arena', arena())
+  main:level_goto('arena')
+  --[[
+  main:level_add('title', title())
+  main:level_goto('title')
+  ]]--
 end
 
 function update(dt)
+  --[[
   bg:rectangle(main.w/2, main.h/2, 3*main.w, 3*main.h, 0, 0, colors.fg[0])
   bg_fixed:push(0.5*main.w, 0.5*main.h, -math.pi/6)
-  bg_gradient:gradient_image_draw(bg_fixed, 0.5*main.w, 0.5*main.h, 2*main.w, 2*main.h)
+  bg_2:gradient_image_draw(bg_fixed, 0.5*main.w, 0.5*main.h, main.w, -main.h)
   bg_fixed:pop()
+  ]]--
+  
+  bg:rectangle(main.w/2, 75, main.w, 150, 0, 0, bg_color)
+  bg_gradient:gradient_image_draw(bg, main.w/2, main.h/2, main.w, -60)
+  bg:rectangle(main.w/2, main.h - 75, main.w, 150, 0, 0, colors.fg[0])
+  for _, star in ipairs(main.stars) do star:update(dt) end
+  for _, cloud in ipairs(main.clouds) do cloud:update(dt) end
 
-  if main.transitioning then ui2:circle(main.w/2, main.h/2, main.transition_rs, colors.yellow[0]) end
+  main.any_button_hot = false
+  main.sound_button:update(dt)
+  main.screen_button:update(dt)
+  if main.logical_fullscreen then main.close_button:update(dt) end
+  if main.sound_button.pointer_active then main.any_button_hot = true end
+  if main.screen_button.pointer_active then main.any_button_hot = true end
+  if main.close_button.pointer_active then main.any_button_hot = true end
 
-  if main:input_is_pressed'action_1' then
-    main.pointer:hitfx_use('main', 0.25)
-  end
-
+  if main:input_is_pressed'action_1' then main.pointer:hitfx_use('main', 0.25) end
   if not main.transitioning then
     local s = 18/images.index.w
     ui2:draw_image_or_quad(images.index, main.camera.mouse.x + 6, main.camera.mouse.y + 6, -math.pi/6, s*main.pointer.springs.main.x, s*main.pointer.springs.main.x, 0, 0, colors.white[0], 
       (main.pointer.flashes.main.x and shaders.combine))
   end
 
-
-  main.sound_button:update(dt)
-  main.screen_button:update(dt)
-  if main.logical_fullscreen then main.close_button:update(dt) end
-
-  for _, star in ipairs(main.stars) do star:update(dt) end
+  if main.transitioning then ui2:circle(main.w/2, main.h/2, main.transition_rs, colors.blue[5]) end
 end
 
 function draw_emoji_character(layer, character, x, y, r, sx, sy, ox, oy, color)
@@ -334,7 +394,11 @@ function arena:new(x, y, args)
 end
 
 function arena:enter()
-  main:music_player_play_song(sounds.closed_shop)
+  bg_color = colors.blue[10]:color_clone()
+  bg_gradient = bg_1
+  for _, cloud in ipairs(main.clouds) do cloud.emoji = images.cloud end
+
+  main:music_player_play_song(sounds.closed_shop, 0.375)
 
   self.emojis = container()
   self.plants = container()
@@ -417,7 +481,7 @@ function arena:update(dt)
   if self.spawner_emoji and not self.spawner_emoji.dropping and not self.round_ending then
     local o = value_to_emoji_data[self.spawner_emoji.value].spawner_offset
     self.spawner_emoji:collider_set_position(self.spawner.x + 12 + o.x, self.spawner.y + o.y)
-    if main:input_is_pressed('action_1') then
+    if main:input_is_pressed('action_1') and not main.any_button_hot then
       self:drop_emoji()
     end
   end
@@ -476,8 +540,12 @@ function arena:update(dt)
         if main:input_is_pressed'action_1' then
           self.held_object = object
           object:hitfx_use('main', 0.25)
+          sounds.collider_button_press:sound_play(1, main:random_float(0.95, 1.05))
         end
-        if object.pointer_enter then object:hitfx_use('main', 0.125) end
+        if object.pointer_enter then
+          object:hitfx_use('main', 0.125)
+          sounds.button_hover:sound_play(1, main:random_float(0.95, 1.05))
+        end
       end
     end
     if main:input_is_released'action_1' then self.held_object = nil end
@@ -497,13 +565,15 @@ function arena:update(dt)
     end
 
     if self.retry_button.hot and main:input_is_pressed'action_1' then
+      sounds.end_round_retry_press:sound_play(1)
       self.retry_button:hitfx_use('main', 0.25, nil, nil, 0.15)
       self:timer_after(0.066, function() self.retry_chain:flash_text() end)
       main.transitioning = true
       main.transition_rs = 0
       main:timer_after(0.066*7, function()
+        sounds.end_round_retry:sound_play(0.75, main:random_float(0.95, 1.05))
         main:timer_tween(0.8, main, {transition_rs = 0.75*main.w}, math.cubic_in_out, function()
-          main:timer_after(1, function()
+          main:timer_after(0.4, function()
             main:level_goto('arena')
             main:timer_tween(0.8, main, {transition_rs = 0}, math.cubic_in_out, function() main.transitioning = false end)
           end)
@@ -565,6 +635,7 @@ function arena:exit()
 end
 
 function arena:drop_emoji()
+  sounds.drop:sound_play(0.6, main:random_float(0.95, 1.05))
   local x, y = (self.spawner.x + self.spawner_emoji.x)/2, (self.spawner.y + self.spawner_emoji.y)/2
   self.spawner.drop_x, self.spawner.drop_y = x, y
   self.spawner_emoji.drop_x, self.spawner_emoji.drop_y = x, y
@@ -591,6 +662,7 @@ function arena:drop_emoji()
 end
 
 function arena:choose_next_emoji()
+  if self.round_ending then return end
   self:timer_cancel('drop_safety')
   self.spawner.emoji = images.closed_hand
   self.spawner_emoji = self.emojis:container_add(emoji(self.spawner.x, self.y1, {hitfx_on_spawn_no_flash = 0.5, value = self.next}))
@@ -615,6 +687,8 @@ function arena:merge_emojis(a, b, x, y)
   self:timer_after(1, function() self.chain_amount = 0 end, 'chain_amount')
 
   if a.value < 11 and b.value < 11 then
+    sounds.merge_1:sound_play(0.4, main:random_float(0.95, 1.05))
+    sounds.merge_2:sound_play(0.4, main:random_float(0.95, 1.05))
     local merge_object = self.objects:container_add(anchor('merge_object'):timer_init():action(function() end))
     table.insert(self.merge_objects, merge_object)
     merge_object:timer_after(0.15, function()
@@ -624,11 +698,18 @@ function arena:merge_emojis(a, b, x, y)
       emoji:collider_apply_impulse((avx+bvx)/6, (avy+bvy)/6)
     end, 'merge_emojis')
   end
+  if a.value == 11 and b.value == 11 then
+    sounds.final_merge:sound_play(0.5, main:random_float(0.95, 1.05))
+  end
 end
 
 function arena:end_round()
   if self.round_ending then return end
   self.round_ending = true
+
+  main:music_player_stop()
+  sounds.end_round:sound_play(1, main:random_float(0.95, 1.05))
+
   self:observer_cancel('drop_emoji')
   self:timer_cancel('drop_safety')
   for _, object in ipairs(self.merge_objects) do object:timer_cancel('merge_emojis') end
@@ -650,6 +731,7 @@ function arena:end_round()
   for i, object in ipairs(objects) do
     self:timer_after(0.02*i, function()
       if object.dying then return end
+      sounds.death_hit:sound_play(0.5, main:random_float(0.95, 1.05))
       object.dying = true
       if object:is('solid') or object:is('board') or object:is('evoji_emoji') then
         object:hitfx_use('main', 0.125)
@@ -660,6 +742,11 @@ function arena:end_round()
       end
     end)
   end
+
+  -- Turn background elements to grayscale
+  bg_color = color(colors.fg[0].r, colors.fg[0].g, colors.fg[0].b, 0.4)
+  bg_gradient = bg_2
+  for _, cloud in ipairs(main.clouds) do cloud.emoji = images.cloud_gray end
 
   -- Prevent dying objects from moving
   self:timer_run(function()
@@ -673,26 +760,27 @@ function arena:end_round()
   -- Make all objects fall
   self:timer_after(0.02*#objects + 0.5, function()
     self:timer_cancel('prevent_dying_movement')
+    sounds.end_round_fall:sound_play(1, main:random_float(0.95, 1.05))
 
     -- Remove joints
     local solid_joints = {self.solid_left_joint, self.solid_right_joint}
     main:random_table_remove(solid_joints):joint_destroy()
-    self:timer_after({0.5, 1.5}, function() main:random_table_remove(solid_joints):joint_destroy() end)
-    self:timer_after({1, 2}, function() self.best_chain:remove_random_joint() end)
+    self:timer_after({0.4, 0.8}, function() main:random_table_remove(solid_joints):joint_destroy() end)
+    self:timer_after({0.6, 0.8}, function() self.best_chain:remove_random_joint() end)
     local score_chains = {self.score_left_chain, self.score_right_chain}
-    self:timer_after({0, 1}, function()
+    self:timer_after({0, 0.8}, function()
       main:random_table_remove(score_chains):remove_random_joint()
-      self:timer_after({0.5, 1.5}, function() main:random_table_remove(score_chains):remove_random_joint() end)
+      self:timer_after({0.4, 0.8}, function() main:random_table_remove(score_chains):remove_random_joint() end)
     end)
     local evoji_chains = {self.evoji_chain_left, self.evoji_chain_right}
-    self:timer_after({0, 1}, function()
+    self:timer_after({0, 0.8}, function()
       main:random_table_remove(evoji_chains):remove_random_joint()
-      self:timer_after({0.5, 1.5}, function() main:random_table_remove(evoji_chains):remove_random_joint() end)
+      self:timer_after({0.4, 0.8}, function() main:random_table_remove(evoji_chains):remove_random_joint() end)
     end)
     local next_chains = {self.next_left_chain, self.next_right_chain}
-    self:timer_after({0, 1}, function()
+    self:timer_after({0, 0.8}, function()
       main:random_table_remove(next_chains):remove_random_joint()
-      self:timer_after({0.5, 1.5}, function() main:random_table_remove(next_chains):remove_random_joint() end)
+      self:timer_after({0.4, 0.8}, function() main:random_table_remove(next_chains):remove_random_joint() end)
     end)
 
     -- Apply impulses
@@ -738,15 +826,17 @@ function arena:end_round()
   end)
 
   -- Spawn score
-  self:timer_after(0.02*#objects + 4, function()
+  self:timer_after(0.02*#objects + 3, function()
     self.score_ending = true
+    sounds.end_round_score:sound_play(0.75)
+    sounds.its_over:sound_play(0.75)
 
     local text = 'score ' .. self.score
     self.final_score_chain = text_roped_chain(text, -46*utf8.len(text), main.h/2 + 48)
     self.retry_button = emoji_collider(main.w + 64 + main:random_float(-2, 2), main.h/2 - 48 + main:random_float(-8, 8), {emoji = 'retry', w = 64})
     self.retry_button:collider_apply_angular_impulse(main:random_sign(50)*main:random_float(48, 96)*math.pi)
     self.retry_button:collider_apply_impulse(-128, 0)
-    self:timer_after(4, function() 
+    self.retry_button:timer_after(4, function() 
       self.retry_button:collider_set_damping(0.5)
       self.retry_button:collider_set_angular_damping(0.5)
     end)
@@ -1339,6 +1429,7 @@ end
 
 function emoji_button:update(dt)
   if self.pointer_enter then
+    sounds.button_hover:sound_play(1, main:random_float(0.95, 1.05))
     self:hitfx_use('main', 0.25)
   end
   if self.pointer_active and main:input_is_pressed'action_1' then

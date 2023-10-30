@@ -27,4 +27,8 @@ function gradient_image:gradient_image_draw(layer, x, y, w, h, r, sx, sy, ox, oy
   layer:pop()
 end
 
+function gradient_image:gradient_image_set_color(vertex_index, r, g, b, a)
+  self.mesh:setVertexAttribute(vertex_index, 3, r, g, b, a)
+end
+
 return gradient_image

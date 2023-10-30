@@ -339,6 +339,10 @@ function main:set_theme(theme)
   love.graphics.setColor(unpack(colors.fg[0]:color_to_table()))
 end
 
+function main:set_icon(filename)
+  love.window.setIcon(love.image.newImageData(filename))
+end
+
 function main:quit()
   love.event.quit()
 end

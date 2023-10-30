@@ -8,13 +8,4 @@ function sound_tag:sound_tag_init(args)
   return self
 end
 
-function sound_tag:sound_tag_set_volume(volume)
-  self.volume = volume or 1
-  for name, sound in pairs(sounds) do
-    if sound.tag == self then
-      sound:sound_set_volume()
-    end
-  end
-end
-
 return sound_tag

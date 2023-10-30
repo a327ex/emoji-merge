@@ -40,7 +40,7 @@ function music_player:music_player_play_songs(songs, play_sequence, volume)
     table.shuffle(self.play_sequence)
   end
   self.play_volume = volume or 1
-  self.current_song = self.songs[self.play_sequence[self.play_index]]:sound_play(volume)
+  self.current_song = self.songs[self.play_sequence[self.play_index]]:sound_play(self.play_volume)
 end
 
 -- Stops playing all songs.
