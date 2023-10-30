@@ -2,7 +2,7 @@ require 'anchor'
 
 --{{{ init
 function init()
-  main:init{title = 'emoji merge', theme = 'twitter_emoji', w = 640, h = 360, sx = 2, sy = 2}
+  main:init{title = 'emoji merge', theme = 'twitter_emoji', web = true, w = 640, h = 360, sx = 2, sy = 2}
   main:set_icon('assets/sunglasses_icon.png')
 
   bg, bg_fixed, game1, game2, game3, effects, ui1, ui2, shadow = layer(), layer({fixed = true}), layer(), layer(), layer(), layer(), layer({fixed = true}), layer({fixed = true}), layer({x = 4*main.sx, y = 4*main.sy, shadow = true})
@@ -198,10 +198,12 @@ function init()
     music.volume = level_to_volume[main.sound_level + 1]
   end})
 
-  main.screen_button = emoji_button(48, main.h - 20, {emoji = 'screen', w = 18, action = function(self)
-    sounds.button_press:sound_play(0.5, main:random_float(0.95, 1.05))
-    main:resize_up(0.5)
-  end})
+  if not main.web then
+    main.screen_button = emoji_button(48, main.h - 20, {emoji = 'screen', w = 18, action = function(self)
+      sounds.button_press:sound_play(0.5, main:random_float(0.95, 1.05))
+      main:resize_up(0.5)
+    end})
+  end
   main.close_button = emoji_button(main.w - 20, 20, {emoji = 'close', w = 18, action = function(self)
     sounds.button_press:sound_play(0.5, main:random_float(0.95, 1.05))
     main:quit()
@@ -275,11 +277,15 @@ function update(dt)
 
   main.any_button_hot = false
   main.sound_button:update(dt)
-  main.screen_button:update(dt)
+  if not main.web then main.screen_button:update(dt) end
   if main.logical_fullscreen then main.close_button:update(dt) end
   if main.sound_button.pointer_active then main.any_button_hot = true end
-  if main.screen_button.pointer_active then main.any_button_hot = true end
+  if not main.web then
+    if main.screen_button.pointer_active then main.any_button_hot = true end
+  end
   if main.close_button.pointer_active then main.any_button_hot = true end
+
+  main.lose_line:update(dt) 
 
   if main:input_is_pressed'action_1' then main.pointer:hitfx_use('main', 0.25) end
   if not main.transitioning then
@@ -461,6 +467,17 @@ function arena:enter()
 
   self.spawner = self.objects:container_add(spawner())
   self:choose_next_emoji()
+
+  -- Lose condition line
+  main.lose_line = anchor('lose_line'):init(function(self)
+    self:prs_init(main.w/2, main.level.y1)
+    self.color = colors.red[0]:color_clone()
+    self.color.a = 0
+  end):action(function(self, dt)
+    ui1:dashed_line(main.level.x1 + 8, self.y, main.level.x2 - 8, self.y, 16, 8, self.color, 2)
+  end)
+  main:observer_condition(function() return main.distance_to_top <= 64 end, function() self:timer_tween(0.5, main.lose_line.color, {a = 1}, math.cubic_in_out, nil, 'lose_line') end, nil, nil, 'lose_linjje')
+  main:observer_condition(function() return main.distance_to_top > 64 end, function() self:timer_tween(0.5, main.lose_line.color, {a = 0}, math.cubic_in_out, nil, 'lose_line') end, nil, nil, 'lose_line')
 end
 
 function arena:update(dt)
@@ -471,7 +488,12 @@ function arena:update(dt)
       left_offset = left_offset + self.spawner_emoji.rs - 4
       right_offset = right_offset - self.spawner_emoji.rs - 20
     end
-    self.spawner.x, self.spawner.y = math.clamp(main.pointer.x - 12, self.x1 + left_offset, self.x2 + right_offset), 20
+    local y_offset = 0
+    if main.distance_to_top <= 100 then
+      y_offset = math.remap(main.distance_to_top, 100, 0, 0, -42)
+    end
+    self.spawner.x = math.clamp(main.pointer.x - 12, self.x1 + left_offset, self.x2 + right_offset)
+    self.spawner.y = math.lerp_dt(5, dt, self.spawner.y, 20 + y_offset)
     self.spawner:collider_set_position(self.spawner.x, self.spawner.y)
   end
 
@@ -580,6 +602,29 @@ function arena:update(dt)
     end
   end
 
+  -- Dying objects for web version
+  -- This did not make it any faster, meaning problem isn't closures?
+  if main.web and self.all_objects then
+    print(#self.all_objects)
+    for _, object in ipairs(self.all_objects) do
+      if not object.die_done then
+        object.die_timer = object.die_timer + dt
+        if object.die_timer > object.die_delay and not object.dying then
+          object.dying = true
+          sounds.death_hit:sound_play(0.5, main:random_float(0.95, 1.05))
+          object:hitfx_use('main', object.die_hitfx_intensity)
+        end
+        if object.dying then
+          object.die_shake_timer = object.die_shake_timer + dt
+          if object.die_shake_timer > 0.15 then
+            object:shake_shake(object.die_shake_intensity, 0.5)
+            object.die_done = true
+          end
+        end
+      end
+    end
+  end
+
   --[[
   if main:input_is_pressed'2' then
     self:end_round()
@@ -629,6 +674,7 @@ function arena:exit()
   self.plants = nil
   self.emojis = nil
   self.objects = nil
+  self.all_objects = nil
   main:container_remove_dead_without_destroying()
 end
 
@@ -711,6 +757,9 @@ function arena:end_round()
   self:observer_cancel('drop_emoji')
   self:timer_cancel('drop_safety')
   for _, object in ipairs(self.merge_objects) do object:timer_cancel('merge_emojis') end
+  self:timer_cancel('lose_line')
+  main:observer_cancel('lose_line')
+  main.lose_line.color.a = 0
 
   if self.score > self.best then self.best = self.score end
   main.game_state.best = self.best
@@ -726,19 +775,35 @@ function arena:end_round()
   table.sort(objects, function(a, b) return math.distance(top_emoji.x, top_emoji.y, a.x, a.y) < math.distance(top_emoji.x, top_emoji.y, b.x, b.y) end)
 
   -- Turn objects black and white by setting .dying to true
-  for i, object in ipairs(objects) do
-    self:timer_after(0.02*i, function()
-      if object.dying then return end
-      sounds.death_hit:sound_play(0.5, main:random_float(0.95, 1.05))
-      object.dying = true
+  if main.web then -- PERFORMANCE: the browser apparently does not like this many closures being created, so avoid them for the web version
+    self.all_objects = objects
+    for i, object in ipairs(objects) do
+      object.die_timer = 0
+      object.die_delay = 0.02*i
+      object.die_shake_timer = 0
       if object:is('solid') or object:is('board') or object:is('evoji_emoji') then
-        object:hitfx_use('main', 0.125)
-        object:timer_after(0.15, function() object:shake_shake(2, 0.5) end)
+        object.die_hitfx_intensity = 0.125
+        object.die_shake_intensity = 2
       else
-        object:hitfx_use('main', 0.25)
-        object:timer_after(0.15, function() object:shake_shake(4, 0.5) end)
+        object.die_hitfx_intensity = 0.25
+        object.die_shake_intensity = 4
       end
-    end)
+    end
+  else 
+    for i, object in ipairs(objects) do
+      self:timer_after(0.02*i, function()
+        if object.dying then return end
+        object.dying = true
+        sounds.death_hit:sound_play(0.5, main:random_float(0.95, 1.05))
+        if object:is('solid') or object:is('board') or object:is('evoji_emoji') then
+          object:hitfx_use('main', 0.125)
+          object:timer_after(0.15, function() object:shake_shake(2, 0.5) end)
+        else
+          object:hitfx_use('main', 0.25)
+          object:timer_after(0.15, function() object:shake_shake(4, 0.5) end)
+        end
+      end)
+    end
   end
 
   -- Turn background elements to grayscale

@@ -361,6 +361,10 @@ function physics_world:physics_world_get_body_count()
   return self.world:getBodyCount()
 end
 
+function physics_world:physics_world_get_contacts()
+  return self.world:getContacts()
+end
+
 function physics_world:physics_world_are_all_bodies_sleeping()
   local bodies = self.world:getBodies()
   for _, body in ipairs(bodies) do
