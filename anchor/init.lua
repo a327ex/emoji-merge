@@ -130,7 +130,8 @@ function main:init(args)
   main.web = args.web
 
   if main.web then
-    main:load_state()
+    main.game_state = {}
+    main.device_state = {}
     love.graphics.setLineStyle('rough')
     love.graphics.setDefaultFilter('nearest', 'nearest', 0)
     main.w, main.h = args.w or 480, args.h or 270
@@ -152,7 +153,7 @@ function main:init(args)
       love.graphics.setLineStyle('rough')
       love.graphics.setDefaultFilter('nearest', 'nearest', 0)
       main.w, main.h = args.w or 480, args.h or 270
-      main.sx, main.sy = 1, 1
+      main.sx, main.sy = args.sx or 1, args.sy or 1
       main.rx, main.ry = 0, 0
       local _, _, flags = love.window.getMode()
       local desktop_w, desktop_h = love.window.getDesktopDimensions(flags.displayindex)
@@ -160,7 +161,7 @@ function main:init(args)
       main.display = flags.displayindex
       main.borderless = true
       main.resizable = false
-      main:resize(desktop_w, desktop_h)
+      main:resize(main.w*main.sx, main.h*main.sy)
       love.window.setMode(main.w*main.sx, main.h*main.sy, {borderless = true, minwidth = main.w, minheight = main.h, resizable = false})
       love.window.setTitle(main.title)
       main:layer_init()
@@ -221,6 +222,7 @@ function main:draw_all_layers_to_main_layer()
 end
 
 function main:load_state()
+  if main.web then return end
   main.device_state = main:load_table('device_state.txt')
   main.game_state = main:load_table('game_state.txt')
   if not main.device_state then main.device_state = {first_run = true} end
@@ -228,6 +230,7 @@ function main:load_state()
 end
 
 function main:save_state()
+  if main.web then return end
   if main.device_state.first_run then main.device_state.first_run = false end
   if main.game_state.first_run then main.game_state.first_run = false end
   main:save_table('device_state.txt', main.device_state)
@@ -368,7 +371,7 @@ function love.run()
             main:save_state()
             return a or 0
           elseif name == 'resize' then
-            main:calculate_main_scale(a, b)
+            main:resize(a, b)
           elseif name == 'keypressed' then
             main.input_keyboard_state[a] = true
             main.input_latest_type = 'keyboard'

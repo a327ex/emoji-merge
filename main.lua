@@ -2,7 +2,7 @@ require 'anchor'
 
 --{{{ init
 function init()
-  main:init{title = 'emoji merge', theme = 'twitter_emoji', w = 640, h = 360, sx = 2.5, sy = 2.5}
+  main:init{title = 'emoji merge', theme = 'twitter_emoji', w = 640, h = 360, sx = 2, sy = 2}
   main:set_icon('assets/sunglasses_icon.png')
 
   bg, bg_fixed, game1, game2, game3, effects, ui1, ui2, shadow = layer(), layer({fixed = true}), layer(), layer(), layer(), layer(), layer({fixed = true}), layer({fixed = true}), layer({x = 4*main.sx, y = 4*main.sy, shadow = true})
@@ -35,89 +35,89 @@ function init()
 
   main:input_set_mouse_visible(false)
 
-  --[[
-  images = image('assets/texture.png'):image_load_texture_atlas(128, 128, {
-    '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'angry', 'b', 'blossom', 'blue_board', 'blue_chain', 'blush', 'c', 'close', 'closed_hand', 'curving_arrow', 'd', 'devil', 'e', 'f', 'four_leaf_clover',
-    'g', 'green_board', 'h', 'i', 'index', 'j', 'joy', 'k', 'l', 'm', 'n', 'no_sound', 'o', 'open_hand', 'p', 'q', 'r', 'red_board', 'relieved', 'retry', 's', 'screen', 'seedling', 'sheaf', 'slight_smile', 'smirk',
-    'sob', 'sound', 'star', 'star_gray', 'sunflower', 'sunglasses', 't', 'thinking', 'tulip', 'u', 'v', 'vine_chain', 'w', 'x', 'y', 'yum', 'z'
-  }, 1, 1)
-  ]]--
-
-  images = {}
-  images.blossom = image('assets/blossom.png')
-  images.four_leaf_clover = image('assets/four_leaf_clover.png')
-  images.seedling = image('assets/seedling.png')
-  images.sheaf = image('assets/sheaf.png')
-  images.sunflower = image('assets/sunflower.png')
-  images.tulip = image('assets/tulip.png')
-  images.vine_chain = image('assets/vine_chain.png')
-  images['0'] = image('assets/0.png')
-  images['1'] = image('assets/1.png')
-  images['2'] = image('assets/2.png')
-  images['3'] = image('assets/3.png')
-  images['4'] = image('assets/4.png')
-  images['5'] = image('assets/5.png')
-  images['6'] = image('assets/6.png')
-  images['7'] = image('assets/7.png')
-  images['8'] = image('assets/8.png')
-  images['9'] = image('assets/9.png')
-  images['a'] = image('assets/a.png')
-  images['b'] = image('assets/b.png')
-  images['c'] = image('assets/c.png')
-  images['d'] = image('assets/d.png')
-  images['e'] = image('assets/e.png')
-  images['f'] = image('assets/f.png')
-  images['g'] = image('assets/g.png')
-  images['h'] = image('assets/h.png')
-  images['i'] = image('assets/i.png')
-  images['j'] = image('assets/j.png')
-  images['k'] = image('assets/k.png')
-  images['l'] = image('assets/l.png')
-  images['m'] = image('assets/m.png')
-  images['n'] = image('assets/n.png')
-  images['o'] = image('assets/o.png')
-  images['p'] = image('assets/p.png')
-  images['q'] = image('assets/q.png')
-  images['r'] = image('assets/r.png')
-  images['s'] = image('assets/s.png')
-  images['t'] = image('assets/t.png')
-  images['u'] = image('assets/u.png')
-  images['v'] = image('assets/v.png')
-  images['w'] = image('assets/w.png')
-  images['x'] = image('assets/x.png')
-  images['y'] = image('assets/y.png')
-  images['z'] = image('assets/z.png')
-  images.star = image('assets/star.png')
-  images.slight_smile = image('assets/slight_smile.png')
-  images.blush = image('assets/blush.png')
-  images.devil = image('assets/devil.png')
-  images.angry = image('assets/angry.png')
-  images.relieved = image('assets/relieved.png')
-  images.yum = image('assets/yum.png')
-  images.joy = image('assets/joy.png')
-  images.sob = image('assets/sob.png')
-  images.smirk = image('assets/smirk.png')
-  images.thinking = image('assets/thinking.png')
-  images.sunglasses = image('assets/sunglasses.png')
-  images.blue_board = image('assets/blue_board.png')
-  images.red_board = image('assets/red_board.png')
-  images.green_board = image('assets/green_board.png')
-  images.curving_arrow = image('assets/curving_arrow.png')
-  images.blue_chain = image('assets/blue_chain.png')
-  images.retry = image('assets/retry.png')
-  images.index = image('assets/index.png')
-  images.sound_4 = image('assets/sound_4.png')
-  images.sound_3 = image('assets/sound_3.png')
-  images.sound_2 = image('assets/sound_2.png')
-  images.sound_1 = image('assets/sound_1.png')
-  images.sound_0 = image('assets/sound_0.png')
-  images.screen = image('assets/screen.png')
-  images.closed_hand = image('assets/closed_hand.png')
-  images.open_hand = image('assets/open_hand.png')
-  images.close = image('assets/close.png')
-  images.star_gray = image('assets/star_gray.png')
-  images.cloud = image('assets/cloud.png')
-  images.cloud_gray = image('assets/cloud_gray.png')
+  if main.web then
+    images = image('assets/texture.png'):image_load_texture_atlas(128, 128, {
+      '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'angry', 'b', 'blossom', 'blue_board', 'blue_chain', 'blush', 'c', 'close', 'closed_hand', 'cloud', 'cloud_gray', 'curving_arrow', 'd', 'devil', 'e', 'f', 
+      'four_leaf_clover', 'g', 'green_board', 'h', 'i', 'index', 'j', 'joy', 'k', 'l', 'm', 'n', 'o', 'open_hand', 'p', 'q', 'r', 'red_board', 'relieved', 'retry', 's', 'screen', 'seedling', 'sheaf', 'slight_smile', 
+      'smirk', 'sob', 'sound_0', 'sound_1', 'sound_2', 'sound_3', 'sound_4', 'star', 'star_gray', 'sunflower', 'sunglasses', 't', 'thinking', 'tulip', 'u', 'v', 'vine_chain', 'w', 'x', 'y', 'yum', 'z'
+    }, 1)
+  else
+    images = {}
+    images.blossom = image('assets/blossom.png')
+    images.four_leaf_clover = image('assets/four_leaf_clover.png')
+    images.seedling = image('assets/seedling.png')
+    images.sheaf = image('assets/sheaf.png')
+    images.sunflower = image('assets/sunflower.png')
+    images.tulip = image('assets/tulip.png')
+    images.vine_chain = image('assets/vine_chain.png')
+    images['0'] = image('assets/0.png')
+    images['1'] = image('assets/1.png')
+    images['2'] = image('assets/2.png')
+    images['3'] = image('assets/3.png')
+    images['4'] = image('assets/4.png')
+    images['5'] = image('assets/5.png')
+    images['6'] = image('assets/6.png')
+    images['7'] = image('assets/7.png')
+    images['8'] = image('assets/8.png')
+    images['9'] = image('assets/9.png')
+    images['a'] = image('assets/a.png')
+    images['b'] = image('assets/b.png')
+    images['c'] = image('assets/c.png')
+    images['d'] = image('assets/d.png')
+    images['e'] = image('assets/e.png')
+    images['f'] = image('assets/f.png')
+    images['g'] = image('assets/g.png')
+    images['h'] = image('assets/h.png')
+    images['i'] = image('assets/i.png')
+    images['j'] = image('assets/j.png')
+    images['k'] = image('assets/k.png')
+    images['l'] = image('assets/l.png')
+    images['m'] = image('assets/m.png')
+    images['n'] = image('assets/n.png')
+    images['o'] = image('assets/o.png')
+    images['p'] = image('assets/p.png')
+    images['q'] = image('assets/q.png')
+    images['r'] = image('assets/r.png')
+    images['s'] = image('assets/s.png')
+    images['t'] = image('assets/t.png')
+    images['u'] = image('assets/u.png')
+    images['v'] = image('assets/v.png')
+    images['w'] = image('assets/w.png')
+    images['x'] = image('assets/x.png')
+    images['y'] = image('assets/y.png')
+    images['z'] = image('assets/z.png')
+    images.star = image('assets/star.png')
+    images.slight_smile = image('assets/slight_smile.png')
+    images.blush = image('assets/blush.png')
+    images.devil = image('assets/devil.png')
+    images.angry = image('assets/angry.png')
+    images.relieved = image('assets/relieved.png')
+    images.yum = image('assets/yum.png')
+    images.joy = image('assets/joy.png')
+    images.sob = image('assets/sob.png')
+    images.smirk = image('assets/smirk.png')
+    images.thinking = image('assets/thinking.png')
+    images.sunglasses = image('assets/sunglasses.png')
+    images.blue_board = image('assets/blue_board.png')
+    images.red_board = image('assets/red_board.png')
+    images.green_board = image('assets/green_board.png')
+    images.curving_arrow = image('assets/curving_arrow.png')
+    images.blue_chain = image('assets/blue_chain.png')
+    images.retry = image('assets/retry.png')
+    images.index = image('assets/index.png')
+    images.sound_4 = image('assets/sound_4.png')
+    images.sound_3 = image('assets/sound_3.png')
+    images.sound_2 = image('assets/sound_2.png')
+    images.sound_1 = image('assets/sound_1.png')
+    images.sound_0 = image('assets/sound_0.png')
+    images.screen = image('assets/screen.png')
+    images.closed_hand = image('assets/closed_hand.png')
+    images.open_hand = image('assets/open_hand.png')
+    images.close = image('assets/close.png')
+    images.star_gray = image('assets/star_gray.png')
+    images.cloud = image('assets/cloud.png')
+    images.cloud_gray = image('assets/cloud_gray.png')
+  end
 
   -- bg_1 = gradient_image('vertical', color(0.5, 0.5, 0.5, 0), color(0, 0, 0, 0.3))
   bg_1 = gradient_image('vertical', color(colors.fg[0].r, colors.fg[0].g, colors.fg[0].b, 1), color(colors.blue[10].r, colors.blue[10].g, colors.blue[10].b, 1))
@@ -783,43 +783,43 @@ function arena:end_round()
 
     -- Apply impulses
     for _, object in ipairs(objects) do
-      if not object.body then goto continue end -- BUG: when the game ends and the arena is filled it happened once that an emoji object didn't have a body anymore, don't know why so this is here
-      if object:is('solid') then
-        if object.id == self.solid_left.id then
+      if object.body then -- BUG: when the game ends and the arena is filled it happened once that an emoji object didn't have a body anymore, don't know why so this is here
+        if object:is('solid') then
+          if object.id == self.solid_left.id then
+            object:collider_set_body_type('dynamic')
+            object:collider_apply_impulse(-100, 0, object.x, object.y - object.h/4 + main:random_float(-object.h/8, object.h/8))
+            object:collider_set_gravity_scale(main:random_float(0.3, 0.5))
+          elseif object.id == self.solid_right.id then
+            object:collider_set_body_type('dynamic')
+            object:collider_apply_impulse(100, 0, object.x, object.y - object.h/4 + main:random_float(-object.h/8, object.h/8))
+            object:collider_set_gravity_scale(main:random_float(0.3, 0.5))
+          elseif object.id == self.solid_bottom.id then
+            object:collider_set_body_type('dynamic')
+            object:collider_set_gravity_scale(main:random_float(0.3, 0.5))
+          end
+
+        elseif object:is('emoji') then
+          local mass_multiplier = 4*object:collider_get_mass()
+          object:collider_set_gravity_scale(main:random_float(0.8, 1.2))
+          object:collider_apply_impulse(mass_multiplier*main:random_float(-20, 20), mass_multiplier*main:random_float(-40, 0))
+          object:collider_apply_angular_impulse(mass_multiplier*main:random_float(-4*math.pi, 4*math.pi))
+
+        elseif object:is('spawner') then
+          object:collider_set_gravity_scale(main:random_float(1, 1.2))
+          local vx = main:random_float(-40, 40)
+          object:collider_apply_impulse(vx, main:random_float(-60, -20))
+          object:collider_apply_angular_impulse(-math.sign(vx)*main:random_float(-24*math.pi, -8*math.pi))
+
+        elseif object:is('plant') and not object.board then
           object:collider_set_body_type('dynamic')
-          object:collider_apply_impulse(-100, 0, object.x, object.y - object.h/4 + main:random_float(-object.h/8, object.h/8))
-          object:collider_set_gravity_scale(main:random_float(0.3, 0.5))
-        elseif object.id == self.solid_right.id then
-          object:collider_set_body_type('dynamic')
-          object:collider_apply_impulse(100, 0, object.x, object.y - object.h/4 + main:random_float(-object.h/8, object.h/8))
-          object:collider_set_gravity_scale(main:random_float(0.3, 0.5))
-        elseif object.id == self.solid_bottom.id then
-          object:collider_set_body_type('dynamic')
-          object:collider_set_gravity_scale(main:random_float(0.3, 0.5))
+          object:collider_set_gravity_scale(main:random_float(0.1, 0.6))
+          object:collider_apply_impulse(main:random_float(-5, 5), main:random_float(-5, 0))
+          object:collider_apply_angular_impulse(main:random_float(-12*math.pi, 12*math.pi))
+          object:timer_after({0.2, 1}, function()
+            object:timer_every(0.05, function() object.hidden = not object.hidden end, 7, true, function() object.dead = true end)
+          end)
         end
-
-      elseif object:is('emoji') then
-        local mass_multiplier = 4*object:collider_get_mass()
-        object:collider_set_gravity_scale(main:random_float(0.8, 1.2))
-        object:collider_apply_impulse(mass_multiplier*main:random_float(-20, 20), mass_multiplier*main:random_float(-40, 0))
-        object:collider_apply_angular_impulse(mass_multiplier*main:random_float(-4*math.pi, 4*math.pi))
-
-      elseif object:is('spawner') then
-        object:collider_set_gravity_scale(main:random_float(1, 1.2))
-        local vx = main:random_float(-40, 40)
-        object:collider_apply_impulse(vx, main:random_float(-60, -20))
-        object:collider_apply_angular_impulse(-math.sign(vx)*main:random_float(-24*math.pi, -8*math.pi))
-
-      elseif object:is('plant') and not object.board then
-        object:collider_set_body_type('dynamic')
-        object:collider_set_gravity_scale(main:random_float(0.1, 0.6))
-        object:collider_apply_impulse(main:random_float(-5, 5), main:random_float(-5, 0))
-        object:collider_apply_angular_impulse(main:random_float(-12*math.pi, 12*math.pi))
-        object:timer_after({0.2, 1}, function()
-          object:timer_every(0.05, function() object.hidden = not object.hidden end, 7, true, function() object.dead = true end)
-        end)
       end
-      ::continue::
     end
   end)
 

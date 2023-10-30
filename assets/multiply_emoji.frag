@@ -2,12 +2,11 @@ uniform float base;
 uniform vec3 multiplier;
 
 float map(float v, float old_min, float old_max, float new_min, float new_max) {
-  return 
-    ((v - old_min)/(old_max - old_min))*(new_max - new_min) + new_min;
+  return ((v - old_min)/(old_max - old_min))*(new_max - new_min) + new_min;
 }
 
 float imap(float v, float min, float max) {
-  return min*(1-v) + max*v;
+  return min*(1.0-v) + max*v;
 }
 
 vec4 effect(vec4 vcolor, Image texture, vec2 tc, vec2 pc) {
