@@ -1,7 +1,7 @@
 local sound = class:class_new()
 function sound:sound_init(filename)
   local info = love.filesystem.getInfo(filename)
-  self.sound_source = love.audio.newSource(filename, (info and info.size and info.size < 5e5) and 'static' or 'stream')
+  self.sound_source = love.audio.newSource(filename, 'static')
   self.sound_instances = {}
   table.insert(main.sound_objects, self)
   return self

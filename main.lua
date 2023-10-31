@@ -145,7 +145,7 @@ function init()
   sounds.death_hit = sound('assets/se_22.ogg', {tag = sfx})
 
   main:physics_world_set_gravity(0, 360)
-  main:physics_world_set_callbacks()
+  main:physics_world_set_callbacks('world', 'type')
   main:physics_world_set_collision_tags{'emoji', 'ghost', 'solid'}
   main:physics_world_disable_collision_between('emoji', {'ghost'})
   main:physics_world_disable_collision_between('ghost', {'emoji', 'ghost', 'solid'})
@@ -182,24 +182,33 @@ function init()
   }
 
   main.pointer:hitfx_init()
-  main.sound_level = main.game_state.sound_level or 4
+  main.sfx_sound_level = main.game_state.sfx_sound_level or 4
+  main.music_sound_level = main.game_state.music_sound_level or 4
   main.any_button_hot = false
   local level_to_volume = {0, 0.0625, 0.125, 0.25, 0.5}
-  sfx.volume = level_to_volume[main.sound_level + 1]
-  music.volume = level_to_volume[main.sound_level + 1]
-  main.sound_button = emoji_button(20, main.h - 20, {emoji = 'sound_' .. main.sound_level, w = 18, action = function(self)
+  sfx.volume = level_to_volume[main.sfx_sound_level + 1]
+  music.volume = level_to_volume[main.music_sound_level + 1]
+  main.sfx_button = emoji_button(20, main.h - 20, {emoji = 'sound_' .. main.sfx_sound_level, w = 18, action = function(self)
     sounds.button_press:sound_play(1, main:random_float(0.95, 1.05))
-    main.sound_level = main.sound_level - 1
-    if main.sound_level < 0 then main.sound_level = 4 end
-    main.game_state.sound_level = main.sound_level
+    main.sfx_sound_level = main.sfx_sound_level - 1
+    if main.sfx_sound_level < 0 then main.sfx_sound_level = 4 end
+    main.game_state.sfx_sound_level = main.sfx_sound_level
     main:save_state()
-    self.emoji = images['sound_' .. main.sound_level]
-    sfx.volume = level_to_volume[main.sound_level + 1]
-    music.volume = level_to_volume[main.sound_level + 1]
+    self.emoji = images['sound_' .. main.sfx_sound_level]
+    sfx.volume = level_to_volume[main.sfx_sound_level + 1]
+  end})
+  main.music_button = emoji_button(48, main.h - 20, {emoji = 'sound_' .. main.music_sound_level, w = 18, action = function(self)
+    sounds.button_press:sound_play(1, main:random_float(0.95, 1.05))
+    main.music_sound_level = main.music_sound_level - 1
+    if main.music_sound_level < 0 then main.music_sound_level = 4 end
+    main.game_state.music_sound_level = main.music_sound_level
+    main:save_state()
+    self.emoji = images['sound_' .. main.music_sound_level]
+    music.volume = level_to_volume[main.music_sound_level + 1]
   end})
 
   if not main.web then
-    main.screen_button = emoji_button(48, main.h - 20, {emoji = 'screen', w = 18, action = function(self)
+    main.screen_button = emoji_button(78, main.h - 20, {emoji = 'screen', w = 18, action = function(self)
       sounds.button_press:sound_play(0.5, main:random_float(0.95, 1.05))
       main:resize_up(0.5)
     end})
@@ -276,10 +285,12 @@ function update(dt)
   for _, cloud in ipairs(main.clouds) do cloud:update(dt) end
 
   main.any_button_hot = false
-  main.sound_button:update(dt)
+  main.sfx_button:update(dt)
+  main.music_button:update(dt)
   if not main.web then main.screen_button:update(dt) end
   if main.logical_fullscreen then main.close_button:update(dt) end
-  if main.sound_button.pointer_active then main.any_button_hot = true end
+  if main.sfx_button.pointer_active then main.any_button_hot = true end
+  if main.music_button.pointer_active then main.any_button_hot = true end
   if not main.web then
     if main.screen_button.pointer_active then main.any_button_hot = true end
   end
@@ -509,6 +520,8 @@ function arena:update(dt)
   -- Merge emojis
   for _, c in ipairs(main:physics_world_get_collision_enter('emoji', 'emoji')) do
     local a, b = c[1], c[2]
+    a.hit_emoji_or_solid = true
+    b.hit_emoji_or_solid = true
     if not a.dead and not b.dead and a.has_dropped and b.has_dropped then
       if a.value == b.value then
         self:merge_emojis(a, b, c[3], c[4])
@@ -527,6 +540,7 @@ function arena:update(dt)
   for _, c in ipairs(main:physics_world_get_collision_enter('emoji', 'solid')) do
     local a, b = c[1], c[2]
     local x, y = c[3], c[4]
+    a.hit_emoji_or_solid = true
     if b.id == self.solid_bottom.id then
       local plants = self:get_nearby_plants(x, y, 50)
       for _, plant in ipairs(plants) do
@@ -584,8 +598,9 @@ function arena:update(dt)
       self.retry_button.hot = false
     end
 
-    if self.retry_button.hot and main:input_is_pressed'action_1' then
+    if self.retry_button.hot and not self.retry_button.pressed and main:input_is_pressed'action_1' then
       sounds.end_round_retry_press:sound_play(1)
+      self.retry_button.pressed = true
       self.retry_button:hitfx_use('main', 0.25, nil, nil, 0.15)
       self:timer_after(0.066, function() self.retry_chain:flash_text() end)
       main.transitioning = true
@@ -599,29 +614,6 @@ function arena:update(dt)
           end)
         end)
       end)
-    end
-  end
-
-  -- Dying objects for web version
-  -- This did not make it any faster, meaning problem isn't closures?
-  if main.web and self.all_objects then
-    print(#self.all_objects)
-    for _, object in ipairs(self.all_objects) do
-      if not object.die_done then
-        object.die_timer = object.die_timer + dt
-        if object.die_timer > object.die_delay and not object.dying then
-          object.dying = true
-          sounds.death_hit:sound_play(0.5, main:random_float(0.95, 1.05))
-          object:hitfx_use('main', object.die_hitfx_intensity)
-        end
-        if object.dying then
-          object.die_shake_timer = object.die_shake_timer + dt
-          if object.die_shake_timer > 0.15 then
-            object:shake_shake(object.die_shake_intensity, 0.5)
-            object.die_done = true
-          end
-        end
-      end
     end
   end
 
@@ -692,7 +684,7 @@ function arena:drop_emoji()
   self.spawner_emoji:collider_apply_impulse(0, 0.01)
   self.spawner_emoji.dropping = true
   self.spawner_emoji.has_dropped = true
-  self.spawner_emoji:observer_condition(function() return (self.spawner_emoji.collision_enter.emoji or self.spawner_emoji.collision_enter.solid) and self.spawner_emoji.dropping end, function()
+  self.spawner_emoji:observer_condition(function() return self.spawner_emoji.hit_emoji_or_solid and self.spawner_emoji.dropping end, function()
     self.spawner_emoji.dropping = false
     self:choose_next_emoji()
   end, nil, nil, 'drop_emoji')
@@ -775,36 +767,22 @@ function arena:end_round()
   table.sort(objects, function(a, b) return math.distance(top_emoji.x, top_emoji.y, a.x, a.y) < math.distance(top_emoji.x, top_emoji.y, b.x, b.y) end)
 
   -- Turn objects black and white by setting .dying to true
-  if main.web then -- PERFORMANCE: the browser apparently does not like this many closures being created, so avoid them for the web version
-    self.all_objects = objects
-    for i, object in ipairs(objects) do
-      object.die_timer = 0
-      object.die_delay = 0.02*i
-      object.die_shake_timer = 0
-      if object:is('solid') or object:is('board') or object:is('evoji_emoji') then
-        object.die_hitfx_intensity = 0.125
-        object.die_shake_intensity = 2
-      else
-        object.die_hitfx_intensity = 0.25
-        object.die_shake_intensity = 4
-      end
+  -- PERFORMANCE: the browser really does not like to play the same sound effect every 0.02s (????), so disable it for web version
+  local i = 1
+  self:timer_every(0.02, function()
+    local object = objects[i]
+    if object.dying then return end
+    object.dying = true
+    if not main.web then sounds.death_hit:sound_play(0.5, main:random_float(0.95, 1.05)) end
+    if object:is('solid') or object:is('board') or object:is('evoji_emoji') then
+      object:hitfx_use('main', 0.125)
+      object:timer_after(0.15, function() object:shake_shake(2, 0.5) end)
+    else
+      object:hitfx_use('main', 0.25)
+      object:timer_after(0.15, function() object:shake_shake(4, 0.5) end)
     end
-  else 
-    for i, object in ipairs(objects) do
-      self:timer_after(0.02*i, function()
-        if object.dying then return end
-        object.dying = true
-        sounds.death_hit:sound_play(0.5, main:random_float(0.95, 1.05))
-        if object:is('solid') or object:is('board') or object:is('evoji_emoji') then
-          object:hitfx_use('main', 0.125)
-          object:timer_after(0.15, function() object:shake_shake(2, 0.5) end)
-        else
-          object:hitfx_use('main', 0.25)
-          object:timer_after(0.15, function() object:shake_shake(4, 0.5) end)
-        end
-      end)
-    end
-  end
+    i = i + 1
+  end, #objects)
 
   -- Turn background elements to grayscale
   bg_color = color(colors.fg[0].r, colors.fg[0].g, colors.fg[0].b, 0.4)

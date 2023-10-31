@@ -103,8 +103,8 @@ function input:input_update(dt)
       elseif action_type == 'axis' then
         if self.input_gamepad then
           local sign = 1
-          if key:find('+') then key, sign = key:left('+'), 1
-          elseif key:find('-') then key, sign = key:left('-'), -1 end
+          if key:find('%+') then key, sign = key:left('%+'), 1
+          elseif key:find('%-') then key, sign = key:left('%-'), -1 end
           local value = self.input_gamepad:getGamepadAxis(key)
           if value ~= 0 then self.input_latest_type = 'gamepad' end
           local down = false
