@@ -10,6 +10,8 @@ function hitfx:hitfx_init()
 end
 
 function hitfx:hitfx_update(dt)
+  if not self.hitfx_recently then return end
+  if main.time - self.hitfx_recently > self.hitfx_duration then self.hitfx_recently = nil end
   for _, spring in pairs(self.springs) do spring:spring_update(dt) end
   for _, flash in pairs(self.flashes) do flash:flash_update(dt) end
 end
@@ -28,6 +30,8 @@ end
 -- self:hitfx_add must have been called first with the given effect name.
 -- self:hitfx_use('hit', 2, nil, nil, 0.3)
 function hitfx:hitfx_use(name, x, k, d, flash_duration)
+  self.hitfx_recently = main.time
+  self.hitfx_duration = 4
   if x or k or d then self.springs[name]:spring_pull(x, k, d) end
   if flash_duration then self.flashes[name]:flash_flash(flash_duration) end
 end

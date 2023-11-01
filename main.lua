@@ -715,7 +715,7 @@ function arena:drop_emoji()
     self.spawner_emoji.dropping = false
     self:choose_next_emoji()
   end, nil, nil, 'drop_emoji')
-  self:timer_after(2, function()
+  self:timer_after(1.4, function()
     self.spawner.emoji = images.closed_hand
     if self.spawner_emoji.dropping then
       self.spawner_emoji.dropping = false
@@ -1330,12 +1330,8 @@ function plant:plant_init(x, y, args)
 end
 
 function plant:plant_update(dt)
-  self:collider_update_position_and_angle()
-  self:collider_set_awake(true)
-
-  if self.trigger_active[main.pointer] then
-    self:apply_moving_force(main.camera.mouse_dt.x, main.camera.mouse_dt.y, 50*main.camera.mouse_dt:vec2_length())
-  end
+  -- self:collider_update_position_and_angle()
+  -- self:collider_set_awake(true)
 
   if self.direction == 'up' or self.direction == 'down' then
     self.constant_wind_r = 0.2*math.sin(1.4*main.time + 0.01*self.x)
@@ -1344,13 +1340,12 @@ function plant:plant_update(dt)
   end
 
   if self.dying then self.constant_wind_r = 0 end
+  self.sx, self.sy = self.flip_sx*self.w/self.emoji.w, self.h/self.emoji.h
+  if main.web then return end
 
-  if self.applying_wind_stream then
-    self.random_wind_rv = math.min(self.random_wind_rv + main:random_float(0.6, 1.4)*self.random_wind_ra*dt, self.max_random_wind_rv)
-    self.random_wind_r = self.random_wind_r + main:random_float(0.6, 1.4)*self.random_wind_rv*dt
+  if self.trigger_active[main.pointer] then
+    self:apply_moving_force(main.camera.mouse_dt.x, main.camera.mouse_dt.y, 50*main.camera.mouse_dt:vec2_length())
   end
-  self.random_wind_rv = self.random_wind_rv*56*dt
-  self.random_wind_r = self.random_wind_r*56*dt
 
   if self.applying_moving_force then
     if self.max_moving_wind_force_rv > 0 then self.moving_wind_force_rv = math.min(self.moving_wind_force_rv + self.moving_wind_force_ra*dt, self.max_moving_wind_force_rv)
@@ -1367,8 +1362,6 @@ function plant:plant_update(dt)
   end
   self.direct_wind_force_rv = self.direct_wind_force_rv*58*dt
   self.direct_wind_force_r = self.direct_wind_force_r*58*dt
-
-  self.sx, self.sy = self.flip_sx*self.w/self.emoji.w, self.h/self.emoji.h
 end
 
 function plant:plant_draw()
@@ -1389,6 +1382,7 @@ function plant:plant_draw()
 end
 
 function plant:apply_direct_force(vx, vy, force)
+  if main.web then return end
   local direction
   if self.direction == 'up' then direction = math.sign(vx)
   elseif self.direction == 'down' then direction = -math.sign(vx)
@@ -1403,6 +1397,7 @@ function plant:apply_direct_force(vx, vy, force)
 end
 
 function plant:apply_moving_force(vx, vy, force)
+  if main.web then return end
   local direction
   if self.direction == 'up' then direction = math.sign(vx)
   elseif self.direction == 'down' then direction = -math.sign(vx)
@@ -1413,18 +1408,6 @@ function plant:apply_moving_force(vx, vy, force)
   local f = math.remap(math.abs(force), 0, 200, 0, self.init_max_moving_wind_force_rv)
   self.max_moving_wind_force_rv = direction*f
   self:timer_after({0.4, 0.6}, function() self.applying_moving_force = false; self.max_moving_wind_force_rv = self.init_max_moving_wind_force_rv end)
-end
-
-function plant:apply_wind_stream(duration, force)
-  self:timer_after(0.002*self.x, function()
-    self.max_random_wind_rv = force/10
-    self.applying_wind_stream = true
-    self:timer_after(duration/2, function() self:timer_tween(duration/2 + 0.004*self.x, self, {max_random_wind_rv = 0}, math.linear) end, 'back')
-    self:timer_after(duration + 0.004*self.x, function()
-      self.applying_wind_stream = false
-      self.max_random_wind_rv = self.init_max_random_wind_rv
-    end, 'end')
-  end)
 end
 
 anchor:class_add(plant)

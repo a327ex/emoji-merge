@@ -122,7 +122,7 @@ main.lag = 0
 main.rate = 1/60
 main.max_frame_skip = 25
 
-main:container_init():input_init():input_bind_all():level_init():music_player_init():observer_init():physics_world_init():random_init():shake_init():slow_init():system_init()
+main:container_init():input_init():level_init():music_player_init():observer_init():physics_world_init():random_init():shake_init():slow_init():system_init()
 
 function main:init(args)
   args = args or {}

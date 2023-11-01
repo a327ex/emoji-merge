@@ -31,7 +31,7 @@ end
 local z_sort = function(a, b) return (a.z or 0) < (b.z or 0) end
 function layer:layer_draw_commands(name)
   self:layer_draw_to_canvas(name or 'main', function()
-    table.stable_sort(self.draw_commands, z_sort)
+    -- table.stable_sort(self.draw_commands, z_sort) -- PERFORMANCE: I never actually ended up using .z for sorting within layers in reality and this showed up as a significant cost on the profiler, so it's out for now
     if not self.fixed then main.camera:camera_attach() end
     for _, command in ipairs(self.draw_commands) do
       if graphics[command.type] then
