@@ -2,7 +2,7 @@ require 'anchor'
 
 --{{{ init
 function init()
-  main:init{title = 'emoji merge', theme = 'twitter_emoji', web = true, w = 640, h = 360, sx = 2, sy = 2}
+  main:init{title = 'emoji merge', theme = 'twitter_emoji', w = 640, h = 360, sx = 2, sy = 2}
   main:set_icon('assets/sunglasses_icon.png')
 
   bg, bg_fixed, game1, game2, game3, effects, ui1, ui2, shadow = layer(), layer({fixed = true}), layer(), layer(), layer(), layer(), layer({fixed = true}), layer({fixed = true}), layer({x = 4*main.sx, y = 4*main.sy, shadow = true})
@@ -280,6 +280,7 @@ function init()
     end
   end
 
+  --[[
   profile.start()
   profile_report = 'Please wait...'
   main:timer_every(2, function()
@@ -287,6 +288,7 @@ function init()
     print(profile_report)
     profile.reset()
   end)
+  ]]--
 
   main:level_add('arena', arena())
   main:level_goto('arena')
@@ -297,13 +299,6 @@ function init()
 end
 
 function update(dt)
-  --[[
-  bg:rectangle(main.w/2, main.h/2, 3*main.w, 3*main.h, 0, 0, colors.fg[0])
-  bg_fixed:push(0.5*main.w, 0.5*main.h, -math.pi/6)
-  bg_2:gradient_image_draw(bg_fixed, 0.5*main.w, 0.5*main.h, main.w, -main.h)
-  bg_fixed:pop()
-  ]]--
-  
   bg:rectangle(main.w/2, 75, main.w, 150, 0, 0, bg_color)
   bg_gradient:gradient_image_draw(bg, main.w/2, main.h/2, main.w, -60)
   bg:rectangle(main.w/2, main.h - 75, main.w, 150, 0, 0, colors.fg[0])
@@ -1330,8 +1325,8 @@ function plant:plant_init(x, y, args)
 end
 
 function plant:plant_update(dt)
-  -- self:collider_update_position_and_angle()
-  -- self:collider_set_awake(true)
+  self:collider_update_position_and_angle()
+  self:collider_set_awake(true)
 
   if self.direction == 'up' or self.direction == 'down' then
     self.constant_wind_r = 0.2*math.sin(1.4*main.time + 0.01*self.x)
@@ -1711,6 +1706,7 @@ function emoji:new(x, y, args)
   self:collider_set_restitution(0.2)
   self:collider_set_gravity_scale(0)
   self:collider_set_mass(value_to_emoji_data[self.value].mass_multiplier*self:collider_get_mass())
+  self:collider_set_sleeping_allowed(false)
   self:timer_init()
   self:observer_init()
   self:hitfx_init()
@@ -1741,11 +1737,6 @@ function emoji:update(dt)
   self:collider_update_position_and_angle()
   if self.trigger_active[main.pointer] and main:input_is_pressed'action_1' then
     self:hitfx_use('main', 0.25)
-    --[[
-    for i = 1, main:random_int(2, 3) do 
-      main.level.objects:container_add(emoji_particle('star', main.camera.mouse.x, main.camera.mouse.y, {hitfx_on_spawn_no_flash = 0.75, r = main:random_angle(), rotation_v = main:random_float(-2*math.pi, 2*math.pi)}))
-    end
-    ]]--
   end
   game2:push(self.drop_x, self.drop_y, 0, self.springs.drop.x, self.springs.drop.x)
     game2:draw_image_or_quad(self.emoji, self.x + self.shake_amount.x, self.y + self.shake_amount.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x, 0, 0, colors.white[0], 
