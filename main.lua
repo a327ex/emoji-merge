@@ -36,6 +36,7 @@ function init()
 
   main:input_set_mouse_visible(false)
 
+  --[[
   if main.web then
     images = image('assets/texture.png'):image_load_texture_atlas(128, 128, {
       '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'angry', 'b', 'blossom', 'blue_board', 'blue_chain', 'blush', 'c', 'close', 'closed_hand', 'cloud', 'cloud_gray', 'curving_arrow', 'd', 'devil', 'e', 'f', 
@@ -43,6 +44,7 @@ function init()
       'smirk', 'sob', 'sound_0', 'sound_1', 'sound_2', 'sound_3', 'sound_4', 'star', 'star_gray', 'sunflower', 'sunglasses', 't', 'thinking', 'tulip', 'u', 'v', 'vine_chain', 'w', 'x', 'y', 'yum', 'z'
     }, 1)
   else
+  ]]--
     images = {}
     images.blossom = image('assets/blossom.png')
     images.four_leaf_clover = image('assets/four_leaf_clover.png')
@@ -118,7 +120,7 @@ function init()
     images.star_gray = image('assets/star_gray.png')
     images.cloud = image('assets/cloud.png')
     images.cloud_gray = image('assets/cloud_gray.png')
-  end
+  -- end
 
   -- bg_1 = gradient_image('vertical', color(0.5, 0.5, 0.5, 0), color(0, 0, 0, 0.3))
   bg_1 = gradient_image('vertical', color(colors.fg[0].r, colors.fg[0].g, colors.fg[0].b, 1), color(colors.blue[10].r, colors.blue[10].g, colors.blue[10].b, 1))
@@ -197,7 +199,7 @@ function init()
       local s = 18/images.index.w
       ui2:draw_image_or_quad(images.index, self.x + 6, self.y + 6, -math.pi/6, s*self.springs.main.x, s*self.springs.main.x, 0, 0, colors.white[0], (self.flashes.main.x and shaders.combine))
     end
-    self:collider_draw(ui2, colors.blue[0])
+    -- self:collider_draw(ui2, colors.blue[0])
   end)
 
   main.sfx_sound_level = main.game_state.sfx_sound_level or 4
@@ -504,13 +506,22 @@ function arena:enter()
   -- Lose condition line
   main.lose_line = anchor('lose_line'):init(function(self)
     self:prs_init(main.w/2, main.level.y1)
+    self:observer_init()
+    self:timer_init()
     self.color = colors.red[0]:color_clone()
     self.color.a = 0
+    self.active = false
+    self:observer_condition(function() return main.distance_to_top <= 64 end, function()
+      self.active = true
+      self:timer_tween(0.5, self.color, {a = 1}, math.cubic_in_out, nil, 'alpha')
+    end, nil, nil, 'active_true')
+    self:observer_condition(function() return main.distance_to_top > 64 end, function()
+      self.active = false
+      self:timer_tween(0.5, self.color, {a = 0}, math.cubic_in_out, nil, 'alpha')
+    end, nil, nil, 'active_false')
   end):action(function(self, dt)
     ui1:dashed_line(main.level.x1 + 8, self.y, main.level.x2 - 8, self.y, 16, 8, self.color, 2)
   end)
-  main:observer_condition(function() return main.distance_to_top <= 64 end, function() self:timer_tween(0.5, main.lose_line.color, {a = 1}, math.cubic_in_out, nil, 'lose_line') end, nil, nil, 'lose_linjje')
-  main:observer_condition(function() return main.distance_to_top > 64 end, function() self:timer_tween(0.5, main.lose_line.color, {a = 0}, math.cubic_in_out, nil, 'lose_line') end, nil, nil, 'lose_line')
 end
 
 function arena:update(dt)
@@ -542,8 +553,6 @@ function arena:update(dt)
   -- Merge emojis
   for _, c in ipairs(main:physics_world_get_collision_enter('emoji', 'emoji')) do
     local a, b = c[1], c[2]
-    a.hit_emoji_or_solid = true
-    b.hit_emoji_or_solid = true
     if not a.dead and not b.dead and a.has_dropped and b.has_dropped then
       if a.value == b.value then
         self:merge_emojis(a, b, c[3], c[4])
@@ -562,7 +571,6 @@ function arena:update(dt)
   for _, c in ipairs(main:physics_world_get_collision_enter('emoji', 'solid')) do
     local a, b = c[1], c[2]
     local x, y = c[3], c[4]
-    a.hit_emoji_or_solid = true
     if b.id == self.solid_bottom.id then
       local plants = self:get_nearby_plants(x, y, 50)
       for _, plant in ipairs(plants) do
@@ -583,7 +591,7 @@ function arena:update(dt)
     else main.distance_to_top = self.y2 - self.y1 end
 
     for _, emoji in ipairs(self.emojis.objects) do
-      if emoji.y < self.y1 and emoji.id ~= self.spawner_emoji.id and not emoji.dropping then
+      if emoji.y < self.y1 and emoji.id ~= self.spawner_emoji.id and not emoji.dead and not emoji.dropping and not emoji.just_merged then
         self:end_round()
       end
     end
@@ -706,11 +714,12 @@ function arena:drop_emoji()
   self.spawner_emoji:collider_apply_impulse(0, 0.01)
   self.spawner_emoji.dropping = true
   self.spawner_emoji.has_dropped = true
-  self.spawner_emoji:observer_condition(function() return self.spawner_emoji.hit_emoji_or_solid and self.spawner_emoji.dropping end, function()
+  self.spawner_emoji:observer_condition(function() return (self.spawner_emoji.collision_enter.emoji or self.spawner_emoji.collision_enter.solid) and self.spawner_emoji.dropping end, function()
+    if main.lose_line.active then return end
     self.spawner_emoji.dropping = false
     self:choose_next_emoji()
   end, nil, nil, 'drop_emoji')
-  self:timer_after(3, function()
+  self:timer_after(2, function()
     self.spawner.emoji = images.closed_hand
     if self.spawner_emoji.dropping then
       self.spawner_emoji.dropping = false
@@ -772,8 +781,10 @@ function arena:end_round()
   self:timer_cancel('drop_safety')
   for _, object in ipairs(self.merge_objects) do object:timer_cancel('merge_emojis') end
   self:timer_cancel('lose_line')
-  main:observer_cancel('lose_line')
+  main.lose_line:observer_cancel('active_true')
+  main.lose_line:observer_cancel('active_false')
   main.lose_line.color.a = 0
+  main.lose_line.active = false
 
   if self.score > self.best then self.best = self.score end
   main.game_state.best = self.best
@@ -1729,6 +1740,8 @@ function emoji:new(x, y, args)
   if self.hitfx_on_spawn then self:hitfx_use('main', 0.5*self.hitfx_on_spawn, nil, nil, 0.15) end
   if self.hitfx_on_spawn_no_flash then self:hitfx_use('main', 0.5*self.hitfx_on_spawn_no_flash) end
   if self.from_merge then
+    self.just_merged = true
+    self:timer_after(0.5, function() self.just_merged = false end)
     self:timer_after(0.01, function()
       local s = math.remap(self.rs, 9, 70, 1, 3)
       for i = 1, self.stars do 
