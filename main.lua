@@ -36,7 +36,6 @@ function init()
 
   main:input_set_mouse_visible(false)
 
-  --[[
   if main.web then
     images = image('assets/texture.png'):image_load_texture_atlas(128, 128, {
       '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'angry', 'b', 'blossom', 'blue_board', 'blue_chain', 'blush', 'c', 'close', 'closed_hand', 'cloud', 'cloud_gray', 'curving_arrow', 'd', 'devil', 'e', 'f', 
@@ -44,7 +43,6 @@ function init()
       'smirk', 'sob', 'sound_0', 'sound_1', 'sound_2', 'sound_3', 'sound_4', 'star', 'star_gray', 'sunflower', 'sunglasses', 't', 'thinking', 'tulip', 'u', 'v', 'vine_chain', 'w', 'x', 'y', 'yum', 'z'
     }, 1)
   else
-  ]]--
     images = {}
     images.blossom = image('assets/blossom.png')
     images.four_leaf_clover = image('assets/four_leaf_clover.png')
@@ -120,7 +118,7 @@ function init()
     images.star_gray = image('assets/star_gray.png')
     images.cloud = image('assets/cloud.png')
     images.cloud_gray = image('assets/cloud_gray.png')
-  -- end
+  end
 
   -- bg_1 = gradient_image('vertical', color(0.5, 0.5, 0.5, 0), color(0, 0, 0, 0.3))
   bg_1 = gradient_image('vertical', color(colors.fg[0].r, colors.fg[0].g, colors.fg[0].b, 1), color(colors.blue[10].r, colors.blue[10].g, colors.blue[10].b, 1))
@@ -282,15 +280,13 @@ function init()
     end
   end
 
-  --[[
   profile.start()
   profile_report = 'Please wait...'
-  main:timer_every(5, function()
+  main:timer_every(2, function()
     profile_report = profile.report(20)
     print(profile_report)
     profile.reset()
   end)
-  ]]--
 
   main:level_add('arena', arena())
   main:level_goto('arena')
