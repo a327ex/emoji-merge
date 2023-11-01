@@ -34,7 +34,15 @@ end
 function input:input_bind(action, controls)
   if not self.input_state[action] then self.input_state[action] = {} end
   if not self.input_state[action].controls then self.input_state[action].controls = {} end
-  for _, control in ipairs(controls) do table.insert(self.input_state[action].controls, control) end
+  for _, control in ipairs(controls) do
+    local action_type, key = control:left(':'), control:right(':')
+    local sign = nil
+    if action_type == 'axis' then
+      if key:find('%+') then key, sign = key:left('%+'), 1
+      elseif key:find('%-') then key, sign = key:left('%-'), -1 end
+    end
+    table.insert(self.input_state[action].controls, {action_type, key, sign})
+  end
   if not table.contains(self.input_actions, action) then table.insert(self.input_actions, action) end
 end
 
@@ -87,7 +95,7 @@ function input:input_update(dt)
 
   for _, action in ipairs(self.input_actions) do
     for _, control in ipairs(self.input_state[action].controls) do
-      action_type, key = control:left(':'), control:right(':')
+      local action_type, key, sign = control[1], control[2], control[3]
       if action_type == 'key' then
         self.input_state[action].pressed = self.input_state[action].pressed or (self.input_keyboard_state[key] and not self.input_previous_keyboard_state[key])
         self.input_state[action].down = self.input_state[action].down or self.input_keyboard_state[key]
@@ -102,9 +110,6 @@ function input:input_update(dt)
         end
       elseif action_type == 'axis' then
         if self.input_gamepad then
-          local sign = 1
-          if key:find('%+') then key, sign = key:left('%+'), 1
-          elseif key:find('%-') then key, sign = key:left('%-'), -1 end
           local value = self.input_gamepad:getGamepadAxis(key)
           if value ~= 0 then self.input_latest_type = 'gamepad' end
           local down = false

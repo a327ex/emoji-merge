@@ -12,6 +12,7 @@ function init()
   effects:layer_add_canvas('outline')
   ui2:layer_add_canvas('outline')
 
+  main_font = font('assets/HoneyPigeon.ttf', 22, 'mono')
   font_2 = font('assets/volkswagen-serial-bold.ttf', 26, 'mono')
   font_3 = font('assets/volkswagen-serial-bold.ttf', 36, 'mono')
   font_4 = font('assets/volkswagen-serial-bold.ttf', 46, 'mono')
@@ -261,6 +262,16 @@ function init()
       end))
     end
   end
+
+  --[[
+  profile.start()
+  profile_report = 'Please wait...'
+  main:timer_every(2, function()
+    profile_report = profile.report(20)
+    print(profile_report)
+    profile.reset()
+  end)
+  ]]--
 
   main:level_add('arena', arena())
   main:level_goto('arena')

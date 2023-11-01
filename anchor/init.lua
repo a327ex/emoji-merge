@@ -1,5 +1,6 @@
 mlib = require 'anchor.mlib'
 utf8 = require 'anchor.utf8'
+profile = require 'anchor.profile'
 require 'anchor.sort'
 require 'anchor.math'
 require 'anchor.string'
