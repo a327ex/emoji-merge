@@ -40,6 +40,8 @@ function shake:shake_init()
   self.shake_amount = vec2(0, 0)
   self.last_shake_amount = vec2(0, 0)
   self.shake_springs = {x = spring(), y = spring()}
+  self.shook_recently = main.time
+  self.shake_duration = 0
   table.insert(main.shake_objects, self)
   return self
 end
@@ -48,6 +50,8 @@ end
 -- k and d are stiffness and damping spring values
 -- self:spring_shake(10, math.pi/4) -> shakes the object with 10 intensity diagonally
 function shake:shake_spring(intensity, r, k, d)
+  self.shook_recently = main.time
+  self.shake_duration = duration
   self.shake_springs.x:spring_pull(-intensity*math.cos(r or 0), k, d)
   self.shake_springs.y:spring_pull(-intensity*math.sin(r or 0), k, d)
 end
@@ -56,6 +60,8 @@ end
 -- Higher frequency means jerkier movement, lower frequency means smoother movement
 -- :shake_shake(10, 1, 120) -> shakes the object with 10 intensity for 1 second and 120 frequency
 function shake:shake_shake(intensity, duration, frequency)
+  self.shook_recently = main.time
+  self.shake_duration = duration
   table.insert(self.shakes.x, __shake(intensity, 1000*(duration or 0), frequency or 60))
   table.insert(self.shakes.y, __shake(intensity, 1000*(duration or 0), frequency or 60))
 end
@@ -64,6 +70,8 @@ end
 -- Higher frequency means jerkier movement, lower frequency means smoother movement
 -- :shake_shake_horizontally(10, 1, 120) -> shakes the object only on the x axis with 10 intensity for 1 second and 120 frequency 
 function shake:shake_shake_horizontally(intensity, duration, frequency)
+  self.shook_recently = main.time
+  self.shake_duration = duration
   table.insert(self.shakes.x, __shake(intensity, 1000*(duration or 0), frequency or 60))
 end
 
@@ -71,12 +79,17 @@ end
 -- Higher frequency means jerkier movement, lower frequency means smoother movement
 -- :shake_shake_horizontally(10, 1, 120) -> shakes the object only on the y axis with 10 intensity for 1 second and 120 frequency
 function shake:shake_shake_vertically(intensity, duration, frequency)
+  self.shook_recently = main.time
+  self.shake_duration = duration
   table.insert(self.shakes.y, __shake(intensity, 1000*(duration or 0), frequency or 60))
 end
 
 -- Call this and then use self.shake_amount.x/.y when drawing the object to apply the shake.
 local xy = {'x', 'y'}
 function shake:shake_update(dt)
+  if not self.shook_recently then return end
+  if main.time - self.shook_recently > self.shake_duration + 0.1 then self.shook_recently = nil end
+
   self.spring_shake_amount:vec2_set(0, 0)
   self.shake_shake_amount:vec2_set(0, 0)
   for _, z in ipairs(xy) do

@@ -123,7 +123,6 @@ main.rate = 1/60
 main.max_frame_skip = 25
 
 main:container_init():input_init():input_bind_all():level_init():music_player_init():observer_init():physics_world_init():random_init():shake_init():slow_init():system_init()
-main.pointer = anchor('pointer', {pointer = true, x = 0, y = 0}):area_init('point')
 
 function main:init(args)
   args = args or {}
@@ -362,47 +361,47 @@ function love.run()
   local last_frame = 0
 
   return function()
-    if love.event then
-      love.event.pump()
-      for name, a, b, c, d, e, f in love.event.poll() do
-        if name == 'quit' then
-          if main.steam then steam.shutdown() end
-          main:save_state()
-          return a or 0
-        elseif name == 'resize' then
-          main:resize(a, b)
-        elseif name == 'keypressed' then
-          main.input_keyboard_state[a] = true
-          main.input_latest_type = 'keyboard'
-        elseif name == 'keyreleased' then
-          main.input_keyboard_state[a] = false
-        elseif name == 'mousepressed' then
-          main.input_mouse_state[c] = true
-          main.input_latest_type = 'mouse'
-        elseif name == 'mousereleased' then
-          main.input_mouse_state[c] = false
-        elseif name == 'wheelmoved' then
-          if b == 1 then main.input_mouse_state.wheel_up = true end
-          if b == -1 then main.input_mouse_state.wheel_down = true end
-        elseif name == 'gamepadpressed' then
-          main.input_gamepad_state[b] = true
-          main.input_latest_type = 'gamepad'
-        elseif name == 'gamepadreleased' then
-          main.input_gamepad_state[b] = false
-        elseif name == 'gamepadaxis' then
-          main.input_gamepad_state[b] = c
-        elseif name == 'joystickadded' then
-          main.input_gamepad = a
-        elseif name == 'joystickremoved' then
-          main.input_gamepad = nil
-        end
-      end
-    end
-
     main.dt = love.timer.step()*main.timescale
     main.lag = math.min(main.lag + main.dt, main.rate*main.max_frame_skip)
 
     while main.lag >= main.rate do
+      if love.event then
+        love.event.pump()
+        for name, a, b, c, d, e, f in love.event.poll() do
+          if name == 'quit' then
+            if main.steam then steam.shutdown() end
+            main:save_state()
+            return a or 0
+          elseif name == 'resize' then
+            main:resize(a, b)
+          elseif name == 'keypressed' then
+            main.input_keyboard_state[a] = true
+            main.input_latest_type = 'keyboard'
+          elseif name == 'keyreleased' then
+            main.input_keyboard_state[a] = false
+          elseif name == 'mousepressed' then
+            main.input_mouse_state[c] = true
+            main.input_latest_type = 'mouse'
+          elseif name == 'mousereleased' then
+            main.input_mouse_state[c] = false
+          elseif name == 'wheelmoved' then
+            if b == 1 then main.input_mouse_state.wheel_up = true end
+            if b == -1 then main.input_mouse_state.wheel_down = true end
+          elseif name == 'gamepadpressed' then
+            main.input_gamepad_state[b] = true
+            main.input_latest_type = 'gamepad'
+          elseif name == 'gamepadreleased' then
+            main.input_gamepad_state[b] = false
+          elseif name == 'gamepadaxis' then
+            main.input_gamepad_state[b] = c
+          elseif name == 'joystickadded' then
+            main.input_gamepad = a
+          elseif name == 'joystickremoved' then
+            main.input_gamepad = nil
+          end
+        end
+      end
+
       main.step = main.step + 1
       main.time = main.time + main.rate*main.slow_amount
 

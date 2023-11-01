@@ -14,8 +14,6 @@ function physics_world:physics_world_init(meter, xg, yg)
   self.trigger_enter = {}
   self.trigger_active = {}
   self.trigger_exit = {}
-  self.valid_collision_tag_or_type = {} -- Used to not register tags/types of collisions/triggers the user isn't using for performance reasons
-  self.valid_trigger_tag_or_type = {}
   return self
 end
 
@@ -42,7 +40,7 @@ end
 function physics_world:physics_world_set_callbacks(callback_type, tag_or_type)
   self.tag_or_type = tag_or_type or 'tag'
   local collider, world = callback_type == 'collider', callback_type == 'world'
-  if not callback_type then collider, world = false, true end
+  if not callback_type then collider, world = true, true end
 
   self.world:setCallbacks(
     function(fa, fb, c)
@@ -52,12 +50,10 @@ function physics_world:physics_world_set_callbacks(callback_type, tag_or_type)
       local b_type = self.tag_or_type == 'tag' and b.physics_tag or b.type
       if fa:isSensor() and fb:isSensor() then
         if collider then
-          if not self.valid_trigger_tag_or_type[a_type] or not self.valid_trigger_tag_or_type[b_type] then return end
           if fa:isSensor() then self:physics_world_collider_add_trigger_enter(a, b, a_type, b_type) end
           if fb:isSensor() then self:physics_world_collider_add_trigger_enter(b, a, b_type, a_type) end
         end
         if world then
-          if not self.valid_trigger_tag_or_type[a_type] or not self.valid_trigger_tag_or_type[b_type] then return end
           if fa:isSensor() then self:physics_world_add_trigger_enter(a, b, a_type, b_type) end
           if fb:isSensor() then self:physics_world_add_trigger_enter(b, a, b_type, a_type) end
         end
@@ -65,12 +61,10 @@ function physics_world:physics_world_set_callbacks(callback_type, tag_or_type)
         local x1, y1, x2, y2 = c:getPositions()
         local nx, ny = c:getNormal() 
         if collider then
-          if not self.valid_collision_tag_or_type[a_type] or not self.valid_collision_tag_or_type[b_type] then return end
           self:physics_world_collider_add_collision_enter(a, b, a_type, b_type, x1, y1, x2, y2, nx, ny)
           self:physics_world_collider_add_collision_enter(b, a, b_type, a_type, x1, y1, x2, y2, nx, ny)
         end
         if world then
-          if not self.valid_collision_tag_or_type[a_type] or not self.valid_collision_tag_or_type[b_type] then return end
           self:physics_world_add_collision_enter(a, b, a_type, b_type, x1, y1, x2, y2, nx, ny)
           self:physics_world_add_collision_enter(b, a, b_type, a_type, x1, y1, x2, y2, nx, ny)
         end
@@ -83,12 +77,10 @@ function physics_world:physics_world_set_callbacks(callback_type, tag_or_type)
       local b_type = self.tag_or_type == 'tag' and b.physics_tag or b.type
       if fa:isSensor() and fb:isSensor() then
         if collider then
-          if not self.valid_trigger_tag_or_type[a_type] or not self.valid_trigger_tag_or_type[b_type] then return end
           if fa:isSensor() then self:physics_world_collider_add_trigger_exit(a, b, a_type, b_type) end
           if fb:isSensor() then self:physics_world_collider_add_trigger_exit(b, a, b_type, a_type) end
         end
         if world then
-          if not self.valid_trigger_tag_or_type[a_type] or not self.valid_trigger_tag_or_type[b_type] then return end
           if fa:isSensor() then self:physics_world_add_trigger_exit(a, b, a_type, b_type) end
           if fb:isSensor() then self:physics_world_add_trigger_exit(b, a, b_type, a_type) end
         end
@@ -96,12 +88,10 @@ function physics_world:physics_world_set_callbacks(callback_type, tag_or_type)
         local x1, y1, x2, y2 = c:getPositions()
         local nx, ny = c:getNormal() 
         if collider then
-          if not self.valid_collision_tag_or_type[a_type] or not self.valid_collision_tag_or_type[b_type] then return end
           self:physics_world_collider_add_collision_exit(a, b, a_type, b_type, x1, y1, x2, y2, nx, ny)
           self:physics_world_collider_add_collision_exit(b, a, b_type, a_type, x1, y1, x2, y2, nx, ny)
         end
         if world then
-          if not self.valid_collision_tag_or_type[a_type] or not self.valid_collision_tag_or_type[b_type] then return end
           self:physics_world_add_collision_exit(a, b, a_type, b_type, x1, y1, x2, y2, nx, ny)
           self:physics_world_add_collision_exit(b, a, b_type, a_type, x1, y1, x2, y2, nx, ny)
         end
@@ -187,8 +177,11 @@ end
 function physics_world:physics_world_collider_add_collision_enter(target, other, other_type, x1, y1, x2, y2, xn, yn)
   if not target.collision_enter[other_type] then target.collision_enter[other_type] = {} end
   if not target.collision_active[other_type] then target.collision_active[other_type] = {} end
-  table.insert(target.collision_enter[other_type], {other, x1, y1, x2, y2, xn, yn})
-  table.insert(target.collision_active[other_type], {other, x1, y1, x2, y2, xn, yn})
+  local t = {other, x1, y1, x2, y2, xn, yn}
+  target.collision_enter[other] = t
+  target.collision_active[other] = t
+  table.insert(target.collision_enter[other_type], t)
+  table.insert(target.collision_active[other_type], t)
 end
 
 -- Adds collision_exit and removes collision_active events from the target collider.
@@ -197,13 +190,16 @@ end
 function physics_world:physics_world_collider_add_collision_exit(target, other, other_type, x1, y1, x2, y2, xn, yn)
   if not target.collision_exit[other_type] then target.collision_exit[other_type] = {} end
   if not target.collision_active[other_type] then target.collision_active[other_type] = {} end
-  table.insert(target.collision_exit[other_type], {other, x1, y1, x2, y2, xn, yn})
+  local t = {other, x1, y1, x2, y2, xn, yn}
+  target.collision_exit[other] = t
+  table.insert(target.collision_exit[other_type], t)
   for i = #target.collision_active[other_type], 1, -1 do
     local c = target.collision_active[other_type][i]
     if c[1].id == other.id then
       table.remove(target.collision_active[other_type], i)
     end
   end
+  target.collision_active[other] = nil
 end
 
 -- Adds collision_enter and collision_active events to this object.
@@ -241,9 +237,11 @@ end
 function physics_world:physics_world_collider_add_trigger_enter(target, other, other_type)
   if not target.trigger_enter[other_type] then target.trigger_enter[other_type] = {} end
   if not target.trigger_active[other_type] then target.trigger_active[other_type] = {} end
+  target.trigger_enter[other] = true
+  target.trigger_active[other] = true
   table.insert(target.trigger_enter[other_type], other)
-  target.trigger_enter[other_type][other] = target.id
-  target.trigger_active[other_type][other] = target.id
+  target.trigger_enter[other_type][other] = true
+  target.trigger_active[other_type][other] = true
 end
 
 -- Adds trigger_exit and removes trigger_active events from the target collider.
@@ -252,9 +250,11 @@ end
 function physics_world:physics_world_collider_add_trigger_exit(target, other, other_type)
   if not target.trigger_exit[other_type] then target.trigger_exit[other_type] = {} end
   if not target.trigger_active[other_type] then target.trigger_active[other_type] = {} end
+  target.trigger_exit[other] = true
+  target.trigger_active[other] = nil
   table.insert(target.trigger_exit[other_type], other)
-  target.trigger_exit[other_type][other] = target.id
-  target.trigger_active[other_type][other] = false
+  target.trigger_exit[other_type][other] = true
+  target.trigger_active[other_type][other] = nil
 end
 
 -- Adds trigger_enter and trigger_active events to this object.
@@ -290,8 +290,6 @@ end
 -- Each event is of the type: {object_1, object_2, contact}
 -- If no collision_enter events for these types happened this frame then it returns an empty list.
 function physics_world:physics_world_get_collision_enter(type_1, type_2)
-  self.valid_collision_tag_or_type[type_1] = true
-  self.valid_collision_tag_or_type[type_2] = true
   local collisions = {}
   if self.collision_enter[type_1] and self.collision_enter[type_1][type_2] then
     collisions = self.collision_enter[type_1][type_2]
@@ -303,8 +301,6 @@ end
 -- Each event is of the type: {object_1, object_2, contact}
 -- If no collision_exit events for these types happened this frame then it returns an empty list.
 function physics_world:physics_world_get_collision_exit(type_1, type_2)
-  self.valid_collision_tag_or_type[type_1] = true
-  self.valid_collision_tag_or_type[type_2] = true
   local collisions = {}
   if self.collision_exit[type_1] and self.collision_exit[type_1][type_2] then
     collisions = self.collision_exit[type_1][type_2]
@@ -316,8 +312,6 @@ end
 -- Each event is of the type: {object_1, object_2, contact}
 -- If no collision_active events for these types exist this frame then it returns an empty list.
 function physics_world:physics_world_get_collision_active(type_1, type_2)
-  self.valid_collision_tag_or_type[type_1] = true
-  self.valid_collision_tag_or_type[type_2] = true
   local collisions = {}
   if self.collision_active[type_1] and self.collision_active[type_1][type_2] then
     collisions = self.collision_active[type_1][type_2]
@@ -329,8 +323,6 @@ end
 -- Each event is of the type: {object_1, object_2}
 -- If no trigger_enter events for these types happened this frame then it returns an empty list.
 function physics_world:physics_world_get_trigger_enter(type_1, type_2)
-  self.valid_trigger_tag_or_type[type_1] = true
-  self.valid_trigger_tag_or_type[type_2] = true
   local triggers = {}
   if self.trigger_enter[type_1] and self.trigger_enter[type_1][type_2] then
     triggers = self.trigger_enter[type_1][type_2]
@@ -342,8 +334,6 @@ end
 -- Each event is of the type: {object_1, object_2}
 -- If no trigger_exit events for these types happened this frame then it returns an empty list.
 function physics_world:physics_world_get_trigger_exit(type_1, type_2)
-  self.valid_trigger_tag_or_type[type_1] = true
-  self.valid_trigger_tag_or_type[type_2] = true
   local triggers = {}
   if self.trigger_exit[type_1] and self.trigger_exit[type_1][type_2] then
     triggers = self.trigger_exit[type_1][type_2]
@@ -355,8 +345,6 @@ end
 -- Each event is of the type: {object_1, object_2}
 -- If no trigger_active events for these types exist this frame then it returns an empty list.
 function physics_world:physics_world_get_trigger_active(type_1, type_2)
-  self.valid_trigger_tag_or_type[type_1] = true
-  self.valid_trigger_tag_or_type[type_2] = true
   local triggers = {}
   if self.trigger_active[type_1] and self.trigger_active[type_1][type_2] then
     triggers = self.trigger_active[type_1][type_2]

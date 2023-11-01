@@ -146,10 +146,11 @@ function init()
   sounds.death_hit = sound('assets/se_22.ogg', {tag = sfx})
 
   main:physics_world_set_gravity(0, 360)
-  main:physics_world_set_callbacks('world', 'type')
+  main:physics_world_set_callbacks(nil, 'type')
   main:physics_world_set_collision_tags{'emoji', 'ghost', 'solid'}
   main:physics_world_disable_collision_between('emoji', {'ghost'})
   main:physics_world_disable_collision_between('ghost', {'emoji', 'ghost', 'solid'})
+  main:physics_world_enable_trigger_between('ghost', {'emoji', 'ghost', 'solid'})
 
   color_to_emoji_multiplier = {
     white = {3, 3, 3},
@@ -182,7 +183,23 @@ function init()
     [11] = {emoji = 'sunglasses', rs = 70, score = 66, mass_multiplier = 0.25, stars = 24},
   }
 
-  main.pointer:hitfx_init()
+  main.pointer = anchor('pointer'):init(function(self)
+    self:prs_init(0, 0)
+    self:collider_init('ghost', 'dynamic', 'rectangle', 2, 2)
+    self:collider_set_gravity_scale(0)
+    self:collider_set_bullet(true)
+    self:hitfx_init()
+  end):action(function(self, dt)
+    self.x, self.y = main.camera.mouse.x, main.camera.mouse.y
+    self:collider_set_position(self.x, self.y)
+    if main:input_is_pressed'action_1' then self:hitfx_use('main', 0.25) end
+    if not main.transitioning then
+      local s = 18/images.index.w
+      ui2:draw_image_or_quad(images.index, self.x + 6, self.y + 6, -math.pi/6, s*self.springs.main.x, s*self.springs.main.x, 0, 0, colors.white[0], (self.flashes.main.x and shaders.combine))
+    end
+    self:collider_draw(ui2, colors.blue[0])
+  end)
+
   main.sfx_sound_level = main.game_state.sfx_sound_level or 4
   main.music_sound_level = main.game_state.music_sound_level or 4
   main.any_button_hot = false
@@ -266,7 +283,7 @@ function init()
   --[[
   profile.start()
   profile_report = 'Please wait...'
-  main:timer_every(2, function()
+  main:timer_every(5, function()
     profile_report = profile.report(20)
     print(profile_report)
     profile.reset()
@@ -295,26 +312,20 @@ function update(dt)
   for _, star in ipairs(main.stars) do star:update(dt) end
   for _, cloud in ipairs(main.clouds) do cloud:update(dt) end
 
+  main.pointer:update(dt)
+  main.lose_line:update(dt) 
+
   main.any_button_hot = false
   main.sfx_button:update(dt)
   main.music_button:update(dt)
   if not main.web then main.screen_button:update(dt) end
   if main.logical_fullscreen then main.close_button:update(dt) end
-  if main.sfx_button.pointer_active then main.any_button_hot = true end
-  if main.music_button.pointer_active then main.any_button_hot = true end
+  if main.sfx_button.trigger_active[main.pointer] then main.any_button_hot = true end
+  if main.music_button.trigger_active[main.pointer] then main.any_button_hot = true end
   if not main.web then
-    if main.screen_button.pointer_active then main.any_button_hot = true end
+    if main.screen_button.trigger_active[main.pointer] then main.any_button_hot = true end
   end
-  if main.close_button.pointer_active then main.any_button_hot = true end
-
-  main.lose_line:update(dt) 
-
-  if main:input_is_pressed'action_1' then main.pointer:hitfx_use('main', 0.25) end
-  if not main.transitioning then
-    local s = 18/images.index.w
-    ui2:draw_image_or_quad(images.index, main.camera.mouse.x + 6, main.camera.mouse.y + 6, -math.pi/6, s*main.pointer.springs.main.x, s*main.pointer.springs.main.x, 0, 0, colors.white[0], 
-      (main.pointer.flashes.main.x and shaders.combine))
-  end
+  if main.close_button.trigger_active[main.pointer] then main.any_button_hot = true end
 
   if main.transitioning then ui2:circle(main.w/2, main.h/2, main.transition_rs, colors.blue[5]) end
 end
@@ -385,12 +396,12 @@ end
 function title:update(dt)
   -- Apply mouse movement to colliders
   for _, object in ipairs(self.objects.objects) do
-    if (object:is('emoji_collider') or object:is('emoji_character') or object:is('chain_part')) and object.pointer_active then
+    if (object:is('emoji_collider') or object:is('emoji_character') or object:is('chain_part')) and object.trigger_active[main.pointer] then
       if main:input_is_pressed'action_1' then
         self.held_object = object
         object:hitfx_use('main', 0.25)
       end
-      if object.pointer_enter then object:hitfx_use('main', 0.125) end
+      if object.trigger_enter[main.pointer] then object:hitfx_use('main', 0.125) end
     end
   end
   if main:input_is_released'action_1' then self.held_object = nil end
@@ -581,13 +592,13 @@ function arena:update(dt)
   -- Apply mouse movement to colliders
   if self.score_ending then
     for _, object in ipairs(self.objects.objects) do
-      if (object:is('emoji_collider') or object:is('emoji_character') or object:is('chain_part')) and object.pointer_active then
+      if (object:is('emoji_collider') or object:is('emoji_character') or object:is('chain_part')) and object.trigger_active[main.pointer] then
         if main:input_is_pressed'action_1' then
           self.held_object = object
           object:hitfx_use('main', 0.25)
           sounds.collider_button_press:sound_play(1, main:random_float(0.95, 1.05))
         end
-        if object.pointer_enter then
+        if object.trigger_enter[main.pointer] then
           object:hitfx_use('main', 0.125)
           sounds.button_hover:sound_play(1, main:random_float(0.95, 1.05))
         end
@@ -603,7 +614,7 @@ function arena:update(dt)
 
   -- Retry button
   if self.score_ending then
-    if self.retry_button.pointer_active then
+    if self.retry_button.trigger_active[main.pointer] then
       self.retry_button.hot = true
     else
       self.retry_button.hot = false
@@ -908,17 +919,14 @@ function board:new(board_type, x, y, args)
     self.emoji = images.red_board
     self:prs_init(x, y, 0, 96/self.emoji.w, 96/self.emoji.h)
     self:collider_init('solid', 'dynamic', 'rectangle', 88, 88)
-    self:area_init('rectangle', 88, 88)
   elseif self.board_type == 'best' then
     self.emoji = images.green_board
     self:prs_init(x, y, 0, 80/self.emoji.w, 80/self.emoji.h)
     self:collider_init('solid', 'dynamic', 'rectangle', 70, 70)
-    self:area_init('rectangle', 70, 70)
   elseif self.board_type == 'next' then
     self.emoji = images.blue_board
     self:prs_init(x, y, 0, 112/self.emoji.w, 112/self.emoji.h)
     self:collider_init('solid', 'dynamic', 'rectangle', 96, 96)
-    self:area_init('rectangle', 96, 96)
   end
   self:collider_set_damping(0.2)
   self:timer_init()
@@ -929,11 +937,11 @@ end
 
 function board:update(dt)
   self:collider_update_position_and_angle()
-  if self.pointer_active then
+  if self.trigger_active[main.pointer] then
     local multiplier = main:input_is_down'action_1' and 3 or 1
     self:collider_apply_force(multiplier*self.w*main.camera.mouse_dt.x, multiplier*self.h*main.camera.mouse_dt.y)
   end
-  if self.pointer_active and main:input_is_pressed'action_1' then 
+  if self.trigger_active[main.pointer] and main:input_is_pressed'action_1' then 
     self:hitfx_use('main', 0.25)
     for i = 1, main:random_int(2, 3) do 
       main.level.objects:container_add(emoji_particle('star', main.camera.mouse.x, main.camera.mouse.y, {hitfx_on_spawn_no_flash = 0.75, r = main:random_angle(), rotation_v = main:random_float(-2*math.pi, 2*math.pi)}))
@@ -1118,12 +1126,10 @@ function chain_part:new(emoji, x, y, args)
     self.emoji = emoji
     self:prs_init(x, y, self.r, self.w/images[emoji].w, self.w/images[emoji].h)
     self:collider_init('solid', 'dynamic', 'rectangle', self.w, self.w)
-    self:area_init('rectangle', self.w, self.w)
   else 
     self.emoji = images[emoji or 'chain']
     self:prs_init(x, y, self.r, self.w/self.emoji.w, self.w/self.emoji.h)
     self:collider_init('solid', 'dynamic', 'rectangle', self.w, self.w/2)
-    self:area_init('rectangle', self.w, self.w/2)
   end
   self:collider_set_damping(0.2)
   self:collider_set_angle(self.r)
@@ -1279,8 +1285,8 @@ function plant:plant_init(x, y, args)
   elseif self.direction == 'left' then
     self.x = self.x + math.remap(self.h, 9, 16, 4, 0)
   end
-  self:collider_init('ghost', 'static', 'rectangle', self.w, self.h)
-  self:area_init('rectangle', self.w, self.h)
+  self:collider_init('ghost', 'dynamic', 'rectangle', self.w, self.h)
+  self:collider_set_gravity_scale(0)
   if self.direction == 'right' then
     self.r = math.pi/2
     self:collider_set_angle(self.r)
@@ -1318,8 +1324,9 @@ end
 
 function plant:plant_update(dt)
   self:collider_update_position_and_angle()
+  self:collider_set_awake(true)
 
-  if self.pointer_active then
+  if self.trigger_active[main.pointer] then
     self:apply_moving_force(main.camera.mouse_dt.x, main.camera.mouse_dt.y, 50*main.camera.mouse_dt:vec2_length())
   end
 
@@ -1446,7 +1453,7 @@ function board_plant:update(dt)
   self.constant_wind_r = 0.1*math.sin(1.4*main.time + 0.01*self.x)
   self.x, self.y = math.rotate_point(self.board.x + self.board_ox, self.board.y + self.board_oy, self.board.r, self.board.x, self.board.y)
   local vx, vy = self.board:collider_get_velocity()
-  if self.pointer_active then self:apply_direct_force(main.camera.mouse_dt.x, main.camera.mouse_dt.y, 5*main.camera.mouse_dt:vec2_length()) end
+  if self.trigger_active[main.pointer] then self:apply_direct_force(main.camera.mouse_dt.x, main.camera.mouse_dt.y, 5*main.camera.mouse_dt:vec2_length()) end
   self:apply_moving_force(-vx, 0, 5*vx)
   self:collider_set_position(self.x, self.y)
 
@@ -1474,17 +1481,20 @@ function emoji_button:new(x, y, args)
   self:anchor_init('emoji_button', args)
   self.emoji = images[self.emoji]
   self:prs_init(x, y, 0, self.w/self.emoji.w, self.w/self.emoji.h)
-  self:area_init('rectangle', self.w, self.w)
+  self:collider_init('ghost', 'dynamic', 'rectangle', self.w, self.w)
+  self:collider_set_gravity_scale(0)
   self:hitfx_init()
   self:timer_init()
 end
 
 function emoji_button:update(dt)
-  if self.pointer_enter then
+  self:collider_set_awake(true)
+
+  if self.trigger_enter[main.pointer] then
     sounds.button_hover:sound_play(1, main:random_float(0.95, 1.05))
     self:hitfx_use('main', 0.25)
   end
-  if self.pointer_active and main:input_is_pressed'action_1' then
+  if self.trigger_active[main.pointer] and main:input_is_pressed'action_1' then
     self:hitfx_use('main', 0.5, nil, nil, 0.15)
     self:action()
   end
@@ -1500,7 +1510,6 @@ function emoji_character:new(x, y, args)
   self:prs_init(x, y, 0, self.w/self.emoji.w, self.w/self.emoji.h)
   self:collider_init('emoji', 'dynamic', 'rectangle', self.w, self.w)
   self:collider_set_gravity_scale(0)
-  self:area_init('rectangle', self.w, self.w)
   self:hitfx_init()
   self:timer_init()
   self:shake_init()
@@ -1527,7 +1536,6 @@ function emoji_collider:new(x, y, args)
   self:collider_init('emoji', 'dynamic', 'rectangle', self.w, self.w)
   self:collider_set_gravity_scale(0)
   self:collider_set_angle(self.r)
-  self:area_init('rectangle', self.w, self.w)
   self:hitfx_init()
   self:timer_init()
   self:shake_init()
@@ -1570,7 +1578,6 @@ function evoji_emoji:new(x, y, args)
     self.emoji = images[self.emoji]
     self:prs_init(x, y, 0, 2*self.rs/self.emoji.w, 2*self.rs/self.emoji.h)
     self:collider_init('solid', 'dynamic', 'circle', self.rs)
-    self:area_init('circle', self.rs)
     self:collider_set_restitution(1)
     self:collider_set_mass(self:collider_get_mass()*0.1)
     self:collider_set_damping(0.1)
@@ -1580,7 +1587,6 @@ function evoji_emoji:new(x, y, args)
     self.w, self.h = self.w or 48, self.h or 48
     self:prs_init(x, y, 0, self.w/self.emoji.w, self.h/self.emoji.h)
     self:collider_init('solid', 'dynamic', 'rectangle', self.w*0.95, self.h*0.95)
-    self:area_init('rectangle', 0.95*self.w, 0.95*self.h)
     self:collider_set_restitution(1)
     self:collider_set_mass(self:collider_get_mass()*0.1)
     self:collider_set_damping(0.25)
@@ -1594,11 +1600,11 @@ end
 
 function evoji_emoji:update(dt)
   self:collider_update_position_and_angle()
-  if self.pointer_active then
+  if self.trigger_active[main.pointer] then
     local multiplier = main:input_is_down'action_1' and 2 or 1
     self:collider_apply_force(multiplier*self.w*main.camera.mouse_dt.x, multiplier*self.h*main.camera.mouse_dt.y)
   end
-  if self.pointer_active and main:input_is_pressed'action_1' then
+  if self.trigger_active[main.pointer] and main:input_is_pressed'action_1' then
     self:hitfx_use('main', 0.25)
     for i = 1, main:random_int(2, 3) do 
       main.level.objects:container_add(emoji_particle('star', main.camera.mouse.x, main.camera.mouse.y, {hitfx_on_spawn_no_flash = 0.75, r = main:random_angle(), rotation_v = main:random_float(-2*math.pi, 2*math.pi)}))
@@ -1712,7 +1718,6 @@ function emoji:new(x, y, args)
   self.stars = value_to_emoji_data[self.value].stars
   self:prs_init(x, y, 0, 2*self.rs/self.emoji.w, 2*self.rs/self.emoji.h)
   self:collider_init('emoji', 'dynamic', 'circle', self.rs)
-  self:area_init('circle', self.rs)
   self:collider_set_restitution(0.2)
   self:collider_set_gravity_scale(0)
   self:collider_set_mass(value_to_emoji_data[self.value].mass_multiplier*self:collider_get_mass())
@@ -1742,7 +1747,7 @@ end
 
 function emoji:update(dt)
   self:collider_update_position_and_angle()
-  if self.pointer_active and main:input_is_pressed'action_1' then
+  if self.trigger_active[main.pointer] and main:input_is_pressed'action_1' then
     self:hitfx_use('main', 0.25)
     --[[
     for i = 1, main:random_int(2, 3) do 
