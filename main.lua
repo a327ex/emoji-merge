@@ -2,7 +2,7 @@ require 'anchor'
 
 --{{{ init
 function init()
-  main:init{title = 'emoji merge', theme = 'twitter_emoji', w = 640, h = 360, sx = 2, sy = 2}
+  main:init{title = 'emoji merge', web = true, theme = 'twitter_emoji', w = 640, h = 360, sx = 2, sy = 2}
   main:set_icon('assets/sunglasses_icon.png')
 
   bg, bg_fixed, game1, game2, game3, effects, ui1, ui2, shadow = layer(), layer({fixed = true}), layer(), layer(), layer(), layer(), layer({fixed = true}), layer({fixed = true}), layer({x = 4*main.sx, y = 4*main.sy, shadow = true})
@@ -525,7 +525,15 @@ function arena:update(dt)
     end
     local y_offset = 0
     if main.distance_to_top <= 100 then
-      y_offset = math.remap(main.distance_to_top, 100, 0, 0, -42)
+      local rs_oy = 0
+      if self.spawner_emoji then
+        if self.spawner_emoji.value <= 3 then
+          rs_oy = self.spawner_emoji.rs
+        else
+          rs_oy = 1.5*self.spawner_emoji.rs
+        end
+      end
+      y_offset = math.remap(main.distance_to_top, 100, 0, 0, -32 - rs_oy)
     end
     self.spawner.x = math.clamp(main.pointer.x - 12, self.x1 + left_offset, self.x2 + right_offset)
     self.spawner.y = math.lerp_dt(5, dt, self.spawner.y, 20 + y_offset)
