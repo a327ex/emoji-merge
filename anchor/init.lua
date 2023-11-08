@@ -262,6 +262,7 @@ function main:update_mode_and_set_window_state()
   main.device_state.framerate = main.framerate
   main.device_state.borderless = main.borderless
   main.device_state.resizable = main.resizable
+  main:save_state()
 end
 
 function main:set_theme(theme)

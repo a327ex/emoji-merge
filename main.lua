@@ -2,7 +2,7 @@ require 'anchor'
 
 --{{{ init
 function init()
-  main:init{title = 'emoji merge', web = true, theme = 'twitter_emoji', w = 640, h = 360, sx = 2, sy = 2}
+  main:init{title = 'emoji merge', theme = 'twitter_emoji', w = 640, h = 360, sx = 2, sy = 2}
   main:set_icon('assets/sunglasses_icon.png')
 
   bg, bg_fixed, game1, game2, game3, effects, ui1, ui2, shadow = layer(), layer({fixed = true}), layer(), layer(), layer(), layer(), layer({fixed = true}), layer({fixed = true}), layer({x = 4*main.sx, y = 4*main.sy, shadow = true})
@@ -1529,6 +1529,7 @@ function emoji_collider:new(x, y, args)
   self:collider_init('emoji', 'dynamic', 'rectangle', self.w, self.w)
   self:collider_set_gravity_scale(0)
   self:collider_set_angle(self.r)
+  self:collider_set_sleeping_allowed(false)
   self:hitfx_init()
   self:timer_init()
   self:shake_init()
