@@ -2,6 +2,8 @@
 
 emoji merge is a Suika Game clone about merging emojis, play it here: https://a327ex.itch.io/emoji-merge
 
+https://github.com/a327ex/emoji-merge/assets/409773/372693e2-c648-447b-b947-4d6a63e28787
+
 # Engine overview
 
 A few months ago someone asked me to explain how some of my code worked. I said I was going to do so after I released a new game, and while [emoji merge](https://a327ex.itch.io/emoji-merge) isn't a full release, it's a perfectly sized project to use for giving a fairly in-depth explanation of how my code currently works. I'm fairly happy with my codebase, and it's likely I won't change it significantly for the next 2-3 Steam games I release, so there's no better time than now, while everything's fresh on my mind, to explain it all completely.
@@ -12,15 +14,15 @@ Very, very sad situation all around. But, you know, as time passes and the futur
 
 And so these events - Unity's Runtime Backstabbing of 23' and Godot's Great Fork of 27' - have reminded many of one ever-present truth: gamedevs should aim to own as high a percentage of their codebases as they reasonable can in order to decrease the amount of technological risk they're exposing themselves to. A simple truth, yet one that is hard to live up to.
 
-Which brings us back to the purpose of this post. For clarity's sake, from now on I'm going to refer to code that is common across my games as "engine code", and to code that is specific to a single game as "gameplay code". My engine code is written in Lua on top of [LÖVE](https://love2d-community.github.io/love-api/), which I'll also refer to generally as "the framework".
+Which brings us back to this post. For clarity's sake, from now on I'm going to refer to code that is common across my games as "engine code", and to code that is specific to a single game as "gameplay code". My engine code is written in Lua on top of [LÖVE](https://love2d-community.github.io/love-api/), which I'll also refer to generally as "the framework".
 
 One of the important things I do with this engine code is structure it such that gameplay code *never* has to call any functions exposed by the framework directly. This means I should be able to CTRL+F all my gameplay code for a game and find no instances of any `love.*` calls happening anywhere. I do this for two reasons.
 
-The first is that this decreases the amount of technological risk I'm exposing myself to by using the framework. If my gameplay code doesn't directly call any framework functions, if for any reason whatsoever I have to swap one framework for another, none of my gameplay code has to be changed, since a layer exists between it and the underlying framework. Ultimately this means that engine code will, in some cases, have a bunch of extremely thin wrappers that do nothing but call some of the framework's functions, which looks and seems kind of dumb, but it's done that way for a reason.
+The first is that this decreases the amount of technological risk I'm exposing myself to by using the framework. If my gameplay code doesn't directly call any framework functions, if for any reason whatsoever I have to swap one framework for another, none of my gameplay code has to be changed, since a layer exists between it and the underlying framework. Ultimately this means that this engine code will, in some cases, have a bunch of extremely thin wrappers that do nothing but call some of the framework's functions, which looks and seems kind of dumb, but it's done that way for a reason.
 
 Open-source frameworks such as LÖVE, Monogame, libGDX, Phaser, etc already have a low amount of risk, so one could argue that doing this is unnecessary. In some sense this is true. By their nature as frameworks, they inherently have lower risk than full-fledged engines like Unity or Godot because they do less, and thus are less entangled with your own code. By their nature as open-source frameworks, some would argue that this also decreases their risk, because if anything goes wrong you can just fork it, right? Just fork it! It's simple! Well, I don't think that argument is solid at all, so in my view some code being open-source is at best a neutral proposition, because open-source software has several downsides that people often don't consider, but perhaps it's best to leave that discussion for another post (maybe the Godot bashing one in 2027).
 
-In any case, even if open-source frameworks have decreased risk, they still have risk regardless. You can never truly know what's going to happen. Maybe one day it turns out that aliens are real, one of LÖVE's early developers is identified as an alien, and the Global American Empire (GAE) decides that any code written by him cannot, by law, be distributed anymore. Valve would have to comply and remove all LÖVE games from their store and reject any further LÖVE games with maximum prejudice. Sad, but true. Is this likely to happen? No. But is it impossible? Well, given the way reality is going, I would also say no. The point is that there are any number of odd events that could happen to either prevent you or heavily disincentivize you from using your technology of choice, and if you have to do a very small amount of extra work to defend yourself against those unlikely events then it makes no sense to not do it.
+In any case, even if open-source frameworks have decreased risk, they still have risk regardless. You can never truly know what's going to happen. Maybe one day it turns out that aliens are real, one of LÖVE's early developers is identified as an alien, and the Global American Empire (GAE) decides that any code written by him cannot, by law, be distributed anymore. Valve would have to comply and remove all LÖVE games from their store as well as reject any further LÖVE games with maximum prejudice. Sad, but true. Is this likely to happen? No. But is it impossible? Well, given the way reality is going, I would also say no. The point is that there are any number of odd events that could happen to either prevent you or heavily disincentivize you from using your technology of choice, and if you have to do a very small amount of extra work to defend yourself against those unlikely events then it makes no sense to not do it.
 
 So this is my first reason for structuring my code this way. By the way, for those not familiar with my posts from before SNKRX, I already did the work of swapping my framework for my own code 5 years ago once. You can read about it [here](https://github.com/a327ex/blog/issues/39). And you can read my reasonings for doing it in [this post](https://github.com/a327ex/blog/issues/31), in the engine section. Back then, in the process of swapping LÖVE, I also realized how to fix most issues I initially had with it (they were a literal skill issue on my part and *mostly* not to do with the framework itself), which is why I'm still using it today, 5 years later.
 
@@ -30,9 +32,9 @@ One good example is [Randy Gaul's](https://twitter.com/RandyPGaul) [Cute Framewo
 
 All of this to say, this defense against unlikely events by making it easy for the framework to be swapped is not some fantasy in my head, right? It's very feasible, I've done it before, I know roughly how much work it takes, and so if I ever find myself in the spot that Unity devs found themselves in a few months ago, I know exactly what I need to do. In my opinion, everyone should have a realistic plan like this for when some technology they depend on disappears, because if you don't then you're just not being responsible about your art, your craft, your livelihood.
 
-Which is why I find it so distasteful to see so many devs seeing what happened with Unity and jumping straight into Godot. It's like, that's still millions of lines of code you don't own... why would you do that? I understand that people do this for a lot of different reasons, and in some sense I empathize. But I'm a 0 or 1 guy. If I really found myself unprepared, and had I been using Unity for the last 10 years and gotten used it, I know myself well enough to know that I would simply go down with the ship and only stop using it when my (now cloud) editor stopped working.
+Which is why I find it so distasteful to see so many devs seeing what happened with Unity and jumping straight into Godot. It's like, that's still millions of lines of code you don't own... why would you do that? At least take the opportunity to switch to something significantly simpler! But no, people just want the same thing again... I understand why people want comfort and why they need the editor and all that, and in some sense I empathize. But I'm a 0 or 1 guy. If I really found myself unprepared, and had I been using Unity for the last 10 years and gotten used it, I know myself well enough to know that I would simply go down with the ship and only stop using it when my (now cloud) editor stopped working.
 
-I am very autistic about the way my tools work and I simply would not allow myself to take the mental damage of changing to something else just because there's now a small runtime fee, I'd very likely just eat the bullet and keep making my games the same as before. At the point where the editor stops working because the engine literally disappeared, the rent has not been paid, the offices are closed, then I would have enough motivation to look for alternatives, and the alternatives would also be in a better place, since it would be at least like 5 years from now.
+I am very autistic about the way my tools work and I simply would not allow myself to take the mental damage of changing to something else just because there's now a small runtime fee, I'd very likely just eat the bullet and keep making my games the same as before. At the point where the editor stops working because the engine has literally disappeared, the rent has not been paid, the offices are closed, then I would have enough motivation to look for alternatives, and the alternatives would also be in a better place, since it would be at least like 5 years from now.
 
 So personally, I find the collective move to Godot distasteful both because it's a repeat of the same mistake as the one made with Unity 5+ years ago, but also because, logically speaking, it's better to make such a move in the future rather than now. I made this point in [one of my blog posts](https://a327ex.com/posts/marketing_skills) before but it bears repeating:
 
@@ -51,6 +53,8 @@ So, this is the kind of thing I want from the technology side of things. Could t
 And so this is the high level overarching explanation of my why my engine code is structured the way it is. Now we can get into some actual detail. One last note before we start, though. Despite my code being written in Lua/LÖVE, I'm going to do my best to not get into too many language/framework specific details so that this post remains useful to the broadest set of developers possible. Ideally people using any language/engine/framework combo should be able to read this and take ideas from here for their own workflow. Sometimes I'll necessarily have to get more specific, but that won't be the goal. This should be read more as a "this is how I get things done" post that others can use for comparison/inspiration/curiosity rather than a step-by-step tutorial.
 
 Oh, and one last last note. I am a low IQ dumb idiot retard. I have no professional experience in the game's industry, so take everything you read here with as many grains of salt as you have in the house. If you see me doing something one way and I make no mention as to why I'm not doing it in some other obviously better way, it's often the case that I simply don't know any better. I'm open to comments, corrections, suggestions, anything, so feel free to point things out to me if you feel like it.
+
+### [Comments](https://github.com/a327ex/emoji-merge/issues/1)
 
 ## Anchor
 
@@ -148,7 +152,7 @@ The mixin is added to the anchor class via `class_add`, but then a global functi
 
 ### main object
 
-[Next](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L102), the `main` object is defined, which will have any and all global state needed for the engine to work.
+[Next](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L102), the `main` object is defined, which will contain any and all global state needed for the engine to work.
 
 ```lua
 main = anchor()
@@ -167,13 +171,13 @@ main.timer_objects = {}
 
 Here a few additional tables are defined to hold objects that have been initialized as certain mixins. For instance, if we go to the [collider mixin](https://github.com/a327ex/emoji-merge/blob/main/anchor/collider.lua), at the end of its `collider_init` function we see these lines:
 
-```
+```lua
   table.insert(main.collider_objects, self)
   return self
 end
 ```
 
-This means that whenever we initialize an anchor object as a collider, that object is also added to the `main.collider_objects` table. These tables are useful to automatically call any update or post_update functions that mixins might have, so that I don't have to manually call them for every object. Because of the way garbage collection works in Lua, I have to make sure that whenever objects are destroyed their references are also removed from these tables otherwise memory will leak. The deletion of these references happens at the bottom of this file, where the main loop is defined, [here](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L427):
+This means that whenever we initialize an anchor object as a collider, that object is also added to the `main.collider_objects` table. These tables are useful to automatically call any update or post_update functions that mixins might have, so that I don't have to manually call them for every object. Because of the way garbage collection works in Lua, I have to make sure that whenever objects are destroyed their references are also removed from these tables otherwise memory will leak. The deletion of these references happens at the bottom of this file, where the main loop is defined, [here](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L428):
 
 ```lua
 for i = #main.area_objects, 1, -1 do if main.area_objects[i].dead then table.remove(main.area_objects, i) end end
@@ -207,7 +211,7 @@ main:container_init():input_init():level_init():music_player_init():observer_ini
     :physics_world_init():random_init():shake_init():slow_init():system_init()
 ```
 
-Each mixin and why they're here will be explained in its own section. Next, the [`main:init`](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L127) function is defined. This is the function that gameplay code calls to set most engine settings up. In emoji merge it looks like this, for instance:
+Each mixin and why they're here will be explained in its own section. The [`main:init`](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L127) function is defined below this. This is the function that gameplay code calls to set most engine settings up. In emoji merge it looks like this, for instance:
 
 ```lua
 main:init{title = 'emoji merge', web = true, theme = 'twitter_emoji', w = 640, h = 360, sx = 2, sy = 2}
@@ -217,7 +221,7 @@ And what this function does is call a bunch of standard initialization functions
 
 Next there are two functions, `main:resize` and `main:resize_up`, and they handle resizing the game's window to a particular size, or simply resizing it up by a certain scaling amount. In both cases it automatically handles cases where the game's internal size (set by `w` and `h` values sent to `main:init`) doesn't fit the monitor properly. Related to the resize functions is the `main:update_mode_and_set_window_state` a few [blocks below](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L243), which actually does the job of changing the window's size and is called by both `main:init` as well as both resize functions.
 
-Next there are `main:load_state` and `main:save_state`, which were already explained, and finally [`main:set_theme`](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L267), which sets the global `colors` table to a default color palette. For emoji merge the theme set was `'twitter_emoji'`, which has colors taken from the twitter emoji set. This is so that whenever I'm making a game using twitter emojis and I draw some shape that needs to use a color, I'll use these colors that were taken from the emoji set so that it all goes nicely together. Below `main:set_theme` there are two additional functions named `main:set_icon` and `main:quit` that respectively do what you'd expect them.
+Next there are `main:load_state` and `main:save_state`, which were already explained, and finally [`main:set_theme`](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L268), which sets the global `colors` table to a default color palette. For emoji merge the theme set was `'twitter_emoji'`, which has colors taken from the twitter emoji set. This is so that whenever I'm making a game using twitter emojis and I draw some shape that needs to use a color, I'll use these colors that were taken from the emoji set so that it all goes nicely together. Below `main:set_theme` there are two additional functions named `main:set_icon` and `main:quit` that respectively do what you'd expect them to.
 
 And then finally, before the game loop itself is defined, there is the [`main:draw_all_layers_to_main_layer`](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L218) function. In my engine, whenever anything needs to be drawn to the screen it needs to happen through a layer object, which is just an anchor object initialized with the [layer](https://github.com/a327ex/emoji-merge/blob/main/anchor/layer.lua) mixin. I'll explain this mixin in more detail in its own section, but for the purposes of this particular function, the only thing that matters is that the main object is [also a layer mixin](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L168), which means that it has a canvas of the game's internal size and that this canvas can be drawn to:
 
@@ -232,7 +236,7 @@ function main:draw_all_layers_to_main_layer()
 end
 ```
 
-As the code above shows, what the `main:draw_all_layers_to_main_layer` function does is as its name implies, it goes over all layer objects, and draws them to the main object's layer canvas. This canvas is then drawn to the screen at the [end of the game loop](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L450):
+As the code above shows, what the `main:draw_all_layers_to_main_layer` function does is as its name implies, it goes over all layer objects, and draws them to the main object's layer canvas. This canvas is then drawn to the screen at the [end of the game loop](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L451):
 
 ```lua
  if love.graphics and love.graphics.isActive() then
@@ -292,7 +296,7 @@ end
 
 This particular block of code will be explained entirely in the next post, and the particulars of how and why layers work will be explained in their section in this post.
 
-Now, finally, the last section of this file, the main loop. In LÖVE the main loop is defined by defining the [`love.run`](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L358) function, and that's what I'm doing here.
+Now, finally, the last section of this file, the main loop. In LÖVE the main loop is defined by defining the [`love.run`](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L359) function, and that's what I'm doing here.
 
 ```lua
 function love.run()
@@ -350,11 +354,11 @@ end
 
 The while is there, I assume, to make everything render with what `main.framerate` is set to. If VSync is on this already happens naturally, so I would intuit that it only comes into play when VSync is off or when `main.framerate` is smaller than `main.rate`.
 
-`main.framerate` is set to the monitor's refresh rate in `main:init`, so, for instance, my monitor is 144Hz, which means that `main.framerate` gets set to 144 while `main.rate` is 1/60. This means that for every fixed update there are 2, sometimes 3 display updates and that while doesn't really get activated since `current_time - last_time` will rarely be smaller than `1/main.framerate`. owever, if I manually set `main.framerate` to 30, for instance, that while will be activated often since the time between frames will often be smaller than `1/30`.
+`main.framerate` is set to the monitor's refresh rate in `main:init`, so, for instance, my monitor is 144Hz, which means that `main.framerate` gets set to 144 while `main.rate` is 1/60. This means that for every fixed update there are 2, sometimes 3 display updates and that while doesn't really get activated since `current_time - last_time` will rarely be smaller than `1/main.framerate`. However, if I manually set `main.framerate` to 30, for instance, that while will be activated often since the time between frames will often be smaller than `1/30`.
 
 So yea, after that everything gets drawn, and then `love.timer.sleep` is called at the end to not hog the user's CPU more than necessary, as far as I understand it.
 
-Now for what's inside fixed update:
+Now for what's inside [fixed update](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L368):
 
 ```lua
   while main.lag >= main.rate do
@@ -400,7 +404,7 @@ This is all my event handling, most of it input. Based on some quick research it
 
 My input mixin, which is initialized in the `main` object only, allows me to say `if main:input_is_pressed('some_action')` anywhere in code and it will return me true or false based on if that action was pressed that frame (same applies for down/released). Having the ability to do this is important because it increases locality. The default way the framework gives me for handling input is with the use of callbacks, which decreases locality so I don't want to do it like that.
 
-This means that I have to set some state for every event that happens, and every frame check for events this frame + last frame to set presse/down/released state to true or false. Pressed will be true if the event happened this frame but didn't last frame, released will be true if the event didn't happen this frame but happened last frame, and down will be true if it's happening this frame.
+This means that I have to set some state for every event that happens, and every frame check for events this frame + last frame to set pressed/down/released state to true or false. Pressed will be true if the event happened this frame but didn't last frame, released will be true if the event didn't happen this frame but happened last frame, and down will be true if it's happening this frame.
 
 Knowing this, I can now do some analysis on the drawbacks of having input handling inside vs. outside fixed update under different conditions, mostly when `main.lag` is very small vs. very large. Let's start with inside fixed update + very small `main.lag`. When that's the case, fixed update may not be called on a given frame, which will result in either dropped input or a delayed input response. If events are queued by the underlying framework until they're read, then they won't be dropped, otherwise they will. I don't actually know which it is so let's find out.
 
@@ -454,7 +458,7 @@ This happens due to my requirement for locality which forces me to keep track of
 
 There's probably some other way I could fix this, but I really can't of it right now (if you know make sure to comment). And so when analyzing the situation as a whole, input handling inside fixed update wins because it has less drawbacks. When `main.lag` is small it delays inputs, when `main.lag` is big nothing bad happens. Whereas for the alternative when `main.lag` is small it drops inputs, and when `main.lag` is big it delays them. And so that's why it's inside fixed update. Again, I could be wrong about my analysis in some important way, but this has been my thought process on it so far.
 
-OK, so for the rest of fixed update we have [this](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L408):
+OK, so for the rest of fixed update we have [this](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L409):
 
 ```lua
   if main.steam then main.steam.runCallbacks() end
@@ -499,9 +503,7 @@ Mixins will be covered in order of most to least important/interesting/cool:
 
 ## Timers and observers
 
-Timers are the most important concept in the entire engine. The idea was initially taken, many years ago, from [vrld's](https://github.com/vrld) [hump.timer](https://hump.readthedocs.io/en/latest/timer.html) library, and then over the years I have gradually changed it to suit my needs.
-
-Timers are important because they are my way of doing things over time completely *locally*. Consider the [`timer_after`](https://github.com/a327ex/emoji-merge/blob/main/anchor/timer.lua#L20) function:
+Timers are the most important concept in the entire engine. The idea was initially taken, many years ago, from [vrld's](https://github.com/vrld) [hump.timer](https://hump.readthedocs.io/en/latest/timer.html) library, and then over the years I have gradually changed them to suit my needs. Timers are important because they are my way of doing things over time completely *locally*. Consider the [`timer_after`](https://github.com/a327ex/emoji-merge/blob/main/anchor/timer.lua#L20) function:
 
 ```lua
 function init()
@@ -518,7 +520,7 @@ function timer:timer_after(delay, action, tag)
 end
 ```
 
-And all it does is adding a table storing the `action` function indexed by this particular timer call's unique tag. This table is then updated on the [`timer_update`](https://github.com/a327ex/emoji-merge/blob/main/anchor/timer.lua#L162) function like so:
+And all it does is create a table storing the `action` function indexed by this particular timer call's unique tag. This table is then updated on the [`timer_update`](https://github.com/a327ex/emoji-merge/blob/main/anchor/timer.lua#L162) function like so:
 
 ```lua
 function timer:timer_update(dt)
@@ -599,7 +601,7 @@ An alternative to using timers/observers that people have told me about is using
 
 ## Input
 
-My [input mixin](https://github.com/a327ex/emoji-merge/blob/main/anchor/input.lua) is very simple. As mentioned before it's in fixed update, and whenever events happen some state gets set, like `.input_keyboard_state['a']` is set to true if the `'a'` key is down this frame. Every frame, input's update function checks for these states and sets pressed/down/released state for every action based on a combination of current and past frame's state. So pressed is true when this frame's state for that action is true and the past frame's state is false, released is true when this frame's state is false and the past frame's state is true.
+My [input mixin](https://github.com/a327ex/emoji-merge/blob/main/anchor/input.lua) is very simple. As mentioned before it's in fixed update, and whenever events happen some state gets set, like `.input_keyboard_state['a']` is set to true if the `'a'` key is down this frame. Every frame, input's update function checks for these states and sets pressed/down/released state for every action based on a combination of current and past frame's state.
 
 Actions are the common binding mechanism that I think everyone uses where you bind multiple keys to a specific action. For instance, this is what a default action binding might look like for me:
 
@@ -620,7 +622,7 @@ if main:input_is_pressed('action_1')
 
 And that would return true on the frame where any of the `'action_1'` keys have been pressed, which in this example are left mouse button, z, h, j, space, gamepad's right trigger or gamepad's right or bottom face buttons.
 
-The only additional things of note are perhaps the `input_is_sequence_pressed/down/released` functions, which allow you to do stuff like this:
+The only additional thing of note in this input mixin are perhaps the `input_is_sequence_pressed/down/released` functions, which allow you to do stuff like this:
 
 ```lua
 if main:input_is_sequence_pressed('right', 0.5, 'right')
@@ -644,7 +646,7 @@ ui2:layer_add_canvas('outline')
 
 And this is because outline is a screen-wide shader that applies an outline around non-transparent objects, and it does so only for these particular layers. The default canvas that every layer has is called `'main'`, while additional ones are given unique names to the user's liking.
 
-In addition to these effects, the primary purpose of the layer is to enable to me send draw commands from anywhere in gameplay code, since this increases locality. The most straightforward way I found of doing this was to store every command in a table, and then only draw then once `layer_draw_commands` is called. So, internally, each layer command is doing this:
+In addition to these effects, the primary purpose of the layer is to enable to me send draw commands from anywhere in gameplay code, since this increases locality. The most straightforward way I found of doing this was to store every command in a table, and then only draw them once [`layer_draw_commands`](https://github.com/a327ex/emoji-merge/blob/main/anchor/layer.lua#L32) is called. So, internally, each layer command is doing this:
 
 ```lua
 function graphics.draw_text(text, font, x, y, r, sx, sy, ox, oy, color)
@@ -719,7 +721,7 @@ function container:container_add(object)
 end
 ```
 
-This way, all objects that are in any container can be easily accessed at `main.objects`. Like with the `mixin_objects` tables, references also need to be removed from the main container otherwise leaks will happen, and that also happens at the [end of this file](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L435):
+This way, all objects that are in any container can be easily accessed at `main.objects`. Like with the `mixin_objects` tables, references also need to be removed from the main container otherwise leaks will happen, and that also happens at the [end of this file](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L436):
 
 ```lua
 main:container_remove_dead_without_destroying()
@@ -751,7 +753,7 @@ for _, collision_data in ipairs(main:physics_world_get_collision_enter('type_1',
 end
 ```
 
-This is similar to the other one, except it's better suited for situations where the collision event doesn't quite make sense in any one object's update function. For instance, in emoji merge, it doesn't make sense to merge emojis from any one emoji's update function, and thus [this code](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L553) appears in `arena:update` instead:
+This is similar to the other one, except it's better suited for situations where it doesn't quite make sense for collision events to be handled in any one object's update function. For instance, in emoji merge, it doesn't make sense to merge emojis from any one emoji's update function, and thus [this code](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L553) appears in `arena:update` instead:
 
 ```lua
 for _, c in ipairs(main:physics_world_get_collision_enter('emoji', 'emoji')) do
@@ -775,7 +777,7 @@ main:physics_world_enable_trigger_between('ghost', {'emoji', 'ghost', 'solid'})
 
 And so these tags are there so that the user can call `physics_world_enable/disable_collision_between` and `physics_world_enable/disable_trigger_between` various physics tags. A collision refers to a physical collision, while a trigger refers to a sensor collision. Every collider has both a normal fixture and a sensor, so that whenever objects physically ignore each other they can still generate collision events (triggers) between them. So, if `tag_or_type` is `'tag'` then these physics tags are used, otherwise if it's `'type'`, then the anchor object types are used instead.
 
-And yea, I think that's about it for the physics world. The `main` object is initialized as a physics world [here](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L125), thus there's one global box2d world being used if you decide to use these physics world mixin functions via `main`. Any collider that is added to container automatically has its body + fixture + shape destroyed at the end of the frame whenever its `.dead` attribute is set to true. If you decide to create collider objects and not use containers then you must remember to destroy these yourself by calling `:collider_destroy`.
+And yea, I think that's about it for the physics world. The `main` object is initialized as a physics world [here](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L125), thus there's one global box2d world being used if you decide to use these physics world mixin functions via `main`. Any collider that is added to a container automatically has its body + fixture + shape destroyed at the end of the frame whenever its `.dead` attribute is set to true. If you decide to create collider objects and not use containers then you must remember to destroy these yourself by calling `:collider_destroy`.
 
 There are lots of useful collider functions for movement, such as [`collider_move_towards_point`](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L125), [`collider_move_towards_angle`](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L125) or [`collider_rotate_towards_velocity`](https://github.com/a327ex/emoji-merge/blob/main/anchor/collider.lua#L414). Additionally, there are also various steering functions such as [`collider_arrive`](https://github.com/a327ex/emoji-merge/blob/main/anchor/collider.lua#L464), [`collider_wander`](https://github.com/a327ex/emoji-merge/blob/main/anchor/collider.lua#L482) or [`collider_separate`](https://github.com/a327ex/emoji-merge/blob/main/anchor/collider.lua#L494). These steering functions all return forces to be applied to the collider, which you then must do manually.
 
@@ -849,7 +851,7 @@ The way to create a new hitfx effect is simply to call [`hitfx_add`](https://git
 self:hitfx_add('hit', 1)
 ```
 
-And this would add a spring + flash named `'hit'` to the object. This springs default value would be `1`, which is a useful value when you want to attach it to an object's scale, for instance, since when you pull on the spring it will bounce around that 1 value, which is what you want to make an object go boing:
+And this would add a spring + flash named `'hit'` to the object. This spring's default value would be `1`, which is a useful value when you want to attach it to an object's scale, for instance, since when you pull on the spring it will bounce around that 1 value, which is what you want to make an object go boing:
 
 ```lua
 self:hitfx_use('hit', 0.5)
@@ -865,9 +867,9 @@ game2:push(self.drop_x, self.drop_y, 0, self.springs.drop.x, self.springs.drop.x
 game2:pop()
 ```
 
-This example is a bit involved, but given how common it is and how it has the use of multiple mixins, multiple springs and flashes, it's worth going over it. First, this is the part where an emoji in emoji merge gets drawn. The first push/pop pair is making it so that the `'drop'` spring scales the emoji around the `.drop_x, .drop_y` position, which is a position that is the exact middle between the emoji that is about to be dropped and the little hand that drops it. Scaling things around their center vs. scaling things around a common shared position looks different, and in this case I wanted to scale both the hand and the emoji around their common center, so that's how to do it.
+This example is a bit involved, but given how common it is and how it has the use of multiple mixins, multiple springs and flashes, it's worth going over it. First, this is the part where an emoji in emoji merge gets drawn. The push/pop pair is making it so that the `'drop'` spring scales the emoji around the `.drop_x, .drop_y` position, which is a position that is the exact middle between the emoji that is about to be dropped and the little hand that drops it. Scaling things around their center vs. scaling things around a common shared position looks different, and in this case I wanted to scale both the hand and the emoji around their common center, so that's how to do it.
 
-Then, the emoji itself gets drawn using [`draw_image_or_quad`](https://github.com/a327ex/emoji-merge/blob/main/anchor/layer.lua#L171). Its `x, y` position is offset by `.shake_amount`, which is a vector that contains the results from the `shake` mixin. This is another example of a mixin's result simply being available by accessing a variable on the object itself. Then the emoji's scale is multiplied by `self.springs.main.x`, which is the `'main'` spring that every hitfx mixin enabled object has, and then finally the image is drawn with a shader active based on two conditions. If ´self.dying` is true, then it uses the grayscale shader to be drawn in black and white, while if `self.flashes.main.x` is true, it gets drawn with the combine shaders, which allows the color passed in (in this case `colors.white[0]`) to affect the emoji's color and make it white. `self.flashes.main.x` is true for a given duration based on its `hitfx_use` call, which for the emoji happens when its created anew from two other emojis being merged:
+Then, the emoji itself gets drawn using [`draw_image_or_quad`](https://github.com/a327ex/emoji-merge/blob/main/anchor/layer.lua#L171). Its `x, y` position is offset by `.shake_amount`, which is a vector that contains the results from the `shake` mixin. This is another example of a mixin's result simply being available by accessing a variable on the object itself. Then the emoji's scale is multiplied by `self.springs.main.x`, which is the `'main'` spring that every hitfx mixin enabled object has, and then finally the image is drawn with a shader active based on two conditions. If `self.dying` is true, then it uses the grayscale shader to be drawn in black and white, while if `self.flashes.main.x` is true, it gets drawn with the combine shader, which allows the color passed in (in this case `colors.white[0]`) to affect the emoji's color and make it white. `self.flashes.main.x` is true for a given duration based on its `hitfx_use` call, which for the emoji happens when its created anew from two other emojis being merged:
 
 ```lua
 if self.hitfx_on_spawn then self:hitfx_use('main', 0.5*self.hitfx_on_spawn, nil, nil, 0.15) end
@@ -891,7 +893,7 @@ player_run_frames = animation_frames(player_spritesheet, 32, 32, {{1, 2}, {2, 2}
 player_attack_frames = animation_frames(player_spritesheet, 32, 32, {{1, 3}, {2, 3}, {3, 3}, {4, 3}})
 ```
 
-You provide it a spritesheet, the size of each sprite, and then where in the spritesheet each animation is and it will go through it as you'd expect it to. If the animation only has a single animation on a single row, then you can omit the last argument.
+You provide it a spritesheet, the size of each sprite, and then where in the spritesheet each animation is and it will go through it as you'd expect it to. If the spritesheet only has a single animation on a single row, then you can omit the last argument.
 
 Animation logic handles the logical aspect of an animation, which looks like this:
 
@@ -911,9 +913,9 @@ self.animation = animation_logic(0.04, 6, 'loop', {
 })
 ```
 
-And in this example, each frame is going to last 0.04 seconds, there are 6 frames, they'll loop from the first frame once the end is reached, and for the first 4 frames the functions provided will be called. So whenever the first frame happens, some dust particles will be created and the object's `.z` attribute will be set to 9. I separated both concepts like this because I often find myself doing animations with code, and being able to use the logical part of an animation like this comes in handy in a lot of situations. For instance, all the animations for how the mage does its attacks in the video below, which are inspired by how [Archvale](https://store.steampowered.com/app/1296360/Archvale/) did it, were made using this animation_logic mixin:
+And in this example, each frame is going to last 0.04 seconds, there are 6 frames, they'll loop from the first frame once the end is reached, and for the first 4 frames the functions provided will be called. So whenever the first frame happens, some dust particles will be created and the object's `.z` attribute will be set to 9. I separated both concepts like this because I often find myself doing animations with code, and being able to use the logical part of an animation like this comes in handy in a lot of situations. For instance, all the animations for how the mage does its attacks in the video below (click the image), which are inspired by how [Archvale](https://store.steampowered.com/app/1296360/Archvale/) did it, were made using this animation_logic mixin:
 
-https://www.youtube.com/watch?v=1szzTEk5fpQ&t=162s
+[![](https://img.youtube.com/vi/1szzTEk5fpQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=1szzTEk5fpQ&t=162s)
 
 ## Camera
 
@@ -930,7 +932,7 @@ function layer:layer_draw_commands(name)
     ...
 ```
 
-But yea, there's not much to it. It's a very simple mixin because I just don't need that much for the kinds of games I'm making now.
+There's not much to it because I just don't need that much for the kinds of games I'm making now.
 
 ## Shake
 
@@ -942,11 +944,11 @@ See, this is what's so terrible about modern developers. Who makes these decisio
 
 Anyway, [this post](http://www.davetech.co.uk/gamedevscreenshake) is probably as good as the other one, in the end it doesn't matter. There are two main shake functions, [`shake_shake`](https://github.com/a327ex/emoji-merge/blob/main/anchor/shake.lua#L62) which implements a normal shake with intensity falloff, and [`shake_spring`](https://github.com/a327ex/emoji-merge/blob/main/anchor/shake.lua#L52) which implements a directional springy shake. While there are many kinds of different shaking functions you could implement, these two have served me pretty well so far.
 
-As explained before, when the any of the two shake functions is called, the [`shake_update`](https://github.com/a327ex/emoji-merge/blob/main/anchor/shake.lua#L89) will run its calculations and ultimately change the `.shake_amount` vector with the current shake values. The object then simply needs to read those values, and when drawing it offsets the object's position by it.
+As explained before, when the any of the two shake functions is called, the [`shake_update`](https://github.com/a327ex/emoji-merge/blob/main/anchor/shake.lua#L89) function will run its calculations and ultimately change the `.shake_amount` vector with the current shake values. The object then simply needs to read those values, and when drawing it, offset the object's position by it.
 
 ## Color
 
-There are three color mixins: [`color`](https://github.com/a327ex/emoji-merge/blob/main/anchor/color.lua), [`color_ramp`](https://github.com/a327ex/emoji-merge/blob/main/anchor/color_ramp.lua) and [`color_sequence`](https://github.com/a327ex/emoji-merge/blob/main/anchor/color_sequence.lua). The color mixin is just that, it takes in 4 r, g, b, a values or a hex code and then you use the color object to draw things with certain colors...
+There are three color mixins: [`color`](https://github.com/a327ex/emoji-merge/blob/main/anchor/color.lua), [`color_ramp`](https://github.com/a327ex/emoji-merge/blob/main/anchor/color_ramp.lua) and [`color_sequence`](https://github.com/a327ex/emoji-merge/blob/main/anchor/color_sequence.lua). The color mixin is just that, it takes in `r, g, b, a` values or a hex code and then you use the color object to draw things with... the color...
 
 Most colors that I use are defined in the `main:set_theme` function, which sets a global table of colors based on a given theme, for instance, here's the `'twitter_emoji'` theme, with colors taken from the twitter emoji set:
 
@@ -1027,7 +1029,7 @@ for _, instance in ipairs(self.sound_instances) do
 end
 ```
 
-And that's basically all I use for sounds. LÖVE has a fairly nice API for more [complicated sound effects](https://love2d.org/wiki/EffectType) but I really haven't found the need for it so far, so none of my code has any support for it currently.
+And that's basically all I use for sounds. LÖVE has a fairly nice API for more [complicated sound effects](https://love2d.org/wiki/EffectType) but I really haven't found the need for them so far, so none of my code has any support for it currently.
 
 ## Random
 
@@ -1069,7 +1071,7 @@ function slow:slow_slow(amount, duration, tween_method)
 end
 ```
 
-Very simple and easy way to do a slow motion effect and it just works.
+Here you can see a real use of timer's tagging mechanism. This slow timer call is tagged with the `'slow'` tag, which means that if its called multiple times while another slow is going on, the slows won't stack. The old one will simply stop working and the new one will take over, which is the behavior you'd generally want.
 
 ## Stats
 
@@ -1118,25 +1120,29 @@ Now let's get this shit over with!!!
 
 ## Thin wrappers and miscellaneous
 
-Most other files don't really warrant much comment because they're either just thin wrappers over one or another thing the framework does or they do something very simple that is self-documenting. Those files are: 
+Most other files don't really require much comment because they're either just thin wrappers over one or another thing the framework does or they do something very simple that is self-documenting. Those files are: 
 
-* [`duration`](https://github.com/a327ex/emoji-merge/blob/main/anchor/duration.lua): kills the object after a certain duration, can be easily supplanted by `:timer_after`, don't really remember why this exists and should probably be deleted.
+* [`duration`](https://github.com/a327ex/emoji-merge/blob/main/anchor/duration.lua): kills the object after a certain duration, can be easily supplanted by `:timer_after`, don't really remember why this exists and should probably be deleted
 * [`font`](https://github.com/a327ex/emoji-merge/blob/main/anchor/font.lua): literally just thin wrapper over LÖVE's font
-* [`gradient_image`](https://github.com/a327ex/emoji-merge/blob/main/anchor/gradient_image.lua): uses LÖVE's mesh to create a horizontal or vertical gradient, could probably just create a literal gradient in Paint or something instead.
+* [`gradient_image`](https://github.com/a327ex/emoji-merge/blob/main/anchor/gradient_image.lua): uses LÖVE's mesh to create a horizontal or vertical gradient, could probably just create a literal gradient image in paint or something instead
 * [`image`](https://github.com/a327ex/emoji-merge/blob/main/anchor/image.lua): thin wrapper over LÖVE's image
 * [`joint`](https://github.com/a327ex/emoji-merge/blob/main/anchor/joint.lua): thin wrapper over box2d's joint, don't forget to call `joint_destroy` if you're not adding this to any container!
-* [`level`](https://github.com/a327ex/emoji-merge/blob/main/anchor/level.lua): a simple scene switching mechanism, you can call `level:go_to` and it will switch levels, calling `:enter` on the new level and `:exit` on the old one. 
-* [`prs`](https://github.com/a327ex/emoji-merge/blob/main/anchor/prs.lua): some kind of transform object, it really does nothing currently and I should probably delete it.
+* [`level`](https://github.com/a327ex/emoji-merge/blob/main/anchor/level.lua): a simple scene switching mechanism, you can call `level_go_to` and it will switch levels, calling `:enter` on the new level and `:exit` on the old one
+* [`prs`](https://github.com/a327ex/emoji-merge/blob/main/anchor/prs.lua): some kind of transform object, it really does nothing currently and I should probably delete it
 * [`quad`](https://github.com/a327ex/emoji-merge/blob/main/anchor/quad.lua): thin wrapper over LÖVE's quad
 * [`shader`](https://github.com/a327ex/emoji-merge/blob/main/anchor/shader.lua): thin wrapper over LÖVE's shader
 * [`system`](https://github.com/a327ex/emoji-merge/blob/main/anchor/system.lua): anything system related, currently only has 2 functions to save/load save files
 * [`vec2`](https://github.com/a327ex/emoji-merge/blob/main/anchor/vec2.lua): simple vec2 mixin, I don't really use it because creating lots of vectors every frame is slow and I couldn't be bothered to make a pooling mixin yet.
 
 
-And yea, this is it. Hopefully this has been useful, and hopefully it has also been visible how owning your code is not that hard. Most of these files don't have more than a few hundred lines of code, and some of them, like the text mixin, provide quite a lot of useful functionality.
+And yea, this is it. Hopefully this has been useful + made somewhat visible how owning your code is not that hard. Most of these files don't have more than a few hundred lines of code, and some of them, like the text mixin, provide quite a lot of useful functionality.
 
 I'd say most of the problems people have with owning their code and using a framework is that they can spend quite a lot of time deciding how things should be structured, but after all these years I've ultimately found that how things are structured really doesn't matter at all. As long as you can insert, remove and update entities at will, you can do anything, and you don't really need anything more complicated than that.
 
 My little mixin setup, which is really just a preference thing, it could have been anything else, and as long as it didn't get in the way with pointless abstractions and bureaucracy it would have been fine.
 
-In the next post, I'm going to cover emoji merge's entire codebase and explain every decision behind every line of code. Anything that was already explained in this post will not be repeated there, so make sure to refer back to this one if you don't understand how something works.
+In the next post, I'm going to cover emoji merge's entire codebase and explain every decision behind most of the code. Anything that was already explained in this post will not be repeated there, so make sure to refer back to this one if you don't understand how something works.
+
+### [Comments](https://github.com/a327ex/emoji-merge/issues/1)
+
+---
