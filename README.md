@@ -41,7 +41,7 @@ This is also an opportune moment to do so given the collective realization by in
 
 Very, very sad situation all around. But, you know, as time passes and the future becomes the present becomes the past, when we look back on life with the benefit of hindsight, there's always a positive framing to negative past events. We, in fact, often look at these negative past events as pivotal moments in our development, and we even come to deeply believe that we wouldn't be who we are without those events having happened to make us stronger and more resilient.
 
-And so these events - Unity's Runtime Backstabbing of 23' and Godot's Great Fork of 27' - have reminded many of one ever-present truth: gamedevs should aim to own as high a percentage of their codebases as they reasonable can in order to decrease the amount of technological risk they're exposing themselves to. A simple truth, yet one that is hard to live up to.
+And so these events - Unity's Runtime Backstabbing of 23' and Godot's Great Fork of 27' - have reminded many of one ever-present truth: gamedevs should aim to own as high a percentage of their codebases as they reasonably can in order to decrease the amount of technological risk they're exposing themselves to. A simple truth, yet one that is hard to live up to.
 
 Which brings us back to this post. For clarity's sake, from now on I'm going to refer to code that is common across my games as "engine code", and to code that is specific to a single game as "gameplay code". My engine code is written in Lua on top of [LÖVE](https://love2d-community.github.io/love-api/), which I'll also refer to generally as "the framework".
 
