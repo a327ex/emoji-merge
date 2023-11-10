@@ -4,7 +4,36 @@ emoji merge is a Suika Game clone about merging emojis, play it here: https://a3
 
 https://github.com/a327ex/emoji-merge/assets/409773/372693e2-c648-447b-b947-4d6a63e28787
 
-# Engine overview
+## Table of Contents
+- [Engine overview](#engine-overview)
+  - [Anchor](#anchor)
+    - [Requires](#requires)
+    - [Anchor class](#anchor-class)
+    - [Mixins](#mixins)
+    - [Main object](#main-object)
+    - [Main init](#main-init)
+    - [Main loop](#main-loop)
+  - [Timers and observers](#timers-and-observers)
+  - [Input](#input)
+  - [Layer](#layer)
+  - [Container](#container)
+  - [Colliders and physics world](#colliders-and-physics-world)
+  - [Text](#text)
+  - [hitfx, flashes and springs](#hitfx-flashes-and-springs)
+  - [Animation](#animation)
+  - [Camera](#camera)
+  - [Shake](#shake)
+  - [Color](#color)
+  - [Sounds and music player](#sounds-and-music-player)
+  - [Random](#random)
+  - [Slow](#slow)
+  - [Stats](#stats)
+  - [Grid and graph](#grid-and-graph)
+  - [Thin wrappers and miscellaneous](#thin-wrappers-and-miscellaneous)
+
+# Engine overview 
+
+> 10/11/23 12:37
 
 A few months ago someone asked me to explain how some of my code worked. I said I was going to do so after I released a new game, and while [emoji merge](https://a327ex.itch.io/emoji-merge) isn't a full release, it's a perfectly sized project to use for giving a fairly in-depth explanation of how my code currently works. I'm fairly happy with my codebase, and it's likely I won't change it significantly for the next 2-3 Steam games I release, so there's no better time than now, while everything's fresh on my mind, to explain it all completely.
 
@@ -56,6 +85,8 @@ Oh, and one last last note. I am a low IQ dumb idiot retard. I have no professio
 
 ### [Comments](https://github.com/a327ex/emoji-merge/issues/1)
 
+### [↑](#table-of-contents)
+
 ## Anchor
 
 ### Requires
@@ -79,6 +110,8 @@ require 'anchor.class'
 ```
 
 These are modules that add functions to Lua's default [`math`](https://github.com/a327ex/emoji-merge/blob/main/anchor/math.lua), [`string`](https://github.com/a327ex/emoji-merge/blob/main/anchor/string.lua) and [`table`](https://github.com/a327ex/emoji-merge/blob/main/anchor/table.lua) tables respectively. Because of the way the engine works, which I'll explain next, these are loaded first here as they are the only modules that have non-mixin functions in them. The [`class`](https://github.com/a327ex/emoji-merge/blob/main/anchor/class.lua) module is loaded last, and it gives me a simple class mechanism (Lua doesn't have one by default) that is a modified version of [rxi/classic](https://github.com/rxi/classic) which only implements mixins (no inheritance), because most things in the engine are mixins.
+
+### [↑](#table-of-contents)
 
 ### Anchor class
 
@@ -131,6 +164,8 @@ end)
 This last one is a way of creating objects that I really like that I picked up from both [amulet.xyz](https://www.amulet.xyz/doc/#running-a-script) and [kaboom.js](https://kaboomjs.com/). I like it because, for objects that are one-offs, I can define everything about the object locally, meaning, in the same place in the file.
 This is an idea that I'll refer to often because I value it, and in my head I call it *locality*, but others might have other names for it. But it's essentially being able to, within reason, define everything about a given behavior in the same place in code.
 
+### [↑](#table-of-contents)
+
 ### Mixins
 
 In my games, every object is an anchor object, and I've built those objects such that they have all/most of the engine's functionalities inserted in them as mixins. If you look at the [`anchor/init.lua`](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L36) file below the anchor class definition, you'll see lots of lines of the type `anchor:class_add(...)`. These are mixins being added to the anchor class. Because of the way mixins work, this means that every anchor object has access to every function defined in a mixin, as well as to the state defined by that mixin, if any. This makes anchor objects kind of like God objects.
@@ -150,7 +185,9 @@ function timer() return anchor('timer'):timer_init() end
 
 The mixin is added to the anchor class via `class_add`, but then a global function with the mixin's name is also created. This is mostly because some types of objects are used often in gameplay code and having a shorter alias like this is good. So whenever I need a timer, instead of saying `anchor('timer'):timer_init()` I can just say `timer()`.
 
-### main object
+### [↑](#table-of-contents)
+
+### Main object
 
 [Next](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L102), the `main` object is defined, which will contain any and all global state needed for the engine to work.
 
@@ -211,7 +248,13 @@ main:container_init():input_init():level_init():music_player_init():observer_ini
     :physics_world_init():random_init():shake_init():slow_init():system_init()
 ```
 
-Each mixin and why they're here will be explained in its own section. The [`main:init`](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L127) function is defined below this. This is the function that gameplay code calls to set most engine settings up. In emoji merge it looks like this, for instance:
+Each mixin and why they're here will be explained in its own section.
+
+### [↑](#table-of-contents)
+
+### Main init
+
+The [`main:init`](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L127) function is defined below this. This is the function that gameplay code calls to set most engine settings up. In emoji merge it looks like this, for instance:
 
 ```lua
 main:init{title = 'emoji merge', web = true, theme = 'twitter_emoji', w = 640, h = 360, sx = 2, sy = 2}
@@ -295,6 +338,10 @@ end
 ```
 
 This particular block of code will be explained entirely in the next post, and the particulars of how and why layers work will be explained in their section in this post.
+
+### [↑](#table-of-contents)
+
+### Main loop
 
 Now, finally, the last section of this file, the main loop. In LÖVE the main loop is defined by defining the [`love.run`](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L359) function, and that's what I'm doing here.
 
@@ -501,6 +548,8 @@ And that's about it. I think I've explained everything about this file. It is th
 
 Mixins will be covered in order of most to least important/interesting/cool:
 
+### [↑](#table-of-contents)
+
 ## Timers and observers
 
 Timers are the most important concept in the entire engine. The idea was initially taken, many years ago, from [vrld's](https://github.com/vrld) [hump.timer](https://hump.readthedocs.io/en/latest/timer.html) library, and then over the years I have gradually changed them to suit my needs. Timers are important because they are my way of doing things over time completely *locally*. Consider the [`timer_after`](https://github.com/a327ex/emoji-merge/blob/main/anchor/timer.lua#L20) function:
@@ -599,6 +648,8 @@ This API is similar to most tweening libraries I see in the wild, like [this one
 
 An alternative to using timers/observers that people have told me about is using coroutines. [Elias Daler](https://twitter.com/eliasdaler) has a [nice article](https://edw.is/how-to-implement-action-sequences-and-cutscenes/) on the advantages of coroutines. I, personally, just have never vibed with coroutines at all. I can see how it's solving the same (and perhaps even more) problems as the ones that timers/observers do, but when I think about those problems the solution that just naturally makes sense to me is timers/observers and not coroutines. I don't know, something about them just does not intuitively sit well with me, and I've learned to trust my intuition, so I never ended up using them. But I understand that many people do, and they're an alternative that exists in most engines/languages now, so I thought I'd mention it.
 
+### [↑](#table-of-contents)
+
 ## Input
 
 My [input mixin](https://github.com/a327ex/emoji-merge/blob/main/anchor/input.lua) is very simple. As mentioned before it's in fixed update, and whenever events happen some state gets set, like `.input_keyboard_state['a']` is set to true if the `'a'` key is down this frame. Every frame, input's update function checks for these states and sets pressed/down/released state for every action based on a combination of current and past frame's state.
@@ -629,6 +680,8 @@ if main:input_is_sequence_pressed('right', 0.5, 'right')
 ```
 
 And that would return true only when the `'right'` action has been pressed twice, and the second press happened within 0.5 seconds of the first. This is useful for things like dashes, double clicks or any fighting game style combos. Other than that, the code is pretty self-explanatory and simple, and it just works.
+
+### [↑](#table-of-contents)
 
 ## Layer
 
@@ -699,6 +752,8 @@ int cf_draw_pop_layer();
 
 Which seems like a good indication that I both reached a correct conclusion with this concept (which is hardly surprising, it just makes sense that 2D games use layers) and that when I swap the framework, if I swap to his it will support this particular mixin's workings better.
 
+### [↑](#table-of-contents)
+
 ## Container
 
 [`container`](https://github.com/a327ex/emoji-merge/blob/main/anchor/container.lua) doesn't betray its name, it's a simple container of objects with some functions to operate on them. In general objects should go in containers, although that's not strictly required (you'll just have to handle object destruction manually in that case, which is fine in some cases). Containers should be created according to access patterns, so, for instance, in emoji merge I have [3 containers](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L433):
@@ -728,6 +783,8 @@ main:container_remove_dead_without_destroying()
 ```
 
 `container_remove_dead_without_destroying` removes all objects which have their `.dead` attribute set to true, but without calling any destroy functions on them. One thing that containers do automatically when removing objects is calling any destroy functions, which are functions that also need to remove references from other systems, the main (and only so far) one being the destruction of box2d bodies/fixtures/shapes/joints. So this container function just makes sure to remove the objects from the main container without destroying them again.
+
+### [↑](#table-of-contents)
 
 ## Colliders and physics world
 
@@ -782,6 +839,8 @@ And yea, I think that's about it for the physics world. The `main` object is ini
 There are lots of useful collider functions for movement, such as [`collider_move_towards_point`](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L125), [`collider_move_towards_angle`](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L125) or [`collider_rotate_towards_velocity`](https://github.com/a327ex/emoji-merge/blob/main/anchor/collider.lua#L414). Additionally, there are also various steering functions such as [`collider_arrive`](https://github.com/a327ex/emoji-merge/blob/main/anchor/collider.lua#L464), [`collider_wander`](https://github.com/a327ex/emoji-merge/blob/main/anchor/collider.lua#L482) or [`collider_separate`](https://github.com/a327ex/emoji-merge/blob/main/anchor/collider.lua#L494). These steering functions all return forces to be applied to the collider, which you then must do manually.
 
 For being thin wrappers over box2d I'm pretty happy with these mixins, they work well and make implementing everything I need pretty easy.
+
+### [↑](#table-of-contents)
 
 ## Text
 
@@ -841,6 +900,8 @@ This system is also very easily expandable. For instance, suppose I wanted to ad
 
 And all this in just 300 lines of code!!! This, to me, is a good example of everything that's nice about owning your own code. I get everything I want and need, I can add features to it easily, and I don't have to depend on anyone's code to do so. Perfect!
 
+### [↑](#table-of-contents)
+
 ## hitfx, flashes and springs
 
 The [hitfx mixin](https://github.com/a327ex/emoji-merge/blob/main/anchor/hitfx.lua) is used to make objects flash and go boing whenever they're hit by something. It's a conjunction of [springs](https://github.com/a327ex/emoji-merge/blob/main/anchor/spring.lua) and [flashes](https://github.com/a327ex/emoji-merge/blob/main/anchor/flash.lua) into one because they're often used together. If you want an explanation of how the springs work I wrote [this post](https://github.com/a327ex/blog/issues/60) before which goes over it in great detail.
@@ -880,6 +941,8 @@ This is on the emoji's constructor. The first `hitfx_use` calls the `'main'` spr
 
 And that's about it. This is a fairly useful construct that I use a lot. There are probably better ways of doing it but this works well enough for me.
 
+### [↑](#table-of-contents)
+
 ## Animation
 
 Animation is divided between three mixins: [`animation_frames`](https://github.com/a327ex/emoji-merge/blob/main/anchor/animation_frames.lua), [`animation_logic`](https://github.com/a327ex/emoji-merge/blob/main/anchor/animation_logic.lua), and [`animation`](https://github.com/a327ex/emoji-merge/blob/main/anchor/animation.lua). The animation mixin is just a mix of animation frames and animation logic to create a simple animation object. 
@@ -917,6 +980,8 @@ And in this example, each frame is going to last 0.04 seconds, there are 6 frame
 
 [![](https://img.youtube.com/vi/1szzTEk5fpQ/maxresdefault.jpg)](https://www.youtube.com/watch?v=1szzTEk5fpQ&t=162s)
 
+### [↑](#table-of-contents)
+
 ## Camera
 
 The [camera mixin](https://github.com/a327ex/emoji-merge/blob/main/anchor/camera.lua) is nothing special. It has the functions [`camera_attach`](https://github.com/a327ex/emoji-merge/blob/main/anchor/camera.lua#L22) and [`camera_detach`](https://github.com/a327ex/emoji-merge/blob/main/anchor/camera.lua#L37) that apply the camera's transform to any draw operations between them, and then it has [`camera_get_local_coords`](https://github.com/a327ex/emoji-merge/blob/main/anchor/camera.lua#L57) and [`camera_get_world_coords`](https://github.com/a327ex/emoji-merge/blob/main/anchor/camera.lua#L45) to translate from local to world to local positions. Those are really the only things that the camera is actually doing.
@@ -933,6 +998,8 @@ function layer:layer_draw_commands(name)
 ```
 
 There's not much to it because I just don't need that much for the kinds of games I'm making now.
+
+### [↑](#table-of-contents)
 
 ## Shake
 
@@ -979,6 +1046,8 @@ self:color_sequence_init(colors.fg[0], 0.5, colors.blue[0], 1, colors.red[0])
 ```
 
 Will set `.color` to `colors.fg[0]` immediately, then after 0.5 seconds will change it to `colors.blue[0]`, then 1 second after that will change it to `colors.red[0]`. It's just a handy way of changing something's color in sequence. I could do this with timers, I could do this with animation_logic, so this mixin doesn't really need to exist, but it does and sometimes I use it.
+
+### [↑](#table-of-contents)
 
 ## Sounds and music player
 
@@ -1031,6 +1100,8 @@ end
 
 And that's basically all I use for sounds. LÖVE has a fairly nice API for more [complicated sound effects](https://love2d.org/wiki/EffectType) but I really haven't found the need for them so far, so none of my code has any support for it currently.
 
+### [↑](#table-of-contents)
+
 ## Random
 
 The [random mixin](https://github.com/a327ex/emoji-merge/blob/main/anchor/random.lua) is responsible for generating random numbers. One global instance of it is initialized to the `main` object. You can create your own random objects with specific seeds, which would look like this:
@@ -1055,6 +1126,8 @@ main:random_weighted_pick(10, 8, 2)
 
 But, except for the last one, the others are hard to actually calculate what the chances are. So you're probably better off using sensible numbers, i.e. it's easy to see the total in the last one is 20, so it will return 1 50% of the time, because 10 is half of 20...
 
+### [↑](#table-of-contents)
+
 ## Slow
 
 The [slow mixin](https://github.com/a327ex/emoji-merge/blob/main/anchor/slow.lua) uses the timer mixin to slow down the game by a certain percentage and slowly tween it back to normal speed. The `main.slow_amount` variable is multiplied by `main.rate` in [`love.run`](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L411) whenever it is passed to any update function, so if `main.slow_amount` is 0.5 then the game will run half as fast as normal.
@@ -1072,6 +1145,8 @@ end
 ```
 
 Here you can see a real use of timer's tagging mechanism. This slow timer call is tagged with the `'slow'` tag, which means that if its called multiple times while another slow is going on, the slows won't stack. The old one will simply stop working and the new one will take over, which is the behavior you'd generally want.
+
+### [↑](#table-of-contents)
 
 ## Stats
 
@@ -1108,6 +1183,8 @@ Similarly, in a game like Tree of Savior there exists the concept of a `damage l
 
 In some games you also have concepts for added/additional damage/stats that don't get affected by any other modifiers, which would look like `(base + adds)*(1 + mults) + added`. The point being, this mixin doesn't support everything, but it's easily expandable to do so, it's like 80 lines of code, most of which are comments, easy.
 
+### [↑](#table-of-contents)
+
 ## Grid and graph
 
 The [grid](https://github.com/a327ex/emoji-merge/blob/main/anchor/grid.lua) and [graph](https://github.com/a327ex/emoji-merge/blob/main/anchor/graph.lua) mixins are literally just that, just implementations of those particular data structures. The graph mixin is just a graph, you can create the graph, add and remove nodes and edges, and there's only one function that does anything which is [`graph_floyd_warshall`](https://github.com/a327ex/emoji-merge/blob/main/anchor/graph.lua#L77) which implements that particular algorithm. Pretty sure I only used this like 5+ years ago for one procedural generation experiment or another.
@@ -1117,6 +1194,8 @@ The grid mixin is much more useful and I use it much more often, but it's simila
 And yea... As I sit here writing this, I'm realizing that all my engine code is fairly well documented already and that a big portion of this post is redundant because everything is already explained in the files themselves. Oh well, you know, at least the AI has 2 sources to learn from now, so it'll probably be trained better or something, right? Really, I'm helping my future self here. When my memory starts fading and my IQ drops by 20 points, Mother will be able to help me code because past me wrote this very thorough blog post explaining all the reasonings behind everything. I didn't waste 1 week of my life writing this, I didn't!
 
 Now let's get this shit over with!!!
+
+### [↑](#table-of-contents)
 
 ## Thin wrappers and miscellaneous
 
@@ -1144,5 +1223,7 @@ My little mixin setup, which is really just a preference thing, it could have be
 In the next post, I'm going to cover emoji merge's entire codebase and explain every decision behind most of the code. Anything that was already explained in this post will not be repeated there, so make sure to refer back to this one if you don't understand how something works.
 
 ### [Comments](https://github.com/a327ex/emoji-merge/issues/1)
+
+### [↑](#table-of-contents)
 
 ---
