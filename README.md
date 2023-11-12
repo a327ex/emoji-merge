@@ -552,7 +552,7 @@ Mixins will be covered in order of most to least important/interesting/cool:
 
 ## Timers and observers
 
-Timers are the most important concept in the entire engine. The idea was initially taken, many years ago, from [vrld's](https://github.com/vrld) [hump.timer](https://hump.readthedocs.io/en/latest/timer.html) library, and then over the years I have gradually changed them to suit my needs. Timers are important because they are my way of doing things over time completely *locally*. Consider the [`timer_after`](https://github.com/a327ex/emoji-merge/blob/main/anchor/timer.lua#L20) function:
+Timers are the most important concept in the entire engine. The idea was initially taken, many years ago, from [vrld's](https://github.com/vrld) [hump.timer](https://hump.readthedocs.io/en/latest/timer.html) library, and then over the years I have gradually changed it to suit my needs. Timers are important because they are my way of doing things over time completely *locally*. Consider the [`timer_after`](https://github.com/a327ex/emoji-merge/blob/main/anchor/timer.lua#L20) function:
 
 ```lua
 function init()
