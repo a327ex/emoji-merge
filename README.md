@@ -1279,7 +1279,9 @@ function init()
   main:set_icon('assets/sunglasses_icon.png')
 ```
 
-Most of this has already been explained in the previous post, however I glossed over the game's size. Here you can see that the game's internal size is set to `w = 640` and `h = 360`. This means that for each layer, a `640x360` canvas is created and then it is multiplied by some `sx, sy` value (not the one passed in), while keeping its aspect ratio, such that if maximally fills the user's monitor. `640x360` was chosen because I looked at [Steam's Hardware Survey](https://store.steampowered.com/hwsurvey/Steam-Hardware-Software-Survey-Welcome-to-Steam) and this was the resolution that multiplies neatly to most people's (80%+) monitors. In cases where it doesn't, then it multiplies to the highest possible value while keeping the aspect ratio and then draws the canvas offset by the remainder horizontally/vertically. This all happens on the game's desktop version, which automatically tries to go for windowed fullscreen when the game is first run, I believe. For the web version it just does base resolution times the passed in scale, in this case `640x360` times `2`, which is the resolution I set for the game on itch.io:
+Most of this has already been explained in the previous post, however I glossed over the game's size. Here you can see that the game's internal size is set to `w = 640` and `h = 360`. This means that for each layer, a `640x360` canvas is created and then it is multiplied by some `sx, sy` value (not the one passed in), while keeping its aspect ratio, such that it maximally fills the user's monitor. `640x360` was chosen because I looked at [Steam's Hardware Survey](https://store.steampowered.com/hwsurvey/Steam-Hardware-Software-Survey-Welcome-to-Steam) and this was the resolution that multiplies neatly to most people's (80%+) monitors.
+
+In cases where the resolution doesn't multiply neatly to the user's monitor, then it multiplies to the highest possible value while keeping the aspect ratio and then draws the canvas offset by the remainder horizontally/vertically. This all happens on the game's desktop version, which automatically tries to go for windowed fullscreen when the game is first run, I believe. For the web version it just does base resolution times the passed in scale, in this case `640x360` times `2`, which is the resolution I set for the game on itch.io:
 
 ![](https://i.imgur.com/rmY8Ann.png)
 
@@ -1294,9 +1296,9 @@ Next:
   ui2:layer_add_canvas('outline')
 ```
 
-Here all layers are defined. `bg_fixed`, `ui1` and `ui2` are fixed layers, which means that they aren't affected by the camera's transform. `game1`, `game2`, `game3`, `effects` and `ui2` have outline canvasses generated for them, which means that they will be affected by the outline shader. And the `shadow` layer has its `.shadow` attribute set to true, which will be used later when we define `main:draw_all_layers_to_main_laayer` to make the shadow layer create the game's dropshadow effect.
+Here all layers are defined. `bg_fixed`, `ui1` and `ui2` are fixed layers, which means that they aren't affected by the camera's transform. `game1`, `game2`, `game3`, `effects` and `ui2` have outline canvasses generated for them, which means that they will be affected by the outline shader. And the `shadow` layer has its `.shadow` attribute set to true, which will be used later when we define `main:draw_all_layers_to_main_layer` to make the shadow layer create the game's dropshadow effect.
 
-Perhaps it's worth going over [`main:draw_all_layers_to_main_layer`](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L332) here:
+Perhaps it's worth going over [`main:draw_all_layers_to_main_layer`](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L332) here (I'll often do this, where I copy the entire code we'll go over next, and then explain each section block by block, however, you can also just click the what I linked and follow along from another tab):
 
 ```lua
 function main:draw_all_layers_to_main_layer()
@@ -1369,7 +1371,7 @@ end
 
 ![](https://i.imgur.com/4cdu6px.png)
 
-Very odd looking duck. The dropshadow effect is achieved by drawing several layers to the shadow layer while using the shadow shader:
+Very odd looking duck. To make it look better, we can add a dropshadow effect, which is achieved by drawing several layers to the shadow layer while using the shadow shader, whose code looks like this:
 
 ```lua
 vec4 effect(vec4 vcolor, Image texture, vec2 tc, vec2 pc) {
@@ -1377,7 +1379,7 @@ vec4 effect(vec4 vcolor, Image texture, vec2 tc, vec2 pc) {
 }
 ```
 
-And all this shader does is turn all non-transparent pixels into a transparent-ish gray. So doing that would look like this:
+And all this shader does is turn all non-transparent pixels into a transparent-ish gray. So doing all that would look like this:
 
 ```lua
 function main:draw_all_layers_to_main_layer()
@@ -1502,7 +1504,7 @@ vec4 effect(vec4 vcolor, Image texture, vec2 tc, vec2 pc) {
 }
 ```
 
-And that's about it. I'm sure this could have been coded better, but it doesn't matter. In the end it's all very simple and straightforward once you get used to it. I'm not sure if this layer API is what I'll keep using forever or anything, but it works for now and does what I need it to do.
+And that's about it. I'm sure this could have been coded better, but it doesn't matter. In the end it works and that's all that matters to me. I'm not sure if this layer API is what I'll keep using forever or anything, but it works for now and does what I need it to do.
 
 Next:
 
@@ -1632,9 +1634,9 @@ Here all images the game will use are loaded, and they are loaded in two differe
 
 ![](https://i.imgur.com/wTzr4VK.png)
 
-Image mixin's `image_load_texture_atlas` goes through the texture image and assigns each quad to the name passed in from the table that is the second argument. So the first quad will be assigned to key `'0'` in the table that that function creates, and then that table will be assigned to `images`, and so `images['0']` will have a reference to the quad that contains that image. In gameplay code, if we want draw that image we'll just refer `images['0']`, which will be a `quad` in the web version and an `image` in the desktop version, which is why every image drawing function in the game uses the [`draw_image_or_quad`](https://github.com/a327ex/emoji-merge/blob/main/anchor/layer.lua#L171) function.
+Image mixin's [`image_load_texture_atlas`](https://github.com/a327ex/emoji-merge/blob/main/anchor/image.lua#L11) goes through the texture image and assigns each quad to the name passed in from the table that is the third argument. So the first quad will be assigned to key `'0'` in the table that that function creates, and then that table will be assigned to `images`, and so `images['0']` will have a reference to the quad that contains that image. In gameplay code, if we want draw that image we'll just refer `images['0']`, which will be a `quad` in the web version and an `image` in the desktop version, which is why every image drawing function in the game uses the [`draw_image_or_quad`](https://github.com/a327ex/emoji-merge/blob/main/anchor/layer.lua#L171) function.
 
-That's all there is to this. One thing you could say is that I could just do a for loop on all images instead of loading them manually like this. And that's true. However, one thing I've learned to do over time is to load assets manually because you want assets to have the original names of their files, and then you want to refer to them by another name in game. This is more clear with sounds instead of these images:
+That's all there is to this. One thing you could say is that, for the desktop method, I could just do a for loop on all files in the assets directory and load them automatically instead of loading them manually. And that's true. However, one thing I've learned to do over time is to load assets manually because you want assets to have the original names of their files, and then you want to refer to them by other names in game. This is more clear with sounds instead of these images:
 
 ```lua
   sfx = sound_tag{volume = 0.5}
@@ -1669,7 +1671,7 @@ Next:
   bg_color = colors.blue[10]:color_clone()
 ```
 
-`bg_1` and `bg_2` are the background gradients. `bg_1` is a white to blue one to be used normally, while `bg_2` is a black and white one to be used when the round ends. This is the `bg_1` gradient being drawn by itself:
+`bg_1` and `bg_2` are the background gradients. `bg_1` is a white to blue one to be used normally, while `bg_2` is a black and white one to be used when the round ends and is turned to grayscale. This is the `bg_1` gradient being drawn by itself:
 
 ![](https://i.imgur.com/e0o6f8b.png)
 
@@ -1693,7 +1695,7 @@ Next:
   main:physics_world_enable_trigger_between('ghost', {'emoji', 'ghost', 'solid'})
 ```
 
-This was already explained in the [physics section](#colliders-and-physics-world). The only thing of note here is that we initialize callbacks with `nil, 'type'`, meaning that we have access both collider and world types of callbacks, and that our collisions are based on anchor types instead of physics tags. `'ghost'` avoids physical collision everyone else but generates trigger events with everyone else too; and `'emoji'` and `'solid'` physically collide with each other.
+This was already explained in the [physics section](#colliders-and-physics-world). The only thing of note here is that we initialize callbacks with `nil, 'type'`, meaning that we have access both collider and world types of callbacks, and that our collisions are based on anchor types instead of physics tags. `'ghost'` avoids physical collision with everyone else but generates trigger events with everyone else too; and `'emoji'` and `'solid'` physically collide with each other.
 
 Next:
 
@@ -1720,7 +1722,7 @@ These are the colors used for the `multiply_emoji` shader. I am actually very as
 
 ![](https://i.imgur.com/JcWS4km.png)
 
-What I wanted to do was turn these blue emojis into any other specific color because I thought it would loko cool to have them in different colors (it didn't look cool at all). The way I initially went about it was just swap that specific blue color for the color I wanted, but that didn't work because it's not a single blue color, there's like, lots of them on the edges:
+What I wanted to do was turn these blue emojis into any other specific color because I thought it would look cool to have them in different colors (it didn't look cool at all). The way I initially went about it was just swap that specific blue color for the color I wanted, but that didn't work because the emoji is not a single blue color, there's like, lots of them on the edges:
 
 ![](https://i.imgur.com/ZFqPuLE.png)
 
@@ -1776,7 +1778,7 @@ Next:
   }
 ```
 
-This is the table that holds all values for each emoji size. `rs` was copied directly from Suika Game, although in proportion to my game's size (which was also proportionally copied from Suika Game). `score` is the same as Suika Game for each emoji too. And `mass_multiplier` isn't, although I tried to make it similar. This is a multiplier that affects how heavy each emoji is, and in the original Suika Game smaller balls are heavier than the bigger ones, and so some multiplier on their mass is needed. These are the values I reached through observation of the original game, although they probably aren't completely right. `stars` is the number of stars that spawn when two emojis are merged, and `spawner_offset` is the distance the emoji has from the hand when it's about to be spawned (it is a vector instead of a single y value because before it also had a horizontal offset).
+This is the table that holds all values for each emoji size. `rs` was copied directly from Suika Game, although in proportion to my game's size (which was also proportionally copied from Suika Game). `score` is the same as Suika Game for each emoji too. And `mass_multiplier` isn't, although I tried to make it similar. This is a multiplier that affects how heavy each emoji is, and in the original Suika Game smaller balls are heavier than the bigger ones, and so some multiplier on their mass is needed. These are the values I reached through observation of the original game, although they probably aren't completely right. `stars` is the number of star particles that spawn when two emojis are merged, and `spawner_offset` is the distance the emoji has from the hand when it's about to be spawned (it is a vector instead of a single y value because before it also had a horizontal offset).
 
 Next:
 
@@ -1799,9 +1801,9 @@ Next:
   end)
 ```
 
-This creates the :point_up_2: cursor, and does so in one of those completely local ways mentioned in the previous post because this is the only pointer that's going to exist. This object is a small ghost collider, because the way I'm doing anything UI related for this game using the physics engine, so by making the cursor a collider and any buttons colliders as well I get collision events for UI purposes for "free". This is obviously not ideal, but it's currently how I'm doing my UIs.
+This creates the :point_up_2: cursor, and does so in one of those completely local ways mentioned in the previous post because this is the only pointer that's going to exist. This object is a small ghost collider, because the way I'm doing anything UI related for this game is by using the physics engine, so by making the cursor a collider and any buttons colliders as well I get collision events for UI purposes for "free". This is obviously not ideal, but it's currently how I'm doing my UIs.
 
-I didn't mention this in the previous post, but there's no mixin for anything UI related, right? I've tried *many* different types of UI mixins/libraries over the years, many different setups and techniques, and so far I haven't found anything that generalizes properly yet. And by generalizes properly I mean, the timer/observer mixins generalize properly, I've been using them for 5+ years, and they're roughly the same as they've been since the start, and they do their job well. A general UI system is one that simply does its job well for every type of game and every type of requirement imposed on it, and I simply haven't found any UI setup that meets those demands yet. And so I just decided to start doing it all manually instead of relying on any reusable UI code. If I keep doing it manually like this I'm sure that eventually some good general idea for it will hit me, until then I prefer to not deal with coding against any existing UI related code.
+I didn't mention this in the previous post, but there's no mixin for anything UI related. I've tried *many* different types of UI mixins/libraries over the years, many different setups and techniques, and so far I haven't found anything that generalizes properly yet. And by generalizes properly I mean, the timer/observer mixins generalize properly, I've been using them for 5+ years, and they're roughly the same as they've been since the start, and they do their job well. A general UI system is one that simply does its job well for every type of game and every type of requirement imposed on it, and I simply haven't found any UI setup that meets those demands yet. And so I just decided to start doing it all manually instead of relying on any reusable UI code. If I keep doing it manually like this I'm sure that eventually some good general idea for it will hit me, until then I prefer to not deal with coding against any existing UI related code.
 
 In any case, in the code above the pointer is simply started as a ghost collider, it's set as a bullet so that it doesn't miss collision events if it's going too fast (I think this is why at least), and then its update function just sets its position to the mouse's position and draws the :point_up_2: emoji.
 
@@ -1834,9 +1836,13 @@ function emoji_button:update(dt)
 end
 ```
 
-This is similarly a ghost collider, except that in its update function it checks for collisions with `main.pointer`. As mentioned before, we start the physics world with both `'world'` and `'collider'` callback types, which means that whenever collisions/triggers happen, they'll fill up both `main`'s and every collider's `.collision_enter/exit` and `.trigger_enter/exit` with the collisions/triggers that happened on that frame. So all emoji button's update function is first checking to see if `main.pointer` has entered a trigger with this button (and it's a trigger instead of a collision because they're both ghosts, and ghosts physically ignore each other, remember that this was set above with `main:physics_world_disable_collision_between`), and if it has, then play a hover sound + do a small boing.
+This is similarly a ghost collider, except that in its update function it checks for collisions with `main.pointer`. As mentioned before, we start the physics world with both `'world'` and `'collider'` callback types, which means that whenever collisions/triggers happen, they'll fill up both `main`'s and every collider's `.collision_enter/exit` and `.trigger_enter/exit` tables with the collisions/triggers that happened on that frame.
 
-It's also then checking if there's an active trigger with `main.pointer` and if left click was pressed, and if it was, then do a bigger boing and call `self.action`, which is a function that is passed in when an `emoji_button` object is created that will do whatever it is that this button is supposed to do. And that's about it. Oh, yea, there's also a `collider_set_awake(true)` call there, because this is a physics object that is not affected by any forces and is just there to be a button, it will go to sleep by default and when that happens it won't trigger collision events. So the `collider_set_awake(true)` call every frame is there to make sure it doesn't sleep. This should have been a `collider_set_sleeping_allowed(false)` on the constructor, but in the end it's the same thing.
+So emoji button's update function is first checking to see if `main.pointer` has entered a trigger with this button (and it's a trigger instead of a collision because they're both ghosts, and ghosts physically ignore each other, remember that this was set above with `main:physics_world_disable_collision_between`), and if it has, then play a hover sound + does a small boing.
+
+It's also then checking if there's an active trigger with `main.pointer` and if left click was pressed, and if it was, then do a bigger boing and call `self.action`, which is a function that is passed in when an `emoji_button` object is created that will do whatever it is that this button is supposed to do. And that's about it.
+
+Oh, yea, there's also a `collider_set_awake(true)` call there, since because this is a physics object that is not affected by any forces and is just there to be a button, it will go to sleep by default and when that happens it won't trigger collision events. So the `collider_set_awake(true)` call every frame is there to make sure it doesn't sleep. This should have been a `collider_set_sleeping_allowed(false)` on the constructor, but in the end it's the same thing.
 
 Now back to our `init` function, first these are defined:
 
@@ -1878,7 +1884,9 @@ This code creates these two buttons at the bottom left of the screen:
 
 The code is ultimately fairly simple. For each button, it creates an `emoji_button` object with the emoji that corresponds to its volume level (there are a total of 5 levels). Then it defines `.action`, which is what will happen when the button gets pressed, and in both cases what that action does is change the volume for either `main.sfx_sound_level` or `main.music_sound_level`, save those values to the `game_state.txt` file, then change the volume for `sfx` or `music` tags. Not really that complicated, but this is basically all you need to do to change the volume of all sounds/music and these buttons do it.
 
-The following two buttons also work similarly:
+These two buttons are also good example of high locality. Most of the code needed to make them work is here, you can read it in one go and it's not that complicated. The only non-local part is the `emoji_button` definition, but once you know what it does you know that the only thing that matters about it is the `action` function. You'll see this over and over across the codebase, code that defines objects very locally, as it is a properly that I like a lot and thus I engineer things such that this is both possible and common.
+
+The following two buttons work similarly:
 
 ```lua
   if not main.web then
@@ -1905,7 +1913,7 @@ The second button is the close button, and it literally just quits the game. Thi
   if main.logical_fullscreen then main.close_button:update(dt) end
 ```
 
-Next, star and cloud objects are defined. This is what it looks like with only them being drawn (no background):
+Next, star and cloud objects are defined. This is what it looks like with only them being drawn (no backgrounds):
 
 ![](https://i.imgur.com/bPslJOb.png)
 
@@ -1939,7 +1947,9 @@ First the star objects:
   end
 ```
 
-Because these are permanent objects that simply need to be updated and aren't colliders, I'm storing them in `main.stars` and `main.clouds` instead of any container, since the containers are reset every time the game restarts, and these objects don't need to be recreated every level restart. Then, this is creating 80 stars around the entire play area, and all these stars do is move to the left and up, and once they reach a far enough left-up offscreen position, they're teleported to a far enough right-bottom position so the loop starts again. In the end only 30 or so stars are visible at any time, because once they reach the gradient in the middle of the screen they start fading out, but I created 80 of them because initially they were covering the whole screen and I just forgot to change it. Ideally this could have been just a scrolling texture, but this is how I did it and it works.
+Because these are permanent objects that simply need to be updated and aren't colliders, I'm storing them in `main.stars` and `main.clouds` instead of any container, since the containers are reset every time the game restarts, and these objects don't need to be recreated every level restart.
+
+This is creating 80 stars around the entire play area, and all these stars do is move to the left and up, and once they reach a far enough left-up offscreen position, they're teleported to a far enough right-bottom position so the loop starts again. In the end only 30 or so stars are visible at any time, because once they reach the gradient in the middle of the screen they start fading out, but I created 80 of them because initially they were covering the whole screen and I just forgot to change it. Ideally this could have been just a scrolling texture, but this is how I did it and it works.
 
 Next the cloud objects:
 
@@ -1963,7 +1973,9 @@ Next the cloud objects:
   end
 ```
 
-These use literally the same logic, except they move from left to right and they don't fade out. Really nothing more that can be said here, the only thing worth mentioning is that both types of objects are created using the completely local method of doing it with the function definitions chaining and all that. As I explained before, for object types that are one-offs and are only going to appear in this place in code, creating them like this makes the most sense since it's the most local way of doing it. If you're creating *lots* of them every frame, there is a performance hit to creating multiple closures using this method, so it should be avoided in that case.
+These use literally the same logic, except they move from left to right and they don't fade out. 
+
+The main thing worth mentioning is that both types of objects are created using, again, a highly local method of creating objects with the function definitions chaining and all that. For object types that are one-offs and are only going to appear in this place in code, creating them like this, using `anchor('type'):init(...):action(...)` makes the most sense since it's the most local way of doing it. It's more local than the previous examples with the `emoji_button` objects, since there's no need for a class definition elsewhere in the codebase. If you're creating *lots* of these types of objects every frame, there is a performance hit to creating multiple closures using this method, so it should be avoided in that case.
 
 Next: 
 
@@ -1993,7 +2005,9 @@ Next:
 end
 ```
 
-This is where the `init` function ends, and where we finally create the `arena` level, which is where all gameplay will take place. The difference between an anchor object that is going to be used as a level vs. one that is not, is that the levels simply have `enter` and `exit` functions defined, and those functions are called when `level_goto` is called. In this case, `main:level_goto('arena')` is being called, and so the arena object we created and identified with the name `'arena'` will have its `enter` function called. If there was a previously active level, then that level would have had its `exit` function called before. That's all that's happening here.
+This is where the `init` function ends, and where we finally create the `arena` level, which is where all gameplay will take place. The difference between an anchor object that is going to be used as a level vs. one that is not, is that the levels simply have `enter` and `exit` functions defined, and those functions are called when `level_goto` is called.
+
+In this case, `main:level_goto('arena')` is being called, and so the arena object we created and identified with the name `'arena'` will have its `enter` function called. If there was a previously active level, then that level would have had its `exit` function called before. That's all that's happening here.
 
 The `title` level is the level I used to create the game's capsule for itch.io, and it will be explained soon!
 
