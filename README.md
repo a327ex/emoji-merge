@@ -98,9 +98,7 @@ An MMO released recently that gets close to this and is thus a nice example of t
 
 So, this is the kind of thing I want from the technology side of things. Could this be achieved with LÖVE? Maybe, I guess. If I release a few more successful games and make more money I could probably hire a bloke to make sure that LÖVE works everywhere and does so nicely, but, you know, if I'm going to pay anyone to code anything for me it's just not going to be to improve code that I don't own. And so the natural conclusion here is the same as what was described before, where the framework would be swapped for my own code and then I'd have more flexibility to do whatever, including what's needed to make sure the MMO works nicely.
 
-And so this is the high level overarching explanation of my why my engine code is structured the way it is. Now we can get into some actual detail. One last note before we start, though. Despite my code being written in Lua/LÖVE, I'm going to do my best to not get into too many language/framework specific details so that this post remains useful to the broadest set of developers possible. Ideally people using any language/engine/framework combo should be able to read this and take ideas from here for their own workflow. Sometimes I'll necessarily have to get more specific, but that won't be the goal. This should be read more as a "this is how I get things done" post that others can use for comparison/inspiration/curiosity rather than a step-by-step tutorial.
-
-Oh, and one last last note. I am a low IQ dumb idiot retard. I have no professional experience in the game's industry, so take everything you read here with as many grains of salt as you have in the house. If you see me doing something one way and I make no mention as to why I'm not doing it in some other obviously better way, it's often the case that I simply don't know any better. I'm open to comments, corrections, suggestions, anything, so feel free to point things out to me if you feel like it.
+And so this is the high level overarching explanation of my why my engine code is structured the way it is. Now we can get into some actual detail. Oh, and one last note. I am a low IQ dumb idiot retard. I have no professional experience in the game's industry, so take everything you read here with as many grains of salt as you have in the house. If you see me doing something one way and I make no mention as to why I'm not doing it in some other obviously better way, it's often the case that I simply don't know any better. I'm open to comments, corrections, suggestions, anything, so feel free to point things out to me if you feel like it.
 
 ### [Comments](https://github.com/a327ex/emoji-merge/issues/1)
 
@@ -1210,15 +1208,13 @@ The [grid](https://github.com/a327ex/emoji-merge/blob/main/anchor/grid.lua) and 
 
 The grid mixin is much more useful and I use it much more often, but it's similarly just a 2D grid. You can set some `i, j` value, you can get it back, you can apply operations to all values for [`grid_for_each`](https://github.com/a327ex/emoji-merge/blob/main/anchor/grid.lua#L47), you can rotate the grid clockwise or anticlockwise with [`grid_rotate_clockwise`](https://github.com/a327ex/emoji-merge/blob/main/anchor/grid.lua#L140) or [`grid_rotate_anticlockwise`](https://github.com/a327ex/emoji-merge/blob/main/anchor/grid.lua#L110) (this changes the width/height of the grid by creating a new one), and you can also flood fill it with [`grid_flood_fill`](https://github.com/a327ex/emoji-merge/blob/main/anchor/grid.lua#L197).
 
-And yea... As I sit here writing this, I'm realizing that all my engine code is fairly well documented already and that a big portion of this post is redundant because everything is already explained in the files themselves. Oh well, you know, at least the AI has 2 sources to learn from now, so it'll probably be trained better or something, right? Really, I'm helping my future self here. When my memory starts fading and my IQ drops by 20 points, Mother will be able to help me code because past me wrote this very thorough blog post explaining all the reasonings behind everything. I didn't waste 1 week of my life writing this, I didn't!
-
-Now let's get this shit over with!!!
+There's not much else to say about this. Most functions are well documented and simple to understand, so let's move on.
 
 ### [↑](#table-of-contents)
 
 ## Thin wrappers and miscellaneous
 
-Most other files don't really require much comment because they're either just thin wrappers over one or another thing the framework does or they do something very simple that is self-documenting. Those files are: 
+Most other files don't really require much comment either because they're either just thin wrappers over one or another thing the framework does or they do something very simple that is self-documenting. Those files are: 
 
 * [`duration`](https://github.com/a327ex/emoji-merge/blob/main/anchor/duration.lua): kills the object after a certain duration, can be easily supplanted by `:timer_after`, don't really remember why this exists and should probably be deleted
 * [`font`](https://github.com/a327ex/emoji-merge/blob/main/anchor/font.lua): literally just thin wrapper over LÖVE's font
@@ -1237,9 +1233,9 @@ And yea, this is it. Hopefully this has been useful + made somewhat visible how 
 
 I'd say most of the problems people have with owning their code and using a framework is that they can spend quite a lot of time deciding how things should be structured, but after all these years I've ultimately found that how things are structured really doesn't matter at all. As long as you can insert, remove and update entities at will, you can do anything, and you don't really need anything more complicated than that.
 
-My little mixin setup, which is really just a preference thing, it could have been anything else, and as long as it didn't get in the way with pointless abstractions and bureaucracy it would have been fine.
+My little mixin setup, which is really just a preference thing, could have been anything else, and as long as it didn't get in the way with pointless abstractions and bureaucracy it would have been fine.
 
-In the next post, I'm going to cover emoji merge's entire codebase and explain every decision behind most of the code. Anything that was already explained in this post will not be repeated there, so make sure to refer back to this one if you don't understand how something works.
+In the next section of this post, I'm going to cover emoji merge's entire codebase and explain every decision behind most of the code. Anything that was already explained in this post will not be repeated there, so make sure to refer back to this one if you don't understand how something works.
 
 ### [Comments](https://github.com/a327ex/emoji-merge/issues/1)
 
