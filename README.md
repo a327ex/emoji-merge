@@ -5,7 +5,7 @@ emoji merge is a Suika Game clone about merging emojis, play it here: https://a3
 https://github.com/a327ex/emoji-merge/assets/409773/372693e2-c648-447b-b947-4d6a63e28787
 
 ## Table of Contents
-- [Engine overview](#engine-overview)
+* [Engine overview](#engine-overview)
   - [Anchor](#anchor)
     - [Requires](#requires)
     - [Anchor class](#anchor-class)
@@ -31,7 +31,7 @@ https://github.com/a327ex/emoji-merge/assets/409773/372693e2-c648-447b-b947-4d6a
   - [Grid and graph](#grid-and-graph)
   - [Thin wrappers and miscellaneous](#thin-wrappers-and-miscellaneous)
 
-- [Gameplay code](#gameplay-code)
+* [Gameplay code](#gameplay-code)
   - [Init](#init)
   - [Update](#update)
   - [Title](#title)
