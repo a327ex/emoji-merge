@@ -2044,7 +2044,7 @@ function update(dt)
 end
 ```
 
-Most of the game's behavior will be in [`arena:update`](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L518) instead, but the update function here is used for any objects that are not destroyed between levels. The game only has one level (the arena), but all gameplay objects are created on `arena:enter` and deleted on `arena:end_round` or `arena:exit`, except for objects that were initialized in the init function and that are being updated here.
+Most of the game's behavior will be in [`arena:update`](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L518) instead, but the update function here is used for any objects that are not destroyed between levels. The game only has one level (the arena), and all gameplay objects are created on `arena:enter` and deleted on `arena:end_round` or `arena:exit`, except for ones that were initialized in the init function and that are being updated here.
 
 The first thing this does is draw backgrounds and stars + clouds:
 
@@ -2064,7 +2064,7 @@ Fairly straightforward and we already went over this. Next the pointer and `main
   main.lose_line:update(dt) 
 ```
 
-Turns out that the lose line object (the red dashed line that appears when emojis are closed to the edge of the arena) is created mistakenly in the `arena:enter` function. In the end it doesn't quite matter, but it should have been created in init instead. Here's the code for it:
+Turns out that the lose line object (the red dashed line that appears when emojis are close to the top of the arena) is created mistakenly in the `arena:enter` function. In the end it doesn't quite matter, but it should have been created in init instead. Here's the code for it:
 
 ```lua
 main.lose_line = anchor('lose_line'):init(function(self)
@@ -2087,7 +2087,7 @@ end):action(function(self, dt)
 end)
 ```
 
-This is a fairly standard object that operates on two `observer_conditions`. The first is if `main.distance_to_top` is below `64`. `main.distance_to_top` is the distance of the top most emoji to the edge of the arena. So when this distance is low, this objects `.color.a` will become 1 (non-transparent). If that distance is instead higher than `64`, then the object's transparency will be set to 0 instead (invisible). Notice how both tweens inside each observer call have the `'alpha'` tag, meaning that if one is called while the other is running, it will cancel it and take over. Each `observer_condition` also have their own `'active_false'` and `'active_true'` tags, which are used when the round ends to cancel the observers so that the line doesn't suddenly appear after the round is over.
+This is a fairly standard object that operates on two `observer_conditions`. The first is if `main.distance_to_top` is below `64`. `main.distance_to_top` is the distance of the top most emoji to the top of the arena. So when this distance is low, this object's `.color.a` will become 1 (non-transparent). If that distance is instead higher than `64`, then the object's transparency will be set to 0 instead (invisible). Notice how both tweens inside each observer call have the `'alpha'` tag, meaning that if one is called while the other is running, it will cancel it and take over. Each `observer_condition` also have their own `'active_false'` and `'active_true'` tags, which are used when the round ends to cancel the observers so that the line doesn't suddenly appear after the round is over.
 
 Next the buttons are updated:
 
@@ -2106,6 +2106,10 @@ Next the buttons are updated:
 ```
 
 The main thing of note here is the `main.any_button_hot` variable, which is set to true if any button is being hovered over. When this is the case, we don't want to drop emojis whenever the player left clicks, and so we set this variable here and use it in `arena:update` when we're checking for input to drop the next emoji.
+
+This is an example of a kind of rules-based code, where there's a rule needed "above" all buttons, and thus it makes sense to add some code to it outside the class for that kind of button. Technically, for this particular example, it could have been done so that in the `emoji_button` class, it would check for activity with `main.pointer` and set `main.any_button_hot` accordingly. The problem with this is that some buttons are `emoji_button` objects, while others were created locally because they were one-offs. Now we'd have to create some general button code that all buttons would implement, or just repeat the setting of `main.any_button_hot` for each type of button manually... In both cases it's a worse solution than just doing it here, in the update function, in a rules-based manner.
+
+There's also the fact that for some types of UI code, doing them in each object just doesn't work that well. For instance, consider the setting or unsetting of objects' selection state. More specifically, consider that you can select multiple objects by holding shift, and then if you click on one object without using shift, it unselects all others and selects that one alone. You could code this in an action-based manner, with all relevant code inside each button object, but it would feel much more natural to code that logic above all objects, in an updat efunction, and handle the coordination of selections/unselections that way. Quite a lot of editor-like UI code functions like this, and it's a decent example of where rules-based UI code works better.
 
 Next:
 
@@ -2145,13 +2149,13 @@ if self.score_ending then
 end
 ```
 
-When it's clicked `main.transitioning` is set to true and `main.transition_rs` is set to 0. After `0.066*7` seconds, a tween is created to increase `main.transition_rs` to `0.75*main.w` (this size makes the circle covers the entire screen) over `0.8` seconds, and then after that + `0.4` seconds, the level is changed to `'arena'` again, which calls `exit` on the previous level, which was this same arena object, and then calls enter on the next level, which is this same arena object. In this way this same arena object gets recycled and `arena:exit` + `arena:enter` is called on it every time the player restarts the game. And then as this is happening, `main.transition_rs` is being tweened to 0 over another `0.8` seconds.
+When it's clicked, `main.transitioning` is set to true and `main.transition_rs` is set to 0. After 0.066*7 seconds, a tween is created to increase `main.transition_rs` to `0.75*main.w` (this size makes the circle covers the entire screen) over 0.8 seconds, and then after that + 0.4 seconds, the level is changed to `'arena'` again, which calls `exit` on the previous level, which was this same arena object, and then calls enter on the next level, which is this same arena object. In this way this same arena object gets recycled and `arena:exit` + `arena:enter` is called on it every time the player restarts the game. And then as this is happening, `main.transition_rs` is being tweened to 0 over another 0.8 seconds.
 
 This is what all this looks like:
 
-=================== video showing end transition ======================================
+https://github.com/a327ex/emoji-merge/assets/409773/158e01f2-46af-426e-a7ed-d17bfe2bcaed
 
-So this makes it clear why some things should be outside any one level object and instead be updated in `update` instead of `arena:update`. Things like this transition circle necessarily needs to exist between levels, therefore it can't be contained to a single level.
+So this makes it clear why some things should be outside any one level object and instead be updated in `update` instead of `arena:update`. Things like this transition circle necessarily need to exist between levels, therefore they can't be contained to any single level.
 
 ### [↑](#table-of-contents)
 
@@ -2159,7 +2163,7 @@ So this makes it clear why some things should be outside any one level object an
 
 The [title level](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L375) is what I used to create the game's capsule image for itch.io:
 
-====================== game capsule =============================
+![1nc5An](https://github.com/a327ex/emoji-merge/assets/409773/51dc40a8-e930-4b4d-83f3-65bee31ddbbe)
 
 It's a simple level that creates some objects, and those objects can be moved around with the mouse. I then moved them around with the mouse and took a picture.
 
@@ -2227,9 +2231,9 @@ end
 
 There are a few things to note here. First is that because these are being used as buttons or being moved by the mouse, they can't be allowed to sleep, so we call `collider_set_sleeping_allowed(false)` on creation. This is the same as what I mentioned before for the `emoji_button` objects. The second thing of note is that this object only has drawing behavior defined in its update function. More specifically, whenever it's `.hot` (being hovered over), it draws a little crosshair animation around it to show that it can be clicked:
 
-====================== hover animation ==================================
+https://github.com/a327ex/emoji-merge/assets/409773/384b4722-9abb-465f-8216-b4616ff4c5d3
 
-But the actual behavior of clicking itself, and the actual behavior of dragging the object around with the mouse is defined elsewhere, more specifically in `title:update` or `arena:update`. This goes back to the action vs. rules distinction, and this is a case where I decided this should be mostly a dumb object, while its behavior should be defined in a rules-based manner in some update function. Why did I decide it should be this way? Because the behavior I want is that whenever an object is clicked, as long as the mouse button is held down, any mouse movement will apply a force to that object regardless of where it is. This is a case of a rules-based behavior that makes more sense outside the object, and thus that's how I'll code it. Coding it outside the object also increases the locality of this behavior. Consider the code for it below:
+But the actual behavior of clicking itself, and the actual behavior of dragging the object around with the mouse is defined elsewhere, more specifically in `title:update` or `arena:update`. This goes back to the action vs. rules distinction, and this is a case where I decided this should be mostly a dumb object, while its behavior should be defined in a rules-based manner in some update function. The behavior I want is that whenever an object is clicked, as long as the mouse button is held down, any mouse movement will apply a force to that object regardless of where it is. Consider the code for it below:
 
 ```lua
 function title:update(dt)
@@ -2255,7 +2259,7 @@ function title:update(dt)
 end
 ```
 
-All the behavior needed for these kinds of objects to be moved around with the mouse is here, whereas if the first portion of it (what's inside the for loop) was inside each object's class' update function, this behavior would now be expressed in a less local manner (you'd have to jump around the codebase to find it). Not only that, as you can see from the code, this same behavior applies to 3 kinds of objects: `'emoji_collider'`, `'emoji_character'` and `'chain_part'`, which means that it would be less local in 3 different places, or you'd have to use some kind of functionality sharing mechanism, either a function or a mixin, which would still make the code less local. So this is a very good example of both rules-based code AND highly local code working together to make things simpler.
+All the behavior needed for these kinds of objects to be moved around with the mouse is here, whereas if the first portion of it (what's inside the for loop) was inside each object's class' update function, this behavior would now be expressed in a less local manner (you'd have to jump around the codebase to find it). Not only that, as you can see from the code, this same behavior applies to 3 kinds of objects: `'emoji_collider'`, `'emoji_character'` and `'chain_part'`, which means that it would be less local in 3 different places, or you'd have to use some kind of functionality sharing mechanism, either a function or a mixin, which would still make the code less local. So this is a very good example of both rules-based code *and* highly local code working together to make things simpler.
 
 As for the mechanics of this behavior itself, whenever the left mouse button is clicked while one of those objects is being hovered over it becomes the `.held_object`, and then whenever the left mouse button is held down a force is applied to the currently held object. If the button is released then `.held_object` is set to nil.
 
@@ -2332,9 +2336,9 @@ end
 
 This is also very similar to the other two objects, with the exception that its visuals/collider shape can be either an emoji character (a letter/digit) or a normal chain using `images.blue_chain` or `images.vine_chain`:
 
-=========== blue vine chain ======================
+![blue_chain](https://github.com/a327ex/emoji-merge/assets/409773/76eeb70f-d462-4dc1-9c6d-12ccf6d24712)
 
-And then yea, nothing special happening, just another dumb type of object that just gets drawn. As I said above, a lot of these classes could have been made into the same class, I mean a lot of them, you'll see as we progress. I think this codebase could have been about 1000 lines of code instead of 1750 if I spent some time merging common/similar code.
+And then yea, nothing special happening, just another dumb type of object that just gets drawn. As I said above, a lot of these classes could have been made into the same class, I mean a lot of them, you'll see as we progress. They all have the same shape. They're a collider, some emoji represents them visually, they have timer, hitfx and shake mixins initialized, and sometimes they have mouse interactions going on as well. I think this codebase could have been about 1000 lines of code instead of 1750 if I spent some time merging common/similar code.
 
 And finally the `text_roped_chain` object itself:
 
@@ -2385,7 +2389,9 @@ function text_roped_chain:update(dt)
 end
 ```
 
-Quite a bit of code, so it's worth going over it block by block. It's important to note that this code is also very similar to the code in other `_chain` type of classes, of which there are a few. The creation of all different kinds of chains and the common code between them is the kind of thing that I would make into a mixin for a next project that needs chains. I generally try to avoid generalizing mixins while I'm working on a given project because I've found that that often creates more problems than it solves, and so one thing I'll often do is finish/drop some prototype, some time will pass where I'll be working on another prototype that needs some generalizable behavior that I already coded in a previous prototype, and then here I'll spend some time turning it into a general mixin that can make things easier, since I both have its uses on the previous project, as well as on this one, and thus the generalization is less likely to be wrong. The same applies to all these `_chain` classes, which will become clear as we go through the rest of the codebase.
+Quite a bit of code, so it's worth going over it block by block. It's important to note that this code is also very similar to the code in other `_chain` type of classes, of which there are a few. The creation of all different kinds of chains and the common code between them is the kind of thing that I would make into a mixin for a next project that needs chains. 
+
+I generally try to avoid generalizing mixins while I'm working on a given project because I've found that that often creates more problems than it solves, and so one thing I'll often do is finish/drop some prototype, some time will pass where I'll be working on another prototype that needs some generalizable behavior that I already coded in a previous prototype, and then here I'll spend some time turning it into a general mixin that can make things easier, since I both have its uses on the previous project, as well as on this one, and thus the generalization is less likely to be wrong. The same applies to all these `_chain` classes, which will become clear as we go through the rest of the codebase.
 
 In any case, the first block:
 
@@ -2405,7 +2411,7 @@ for i = 1, utf8.len(self.text) do
 end
 ```
 
-This is going through all characters in the text, and creating `emoji_character` objects for each one of them. Those objects are added to `text_roped_chain`'s `.characters` table, as well as to arena's `objects` container. Anything added to any of the containers in arena means that that object needs to be updated or deleted via the container. In general this happens for objects that are colliders so that their references in the physics engine get destroyed automatically when the container is destroyed, and `emoji_character` objects are colliders so they need to be in a container.
+This is going through all characters in the text, and creating `emoji_character` objects for each one of them. Those objects are added to `text_roped_chain`'s `.characters` table, as well as to arena's `objects` container. Anything added to any of the containers in arena means that that object needs to be updated or deleted via the container. In general this happens for objects that are colliders so that their references in the physics engine get destroyed automatically when the container is destroyed, and `emoji_character` objects are colliders so they should be in a container.
 
 Next block:
 
@@ -2438,9 +2444,9 @@ end
 
 `.no_impulse` is set to true from the caller whenever this is created as the "emoji merge" roped chain, otherwise it's false and thus has impulse, which is the case when it gets created as the final score. Whenever it has impulse it will move to the right with some force. See here:
 
-=================== score video ================================
+https://github.com/a327ex/emoji-merge/assets/409773/d43916e2-eee1-426e-a00e-7616a57066a2
 
-And then after `4` seconds its damping gets set to some value and it slowly stops moving. Here's what the creation code for it as a score looks like:
+And then after 4 seconds its damping gets set to some value and it slowly stops moving. Here's what the creation code for it as a score looks like:
 
 ```lua
 local text = 'score ' .. self.score
@@ -2453,7 +2459,7 @@ And here's what the creation code as the "emoji merge" text looks like:
 self.objects:container_add(text_roped_chain('emoji merge', main.w/2, main.h/2, {w = 24, chain_part_size = 12, no_impulse = true}))
 ```
 
-And that's about it. Note that this `text_roped_chain` object is a logical object that coordinates other objects but has no visual representation. For most of the chains in the game this is useful because when the game ends and we want all objects to collapse and fall, we need to be able to refer to the object that represents that chain and tell it randomly remove some joints. You could do this without the logical object existing, but it would be more annoying.
+And that's about it. Note that this `text_roped_chain` object is a logical object that coordinates other objects but has no visual representation. For most of the chains in the game this is useful because when the game ends and we want all objects to collapse and fall, we need to be able to refer to the object that represents that chain and tell it to randomly remove some joints. You could do this without the logical object existing, but it would be more annoying.
 
 `emoji_chain` is used widely in the codebase and was also just used in `text_roped_chain`, so it makes sense to also explain it here. Here's the code for it:
 
@@ -2486,7 +2492,7 @@ function emoji_chain:new(emoji, collider_1, collider_2, x1, y1, x2, y2, args)
 end
 ```
 
-It's somewhat involved so it's worth going over it block by block too. The first thing of node is that it receives 2 colliders and then two positions. If you imagine `collider_1` on the left and `collider_2` on the right, the two positions should be the rightmost position of `collider_1`, and the leftmost position of `collider_2`, right? We want a chain between those two, so this is what makes most sense. And if you look back at `text_roped_chain`, this is exactly how the `emoji_chain` object is created, between two characters, with the first on the left and the second on the right, and their positions being offset to their right/left by half the width:
+It's somewhat involved so it's worth going over it block by block too. The first thing of note is that it receives 2 colliders and then two positions. If you imagine `collider_1` on the left and `collider_2` on the right, the two positions should be the rightmost position of `collider_1`, and the leftmost position of `collider_2`, right? We want a chain between those two, so this is what makes most sense. And if you look back at `text_roped_chain`, this is exactly how the `emoji_chain` object is created, between two characters, with the first on the left and the second on the right, and their positions being offset to their right/left by half the width:
 
 ```lua
 local chain = main.level.objects:container_add(emoji_chain('blue_chain', character, next_character,
@@ -2537,7 +2543,7 @@ After the joints connecting chain parts are created, we also need to create 2 jo
 
 In any case, that's it for the `title` level. When everything is created it looks like this and everything can be moved around as you'd expect:
 
-========================== title video ==============================
+https://github.com/a327ex/emoji-merge/assets/409773/8483b13c-6563-405d-ad91-cbf8f6ba10d5
 
 Other than the emojis and the little decoration plants, a lot of the rest of the code for this game is a variation of what's inside this level: some colliders and some chain parts + joints binding them together. In the future, if I don't explain some of that kind of code as thoroughly as I did here, refer back to this portion of the post if you don't understand how something works.
 
