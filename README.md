@@ -30,7 +30,6 @@ https://github.com/a327ex/emoji-merge/assets/409773/372693e2-c648-447b-b947-4d6a
   - [Stats](#stats)
   - [Grid and graph](#grid-and-graph)
   - [Thin wrappers and miscellaneous](#thin-wrappers-and-miscellaneous)
-
 * [Gameplay code](#gameplay-code)
   - [Init](#init)
   - [Update](#update)
