@@ -2611,7 +2611,7 @@ end
 
 It's initialized as a timer and observer for some reason, I don't really remember it since you can just use `main` as a timer/observer. The other variables, `top_spacing`, `bottom_spacing`, `w`, `h`, `x1`, `y1`, `x2`, `y2`, `score_x` and `next_x` are as shown in the picture below:
 
-======================== position variables =======================
+![position_vars](https://github.com/a327ex/emoji-merge/assets/409773/d1edba7f-aac1-49c9-9a57-b904ee0ef2b4)
 
 The size of the arena is proportionally the same as the original Suika Game, and the same goes for the size of the emojis. `.chain_amount` is dead code I forgot to remove, at some point I was doing different things based on how many emojis merged in a row, but I ended up removing that and forgot to remove this variable.
 
@@ -2625,7 +2625,7 @@ So this constructor is only ever called once. The way the level mixin works make
 
 Before we get into `arena:enter`, it's worth listing all the functions that the arena class has:
 
-* [`arena:enter`](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L426): called when the arena starts starts or restarts
+* [`arena:enter`](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L426): called when the arena starts or restarts
 * [`arena:update`](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L518): called every frame
 * [`arena:exit`](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L663): called when the arena ends (restarts)
 * [`arena:drop_emoji`](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L663): called when the player left clicks
@@ -2648,13 +2648,13 @@ function arena:enter()
   for _, cloud in ipairs(main.clouds) do cloud.emoji = images.cloud end
 ```
 
-When the round ends, all emojis as well as the background become black and white. Because background objects are global and don't get created/deleted between rounds, in arena:enter is where they have to be set back to their natural color, and these 3 lines are simply just doing that for the background color variable, the background gradient, as well as the cloud objects. Next:
+When the round ends, all emojis + background becomes black and white. Because background objects are global and don't get created/deleted between rounds, `arena:enter` is where they have to be set back to their natural color, and these 3 lines are simply just doing that for the background color variable, the background gradient, as well as the cloud objects.
 
 ```lua
   main:music_player_play_song(sounds.closed_shop, 0.375)
 ```
 
-When the round ends the song that's playing while the game is running stops, starting it again when a new round starts makes sense. Next:
+When the round ends the song that's playing while the game is running stops, starting it again when a new round starts makes sense.
 
 ```lua
   self.emojis = container()
@@ -2682,11 +2682,11 @@ The `merge_objects` table is a table that will be used to hold temporary objects
 
 Next the arena walls are created. They look like this by themselves:
 
-============= solid objects ===================
+![love_oZammD1Xef](https://github.com/a327ex/emoji-merge/assets/409773/df16b55d-c3b8-4294-b1ea-c4bdb6febf25)
 
-Additionally two weld joints are created at the bottom left and bottom right junctions to join those solids. All solid objects are static by default, but when the game ends and the arena falls, they are turned dynamic and have gravity apply to them, and at that point the weld joints are also destroyed so that the arena looks like it's falling apart. That looks like this:
+Additionally two weld joints are created at the bottom left and bottom right junctions to join those solids. All solid objects are static by default, but when the game ends and the arena falls, they are turned dynamic and have gravity apply to them, and at that point the weld joints are also destroyed so that the arena looks like it's falling apart. That looks like this (notice the bottom left/right of the solids and how they disconnect):
 
-=================== arena destroy ==================================
+https://github.com/a327ex/emoji-merge/assets/409773/6aedbe67-13ae-460d-80a6-3db5e59bb9c6
 
 And the code for solid class looks like this:
 
@@ -2717,11 +2717,11 @@ function solid:update(dt)
 end
 ```
 
-Nothing much to note here, it's a normal static rectangle collider. Its color turns to `.gray_color` when `.dying` is true (that's when the arena is falling apart), otherwise its drawn with the `colors.green[0]` color. You'll note that there are 2 rectangles being drawn for the object, and the `game3` one is there so that the plants look correct. If the `game3` rectangle isn't draw, plants will be drawn over the solid and it will look slightly off, like this:
-
-===== plants over solid ============
+Nothing much to note here, it's a normal static rectangle collider. Its color turns to `.gray_color` when `.dying` is true (that's when the arena is falling apart), otherwise its drawn with the `colors.green[0]` color. You'll note that there are 2 rectangles being drawn for the object, and the `game3` one is there so that the plants look correct. If the `game3` rectangle isn't draw, plants will be drawn over the solid and they will look slightly off. 
 
 So drawing another rectangle on top of that is needed. This changes when `.dying` is true and all objects are falling, at which point we want the solid to be drawn at its normal layer, which is `game2`. I think the correct form of this code would have been `if dying then game2 else game3` instead of `game2 if dying return; game3`, but it is what it is and I'm never changing this codebase anymore.
+
+In any case, this is another good example of the layer mixin enabling locality of code. Here I am drawing, from the solid object, across two different layers and sandwiching plant objects without having to care about the order in which I'm calling these draw functions relative to other objects. Everything is contained here, where it belongs, and it just works. Lots of decisions I've made for my engine are around stuff like this that just enables me to express things as locally as possible, since that simplifies the codebase a lot and makes me faster at doing what I need to do.
 
 Next:
 
@@ -2744,13 +2744,21 @@ Next:
   self.next_board:collider_apply_impulse(main:random_sign(50)*main:random_float(100, 200), 0)
 ```
 
-Next the boards are created, these are the "score" and "best" boards to the left, and the "next" board to the right. The boards are all attached by chains to `.solid_top`, which is spawned outside the screen and looks like this:
+Next the boards are created, these are the "score" and "best" boards to the left, and the "next" board to the right. The boards are all attached by chains to `.solid_top`, which is spawned outside the screen and looks like this (zoomed out so you can see it):
 
-=================== solid top =====================
+https://github.com/a327ex/emoji-merge/assets/409773/c37d2853-b98c-475c-85ad-e07fe60abfac
 
-Because we already went over the `emoji_chain` object this should be pretty straightforward to understand. The score and next boards are connected to `.solid_top` by two chains, `.score/next_left_chain` and `.score/next_right_chain`. And the best board is connected to the score board by one chain, `.best_chain`. `self.score` is the user's current score; `self.best` contains the user's best score, which is loaded from the `game_state.txt` file when `main:load_state()` is called; and `self.next` contains the next emoji to be spawned, which is initially a random number from 1 to 5 (1 for the smallest emoji and 5 for the biggest that can be spawned, in total it goes up to 11).
+Because we already went over the `emoji_chain` object this should be pretty straightforward to understand. The score and next boards are connected to `.solid_top` by four chains: `.score_left_chain`, `.score_right_chain`, `.next_left_chain` and `.next_right_chain`. And the best board is connected to the score board by one chain, `.best_chain`.
 
-And that's about it for this block of code. The boards also have some impulse applied to them initially for some little juice, but yea, that's it. Now for the main thing here, the `board` class:
+`self.score` is the user's current score; `self.best` contains the user's best score, which is loaded from the `game_state.txt` file when `main:load_state()` is called; and `self.next` contains the next emoji to be spawned, which is initially a random number from 1 to 5 (1 for the smallest emoji and 5 for the biggest that can be spawned, in total it goes up to 11).
+
+And that's about it for this block of code. The boards also have some impulse applied to them initially for some little juice. Next, let's see what the board class looks like.
+
+### [↑](#table-of-contents)
+
+## Boards
+
+The [`board`](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L925) class in its entirety looks like this:
 
 ```lua
 board = class:class_new(anchor)
