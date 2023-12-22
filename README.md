@@ -1245,6 +1245,8 @@ In the next section of this post, I'm going to cover emoji merge's entire codeba
 
 # Gameplay code
 
+> 22/12/23 19:30
+
 There are two types of gameplay code: action-based and rules-based gameplay code. Action-based gameplay code happens in games where most of the game's rules take place within game objects or when game objects interact. Most action and physics games are like this, for example: Spelunky, Risk of Rain, Hades, Isaac, Vampire Survivors, Fall Guys, etc. In most games like this, objects and interactions between objects are the primary way the game's design happens, and so it makes sense that there should be a 1:1 mapping between game objects and their representation in code. This means that for these kinds of games, they are best coded using a primarily game object oriented approach.
 
 Rules-based gameplay code, on the other hand, happens in games where most of the game's rules take place above game objects. Most turn-based games are like this, but also various simulation games, puzzle games, card games and strategy games. For example: Cities: Skylines, Slay the Spire, Artifact, FTL, Slipways, Mini Metro/Motorways, etc. In most games like this, high level game rules are the primary way the game's design happens, and so it makes sense that there should be a 1:1 mapping between those rules and their representation in code. This most often makes sense with a function oriented approach, where ideally each rule is a function that does everything needed for that rule to work completely, and objects are mostly there as structs that hold data relevant to themselves and nothing more. In these games most of the gameplay code will be in the functions, and not in the objects, which is the opposite of the action-based games.
