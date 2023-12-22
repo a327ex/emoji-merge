@@ -4688,10 +4688,88 @@ And with this, the entire codebase has been covered. Now for some additional, su
 
 ## Future gameplay code
 
+Were I to keep working on this game somehow (I won't), there are only two important things to change about its gameplay code before moving forward. They were mentioned multiple times throughout the post, and they have to do with merging all the emoji-collider-like objects, as well as merging all the chain-like objects. These two types of objects are the ones for which there's most repeated code that could be easily unified, and thus it would make sense to do it.
+
+The first type, the emoji-collider-likes, would cover the following classes: [board](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L924), [chain_part](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L1133), [emoji_character](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L1499), [emoji_collider](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L1525), [evoji_emoji](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L1569), [spawner](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L1682) and [emoji](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L1706).
+
+All of these classes behave according to what the emoji that represents them looks like, therefore they should be unified into one that simply creates a collider based on the shape of the emoji its supposed to represent. It's not difficult to code a procedure that would create a polygon collider that matches the shape of any emoji, and that's how I'd go about it. Then for behavior that is specific to each one of these objects, I'd just either do the behavior in some update function somewhere, add it directly to the object if it's a one-off type of thing, or generalize it with mixins/inheritance if needed.
+
+The second type, the chain-likes, would cover the following classes: [emoji_chain](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L994), [text_chain](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L1037) and [text_roped_chain](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L1087). All of these are subtly different from each other, but they have the same core chain-like behavior. For this one I'd simply make it a general `chain` mixin at the engine level that would facilitate this particular type of chain creating logical object.
+
+And that's it for gameplay changes. Overall this is a very simple game so there's not much difficult about it design-wise, sadly. Maybe in the future I'll write something like this again and I'll try to pick something that has more complications to it.
+
 ### [↑](#table-of-contents)
 
 ## Future engine code
 
-### [↑](#table-of-contents)
+I'd say that writing this blog post made me realize a few things about my engine code that I hadn't realized before. I started this post by saying that I was fairly happy with my engine code and that I'd use it without many changes for the next 2-3 Steam games, which is largely still true, however, I think two important changes are in order.
 
-## END
+First, the mixin system is not particularly necessary. I don't actually use it when coding a game for any actual purpose, therefore it doesn't need to exist. I don't need the mixins to have god objects like I do now. Instead of coding things like [this](https://github.com/a327ex/emoji-merge/blob/main/anchor/init.lua#L29):
+
+```lua
+anchor = class:class_new()
+function anchor:new(type, t) if t then for k, v in pairs(t) do self[k] = v end end; self.type = type end
+function anchor:anchor_init(type, t) if t then for k, v in pairs(t) do self[k] = v end end; self.type = type; return self end
+function anchor:is(type) return self.type == type end
+function anchor:init(f) f(self); return self end
+function anchor:action(f) self.update = f; return self end
+
+anchor:class_add(require('anchor.animation'))
+...
+```
+
+Where the anchor god class is lean and all functionality is added via mixins, I can just code a fat and heavy anchor class with all the behaviors I need, and forego the mixin mechanism altogether, since I don't actually use it for other purposes. This is not some ECS codebase where I have delusions that I'm going to be reusing my gameplay components left and right, it's just not how I work, so the concept of mixins is just unnecessary and I can go straight for the god object and do everything there directly. Which in some sense was already what was happening, since the mixins just merge into the classes they're added to, but conceptually it was an additional "thing" that existed that just doesn't need to exist.
+
+I'd say that's the first change. It's not a particularly big change, it's just moving a few things around. But it's a change that makes things simpler and it's something that was consistently bothering while I was writing this post.
+
+The second change is that I want to figure out a retained mode API for drawing things. A lot of the draw code for objects in this game was repeated, and the same is true for pretty much all my prototypes. It'd be much simpler to have access to a retained mode API where things are drawn in a default way and I can change a few settings around, instead of having to carry all these big draw calls all over the codebase. 
+
+These retained mode APIs are especially useful when they get anchoring right. There are quite a few places in this codebase, and in all my prototypes as well, where I'm having nested push/pop pairs so I can get things to rotate/scale around different points of an object's sprite, and I feel like a lot of this can be expressed more simply with some kind of anchoring system that allows me to say "anchor this rotation value to this object's center left while also anchoring this other rotation value to the parent's top right" and then it just does that and I don't have to do any math. There are lots of engines that do things like this, so I can find inspiration for it in lots of places.
+
+And then further changes are just nice to haves that aren't related to this particular game. I mentioned a few times in the post how having a visual editor would be nice. I had what I think is a really really nice idea for a visual editor that I posted about on my twitter account. I'm going to copy it here for future reference:
+
+>Had an idea for a game engine/editor that'd let you do everything with a gamepad. So you have 8 buttons + directionals, and every action can be achieved with a combination of 2-3 presses of the 8 buttons. This setup would optimize for muscle memory and allow the user to go FAST.
+
+>With 2 presses you have 64 possible actions, with 3 you have 512, more than enough for most things you'd want to do, especially considering that the set of actions could also be dependent on which type of object is currently selected. 
+
+>The goal for such an editor would be letting the user do things with minimal coding. Construct is a good example of something that already exists in this direction. However, the problem with all these existing no code solutions is that the goal behind their no coding is appealing to non-coders, which is not what I want.
+
+>I want no coding because I'm lazy and I want to go fast. I know how to code, I know that I'm often doing similar kinds of things, so a game engine/editor optimized for the kinds of things someone in my position, who knows how to code, is often doing would be best.
+
+>If you really think about it you're always doing similar things. You're creating objects, inserting them into lists, removing them from lists, creating functions, those functions do things to objects with some conditions/loops, you're setting an object's variables, calling functions, getting a value from somewhere and using it somewhere nearby, etc, etc. It really is all the same thing that can be encoded with some care into a set of button presses, I really don't see why it couldn't.
+
+>Still, ultimately you'd probably need a fallback to normal coding for things that the editor would not be good for, although I assume that if I were to make this editor, over time my no code coverage would increase, hopefully to a point where eventually I'd code most things naturally using the gamepad only.
+
+>And the gamepad is just a particularly good example of limiting number of keys to maximize for muscle memory. It'd make sense to also be able to use the keyboard/mouse, although I can see optimizing things so that you use the keyboard only with the left hand on its left side, like around the wasd area, while the mouse is on the right hand for other soft movement actions that on the gamepad would be relegated to the thumbsticks (i.e. drawing a curve for some tween, choosing an angle on an angle wheel pop up, stuff like that).
+
+I can actually see myself coding in an editor like this and having a good time. Despite what it may seem like, I don't actually like programming that much. Well, maybe that's wrong. I like the activity and I try to be decent at it, but primarily because it gets me to the goal of creating some artifact that does something useful (in this case a game). I wouldn't program for the sake of programming alone.
+
+Which is why this editor idea is good to me, as it would allow me to more naturally make things less about programming and more about what kinds of high level actions you're routinely taking when you're making a game. Seems like a meaningless or small difference but consider this line of code:
+
+```lua
+self.spawner_emoji = self.emojis:container_add(emoji(self.spawner.x, self.y1, {hitfx_on_spawn_no_flash = 0.5, value = self.next}))
+```
+
+Tens of lines exactly like this all over the codebase where some object is added to some container and also has a reference to it stored in some variable. This is a single action, "add object to container with reference", and I should be able to press a button and have the process for making this particular action happen start. 
+
+I'd then fill out what needs to be filled out, what's the object type, where is it (because it's a visual editor you get this for free), what are its settings, and what is it called (because it's a visual editor things don't need names since you can just see them/click them on the editor, or even have an easy-motion like thing where objects have shortcuts attached to them and you can just refer to them by their shortcuts). All of this could be arranged that it happens very quickly, in like a second or two, by an experienced user who has memorized what keys to press and when. I really don't see why this shouldn't be possible. 
+
+And then you imagine this for every possible high level action you code when making a game, and I really like what I see. [This tweet](https://twitter.com/sparseal/status/1735725958781386958) shows an example of something kind of like this, kind of not like this, in action, so it's not an idea that is that out there.
+
+There's lots I'd need to make this happen, like I don't even have a general UI system right now, I'd need to have that. I'd also need to just sit down and try to map what are all the high level actions you code when making most games and how to map those to as few button presses as possible, so it's probably a good idea to just release a few more games. I'd also like to have automatic crash reports, which is actually not that hard to get going currently, I just need to actually sit down and do it. 
+
+I've really wanted a feature for a long time now which is the ability to record play sessions both for testing purposes, like watching replays from players, but also to make it easier to make trailers for games from within the game itself. I think Unity has a host of features that support this, so it'd probably be worth it to look at how it works there. It would also be nice if all of this could be very performant, so I think it would also make sense to move away from the framework and own the C/C++ part of the codebase, which is something I mentioned at the start of the post as well...
+
+There are so many things I'd like to do, and I can do all of them in time. I think this is what I like the most about owning most of my code. It all depends on me and me alone, and this gives me a really good sense of control, responsibility and direction. If things work and are nice it's because I did a good job, if they don't it's because I didn't, there's no getting around it. And I like it being this way, I really like it.
+
+---
+
+So yea, hopefully this post has been useful. High level ideas that I think are important: locality + rules/action spectrum. Many examples of these throughout the post, unfortunately this wasn't a more complicated game to see better examples of these ideas in action.
+
+But these ideas also apply to my engine code. I've organized things such that I have these god objects that I do everything around, and they enable me to do lots of things locally. But the objects themselves are highly action-based and retained. Despite this, the user can use them in any way he desires and the objects don't really impose any particular structure strongly. 
+
+This kind of pattern where you have objects that an entire system is built around, but they don't impose any particular structure strongly, is a pattern that I really like and I see it in lots of places. It generally tends to be a good, harmonious mix of both modes that sort of solves most conceptual problems people have with code organization cleanly. I think the most clear example of it is with [amulet.xyz](https://www.amulet.xyz/doc/), especially this [example game](https://github.com/ianmaclarty/amulet/blob/master/examples/defenders.lua). 
+
+I think if you pay attention to these as you code your games you'll probably come to similar conclusions as I have, so good luck!
+
+### [↑](#table-of-contents)
