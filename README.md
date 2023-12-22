@@ -4762,14 +4762,16 @@ I've really wanted a feature for a long time now which is the ability to record 
 
 There are so many things I'd like to do, and I can do all of them in time. I think this is what I like the most about owning most of my code. It all depends on me and me alone, and this gives me a really good sense of control, responsibility and direction. If things work and are nice it's because I did a good job, if they don't it's because I didn't, there's no getting around it. And I like it being this way, I really like it.
 
----
+### [↑](#table-of-contents)
+
+## END
 
 So yea, hopefully this post has been useful. High level ideas that I think are important: locality + rules/action spectrum. Many examples of these throughout the post, unfortunately this wasn't a more complicated game to see better examples of these ideas in action.
 
-But these ideas also apply to my engine code. I've organized things such that I have these god objects that I do everything around, and they enable me to do lots of things locally. But the objects themselves are highly action-based and retained. Despite this, the user can use them in any way he desires and the objects don't really impose any particular structure strongly. 
+But these ideas also apply to my engine code. I've organized things such that I have these god objects that I do everything around, and they enable me to do lots of things locally. But the objects themselves are highly action-based/retained. Despite this, the user can use them in any way he desires and they don't really impose any particular structure strongly. 
 
-This kind of pattern where you have objects that an entire system is built around, but they don't impose any particular structure strongly, is a pattern that I really like and I see it in lots of places. It generally tends to be a good, harmonious mix of both modes that sort of solves most conceptual problems people have with code organization cleanly. I think the most clear example of it is with [amulet.xyz](https://www.amulet.xyz/doc/), especially this [example game](https://github.com/ianmaclarty/amulet/blob/master/examples/defenders.lua). 
+This kind of pattern, where you have objects that an entire system is built around, but they don't impose any particular structure strongly, is a pattern that I really like and I see it in lots of places. It generally tends to be a good, harmonious mix of both modes that sort of solves most conceptual problems people have with code organization. I think the most clear example of it I have is with [amulet.xyz](https://www.amulet.xyz/doc/), especially visible in this [example game](https://github.com/ianmaclarty/amulet/blob/master/examples/defenders.lua). I think if you pay attention to these ideas as you code your games you'll probably come to similar conclusions as I have, and hopefully that will lead you towards better code. 
 
-I think if you pay attention to these as you code your games you'll probably come to similar conclusions as I have, so good luck!
+In any case, with all that said, I must depart. Good luck with your endeavours, dear reader, and thanks for your attention! Good bye!
 
 ### [↑](#table-of-contents)
