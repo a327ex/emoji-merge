@@ -4017,13 +4017,13 @@ This applies forces from emojis to plants using the `plant:apply_moving_force` f
 
 This is what triggers the `arena:end_round` function. First, let's look at what the round ending actually looks like:
 
-===================== dsahudsahudsah =============================
+https://github.com/a327ex/emoji-merge/assets/409773/05421943-e39e-44e7-bc2e-411ff7c8c9ce
 
 A lot of things happening. But in sequence, roughly: an emoji goes over the red line and stays there for a while, objects shake and turn to grayscale in sequence, once all objects are gray then chains start disconnecting and objects start falling, after all objects have fallen the score + retry button appear from the sides of the screen. It's an involved process, but it's ultimately just a bunch of things happening in sequence. These can be either achieved with timers, or with observers if the next trigger on the sequence is based on something other than time.
 
 But now let's go back to the update function. This is where all of this gets triggered. Every frame, the first block finds the topmost emoji that isn't the emoji being held by the hand, and then calculates `main.distance_to_top`, which is the distance from that emoji to the top of the arena (where the red line is). `main.distance_to_top` is used in multiple places in the codebase, and I think most of them have already been explained.
 
-The second block actually does the check for the round ending condition: for all emojis, if an emoji is above the top limit of the arena (`self.y1`), and that emoji is not the one being held by the hand, and it's not dead, and not's not dropping, and it hasn't been merged recently, then the [`arena:end_round`](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L772) function is called. This function is very very big, so we'll go over it block by block. But remember that all this function is doing are the steps described 2 paragraphs above this one.
+The second block actually does the check for the round ending condition: for all emojis, if an emoji is above the top limit of the arena (`self.y1`), and that emoji is not the one being held by the hand, and it's not dead, and it's not dropping, and it hasn't been merged recently, then the [`arena:end_round`](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L772) function is called. This function is fairly big, so we'll go over it block by block. But remember that all this function is doing are the steps described 2 paragraphs above this one.
 
 ```lua
 function arena:end_round()
@@ -4071,10 +4071,7 @@ Here we just save the player's score this round to the best score, if it was hig
   table.sort(objects, function(a, b) return math.distance(top_emoji.x, top_emoji.y, a.x, a.y) < math.distance(top_emoji.x, top_emoji.y, b.x, b.y) end)
 ```
 
-This is where the round ending behavior actually starts. First, we find the topmost emoji that isn't an emoji beind held by the hand. Then, for all objects (using `main.objects`, which automatically gets populated with any and all objects that are added to any container), we add them a local objects list if they are of the types described in the conditional there. Those objects are then sorted according to their distance to the top emoji. This is because we want to gradually turn all objects gray, and by sorting them this way it creates a nice effect that ripples out from the emoji that caused the loss. That effect will look like this:
-
-===================== dsakadskdaskkads =========================
-
+This is where the round ending behavior actually starts. First, we find the topmost emoji that isn't an emoji beind held by the hand. Then, for all objects (using `main.objects`, which automatically gets populated with any and all objects that are added to any container), we add them a local objects list if they are of the types described in the conditional there. Those objects are then sorted according to their distance to the top emoji. This is because we want to gradually turn all objects gray, and by sorting them this way it creates a nice effect that ripples out from the emoji that caused the loss.
 
 ```lua
   -- Turn objects black and white by setting .dying to true
@@ -4139,7 +4136,7 @@ This starts the `i` index at `1` outside the scope of the `timer_every` function
 
 The rest of the function does a few things. First it plays a sound for each object being grayscaled. This sound isn't played on the web version because for some reason, I don't know why exactly, it was leading to performance issues. Then, after the sound is played, depending on the object we both boing it with `hitfx_use` and shake it with `shake_shake`. This particular part of the code is why every object in the game is initialized with both the hitfx mixin as well as the shake one, since this needs to happen to them eventually. And finally, before the function ends, the index is incremented.
 
-This is the simplest way of doing what needs to be done here. And notice, again, how everything is very highly local. This code is happening across many frames and all the code needed for it is here. This `arena:end_round` function is probably the best example of locality in the codebase, as we'll see soon.
+This is the simplest way of doing what needs to be done here. And notice, again, how everything is very highly local. This code is happening across many frames and all the code needed for it is here.
 
 ```lua
   -- Turn background elements to grayscale
@@ -4203,7 +4200,7 @@ main:random_table_remove(solid_joints):joint_destroy()
 self:timer_after({0.4, 0.8}, function() main:random_table_remove(solid_joints):joint_destroy() end)
 ```
 
-This takes both solid joints and removes both of them. Solid joints are the ones connecting left wall + bottom solid and right wall + bottom solid. One joint is removed immediately, while the other is removed 0.4-0.8 seconds later. This makes it look like the arena is falling apart instead of just falling.
+This takes both solid joints and removes both of them. Solid joints are the ones connecting left wall + bottom solid and right wall + bottom solid. One joint is removed immediately, while the other is removed 0.4-0.8 seconds later.
 
 ```lua
 self:timer_after({0.6, 0.8}, function() self.best_chain:remove_random_joint() end)
@@ -4302,9 +4299,7 @@ object:timer_after({0.2, 1}, function()
 end)
 ```
 
-This is the general way that I do blinking object removal for every game. `timer_every(0.05`, repeat this around 7-8 times, and each time set the object's `.hidden` variable to its previous opposite. This will make the object blink, and then once the blink is done after 0.35-0.4 seconds the object can be killed. This is what's done to the plants and you can see it all happen here:
-
-============================== dsahdashasdhdashads ========================
+This is the general way that I do blinking object removal for every game. `timer_every(0.05`, repeat this around 7-8 times, and each time set the object's `.hidden` variable to its previous opposite. This will make the object blink, and then once the blink is done after 0.35-0.4 seconds the object can be killed. 
 
 And that concludes the part of `arena:end_round` that deals with making objects fall. After that there's only one thing left, which is spawning the score + retry button:
 
@@ -4332,7 +4327,7 @@ end
 
 This part starts after `0.02*#objects + 3` seconds, which is enough time for all objects to have fallen off the screen. Then `.score_ending` is set to true, which signifies we're in this particular portion of the round ending function. This will be useful later as we continue going over the `arena:update` function.
 
-Then the score is spawned. The score is nothing but a `text_roped_chain` object with the actual score as its text. So if the score is 1374, then the `text_roped_chain` object will be created with a string that says "score 1374", and it will create letter emoji colliders for each character, and link them together with chains. The way `.final_score_chain` is impulsed and move was already explained when the `text_roped_chain` class was first explained, so refer to that for further information.
+Then the score is spawned. The score is nothing but a `text_roped_chain` object with the actual score as its text. So if the score is 1374, then the `text_roped_chain` object will be created with a string that says "score 1374", and it will create letter emoji colliders for each character, and link them together with chains. The way `.final_score_chain` is impulsed and moved was already explained when the `text_roped_chain` class was first explained, so refer to that for further information.
 
 Next, the retry button is created. It's a simple emoji collider that is created on the right side of the screen and is impulsed to the left. After 4 seconds its damping gets set to some value that makes it stop moving. This is the same as how the `.final_score_chain` object works. Additionally, however, the retry button has a `text_chain` object attached to it that says `'retry'`. A `text_chain` is nothing but a chain of emoji letters, except without any chain parts in between them. The code for that looks like this:
 
@@ -4387,7 +4382,9 @@ function text_chain:flash_text()
 end
 ```
 
-This looks pretty much the same as all other chain-like objects, so I'm not going to explain it. It's rather straightforward code considering all other classes that look exactly like this have already been explained. The only difference is I guess the `flash_text` function, which makes each part of the chain flash white in sequence. This gets called whenever the retry button is pressed, as just an extra added effect for fun.
+This looks pretty much the same as all other chain-like objects, so I'm not going to explain it. The only difference is the `flash_text` function, which makes each part of the chain flash white in sequence. This gets called whenever the retry button is pressed, as just an extra added effect for fun that looks like this:
+
+https://github.com/a327ex/emoji-merge/assets/409773/96c4c588-4beb-4304-adfd-870827b3a31e
 
 But yea, the retry button is created, then the retry chain is created and attaches itself to the retry button:
 
@@ -4401,15 +4398,11 @@ self.retry_chain = self.objects:container_add(text_chain('retry', self.retry_but
 table.insert(self.joints, main.level.objects:container_add(joint('revolute', collider, self.chain_parts[1], x, y)))
 ```
 
-And yea, that's it. The effect of all these objects being created after everything falls looks like this:
-
-============================== dsahdashasdhdashads ========================
-
-And that's it for the `arena:end_round` function. Now we should continue with the rest of `arena:update`.
+And yea, that's it for the `arena:end_round` function. Now we should continue with the rest of `arena:update`.
 
 ### [↑](#table-of-contents)
 
-## arena:update
+## arena:update 2
 
 The next block of code in `arena:update` has to do with applying forces to colliders with the mouse in the score ending section (the one we just covered). This code is an exact copypaste from the code that was explained in the `title:update` function, so I'm not going to explain it over again, but here it is:
 
@@ -4543,7 +4536,7 @@ function arena:exit()
 end
 ```
 
-And this is just, for every object that was assigned a variable in the arena object, that is set to nil so that it can be collected when the level changes. The 3 containers also have `container_destroy` called on them, which also deletes all box2d objects from `main.world`. And the `main` container also has `container_remove_dead_without_destroying`, which removes additionalhttps://twitter.com/npc_moments/status/1733132833219321949 references to any object that was still alive and being referenced there. And then after this happens `arena:enter` is called again, and a new round starts.
+And this is just, for every object that was assigned a variable in the arena object, that is set to nil so that it can be collected when the level changes. The 3 containers also have `container_destroy` called on them, which also deletes all box2d objects from `main.world`. And the `main` container also has `container_remove_dead_without_destroying`, which removes additional references to any object that was still alive and being referenced there. And then after this happens `arena:enter` is called again, and a new round starts.
 
 The way the `level` mixin works is very particular for this game. Other games might need slightly different setups, but this is what I decided to do for this game and I decided to do it last, so it's in no way something solid that's going to remain like this forever or anything like that. Just something to keep in mind in case you're wondering why this works the way it does. For instance, instead of reusing this arena object, I could have instead made it so that the level mixin creates a new one from scratch every time. It functionally would be no different, but it would differ implementation-wise.
 
@@ -4569,7 +4562,7 @@ This is just some commented code that I uncomment whenever I wanted to test the 
 end
 ```
 
-And this is the very end of `arena:update`, where all 3 containers get updated and have objects whose `.dead` attributes are true removed. Every container should have its `container_update` function called manually by the user like this, as well as its `container_remove_dead` function. I've many different setups before and I really don't like ones where object updating happens automatically somehow. I can't quite figure out why, because the engine does a lot of things automatically, but for some reason I really feel like it's important that, if I want things to be updated/drawn, I should call functions to make that happen otherwise it doesn't. Probably something about explicit code being better than implicit code...
+And this is the very end of `arena:update`, where all 3 containers get updated and have objects whose `.dead` attributes are true removed. Every container should have its `container_update` function called manually by the user like this, as well as its `container_remove_dead` function. I've tried many different setups before and I really don't like ones where object updating happens automatically somehow. I can't quite figure out why, because the engine does a lot of things automatically, but for some reason I really feel like it's important that, if I want things to be updated/drawn, I should call functions to make that happen otherwise it doesn't. Probably something about explicit code being better than implicit code...
 
 But yea, this marks the end of the `arena:update` function. There are only around 100 lines of code left to cover, so let's go over those next!
 
@@ -4622,8 +4615,7 @@ This initializes the object as a collider. Most variables from the `value_to_emo
 
 These are a few different conditionals that will do different things based on how the object is created. When the object is created from a merge, both `.hitfx_on_spawn` and `.from_merge` are set to true. When `.hitfx_on_spawn` is true it does just that, it calls `hitfx_use` on the `'main'` spring that is attached to the emoji's scale, making it move and also flash for 0.15 seconds. This flashing makes an emoji that was just created from a merge white, which looks like this:
 
-================= dakasdkdaskdas ==========================
-
+https://github.com/a327ex/emoji-merge/assets/409773/c862c9ec-4297-43ec-931b-d47148df8307
 
 The `.from_merge` attribute makes it so that whenever this emoji spawns from a merge, a few star particles also spawn around it. The number of stars depends on how big the emoji is and is defined by the `self.stars` value. If you look at the video above you can see the stars moving away from the spawned emoji. Importantly, they're not spawned from the center of the emoji, but from its edges, because that looks a lot better. If they were to be spawned from its center they'd have to move a lot faster for it to look right, and the effect would look worse. So these lines:
 
