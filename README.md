@@ -3525,7 +3525,7 @@ Now we can continue with the rest of [`arena:enter`](https://github.com/a327ex/e
 
 "Emojivolution objects" refers to the objects on the right bottom side of the screen. These ones:
 
-============== image ========================
+![love_GMwSpW02I4](https://github.com/a327ex/emoji-merge/assets/409773/5860d8df-ade1-4a16-870c-851aa5e995d4)
 
 They are there just to show the evolution order for emojis. All of these objects, except for the chain, are `evoji_emoji` objects, which are another one of those objects that are just colliders + the emoji sprite. Here's what the code looks like:
 
@@ -3576,7 +3576,7 @@ end
 
 Not going to over this again because it's so similar to many of the other objects of this type, but the only thing of note here is that there's an if for if the object is a circle vs. a square. If it's a circle then it's one of the 11 emojis that make up the evolution circle, if it's a square then it's the `images.curving_arrow` emoji that's in the middle of the circle. These colliders have slightly different properties so they need to be handled slightly differently, but everything else is the same.
 
-And I think I already said this, but it bears repeating, this object and all others like it, where it's just a collider, some light interaction with the mouse and the object's sprite as an emoji, could have been merged into a single class that creates a collider as a polygon out of the emoji's shape. This is not a hard procedure to code at all, and it would work perfectly for all of these different use cases where the object acts physically exactly like the shape of its visual. The codebase would have gone from 1700 to 1200 or so lines, probably, had I done this. And I would have done it on a refactor pass if I were to keep working on this game.
+And I think I already said this, but it bears repeating, this object and all others like it, where it's just a collider, some light interaction with the mouse and the object's sprite as an emoji, could have been merged into a single class that creates a collider as a polygon out of the emoji's shape. This is not a hard procedure to code at all, and it would work perfectly for all of these different use cases where the object acts physically exactly like the shape of its visual. The codebase would have gone from 1700 to 1000 or so lines, probably, had I done this. And I would have done it on a refactor pass if I were to keep working on this game.
 
 Now, let's look at how these objects are created:
 
@@ -3593,7 +3593,7 @@ Now, let's look at how these objects are created:
 
 First, the curving arrow is created. This is a rectangular collider with the curving arrow emoji:
 
-================ image ================
+![love_gQB8qUAqAE](https://github.com/a327ex/emoji-merge/assets/409773/81d0d27f-32cc-47fd-ad1b-5c26a445f161)
 
 This object has reverse gravity (see that on creation it calls `collider_set_gravity_scale(-1)`) and is attached to the emojis in the circle by a single chain. The 11 emojis in the circle themselves are created next and stored in the `.evoji_emojis` table, as well as on the objects container. Next:
 
@@ -3624,11 +3624,11 @@ Joints are created to attach all 11 emojis together. Unlike chains which are cre
   self.curving_chain = self.objects:container_add(emoji_chain('blue_chain', self.curving_arrow, e, self.curving_arrow.x, self.curving_arrow.y + self.curving_arrow.h/2, e.x, e.y - e.rs))
 ```
 
-Next the 3 chains are created. There's one chain created binding the leftmost emoji to the next board, one binding the rightmost emoji to it, and one binding the middlemost emoji to the curving arrow. We already went over the `emoji_chain` class, and the chains here are all instances of it. There's some math done to make sure that the chains are connected at the correct angles with both objects, but other than that all of this is straightforward given you already know how `emoji_chain` objects work.
+Next the 3 chains are created. There's one chain created binding the leftmost emoji to the next board, one binding the rightmost emoji to it, and one binding the middlemost emoji to the curving arrow. We already went over the `emoji_chain` class, and the chains here are all instances of it. There's some math done to make sure that the chains are connected at the correct angles with both edge emojis, but this math has already been explained. Refer to the section where I pointed to the BYTEPATH tutorial, since the cos/sin math there is the same as the one being used here. Other than that all of this is straightforward given you already know how `emoji_chain` objects work.
 
 The end result of all that is this:
 
-=========== video ============
+https://github.com/a327ex/emoji-merge/assets/409773/34d59a3f-54e2-42d4-b7ba-25afd9e5ac62
 
 This is yet another example of the kind of thing that would probably be better done with a visual editor, but since I don't have that it has to be done with code.
 
@@ -3639,7 +3639,7 @@ Next are the final lines of the `arena:enter` function:
   self:choose_next_emoji()
 ```
 
-This created the spawner object (the hand that drops emojis) and then calls `choose_next_emoji`, which will create one emoji and attach it to the hand, such that when the player presses a key that emoji will be dropped. The `spawner` class is fairly simple and looks like this:
+This creates the spawner object (the hand that drops emojis) and then calls `choose_next_emoji`, which will create one emoji and attach it to the hand, such that when the player presses a key that emoji will be dropped. The `spawner` class is fairly simple and looks like this:
 
 ```lua
 spawner = class:class_new(anchor)
