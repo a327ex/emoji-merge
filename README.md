@@ -37,8 +37,8 @@ https://github.com/a327ex/emoji-merge/assets/409773/372693e2-c648-447b-b947-4d6a
   - [Emoji rules](#emoji-rules)
   - [Arena](#arena)
   - [Arena:enter](#arenaenter)
-  - [Plants](#plants)
   - [Boards](#boards)
+  - [Plants](#plants)
   - [Arena:enter 2](#arenaenter-2)
   - [Arena:update](#arenaupdate)
   - [Arena:drop_emoji](#arenadrop_emoji)
@@ -2878,7 +2878,9 @@ function board:update(dt)
   end
 ```
 
-In the first conditional a force is applied to the board if the mouse is going over it. This is just a little something nice to add that has no gameplay significance. Notice that the force applied is stronger is the left mouse button is held down, which intuitively makes sense. The second conditional applies a boing effect to the board and spawns a few spawns a few particles when its clicked. Again, just something nice to add that has no real gameplay significance. For these kinds of small details it doesn't matter if they're in the object or in some update function elsehwere because they're not really design rules and they generally have no future significance, as in, nothing depends on them, it's just a one-off effect so the rules vs. action idea doesn't apply.
+In the first conditional a force is applied to the board if the mouse is going over it. This is just a little something nice to add that has no gameplay significance. Notice that the force applied is stronger is the left mouse button is held down, which intuitively makes sense. The second conditional applies a boing effect to the board and spawns a few particles when its clicked.
+
+Again, just something nice to add that has no real gameplay significance. For these kinds of small details it doesn't matter if they're in the object or in some update function elsewhere because they're not really design rules and they generally have no future significance, as in, nothing depends on them, it's just a one-off effect so the rules vs. action idea doesn't apply.
 
 ```lua
   game2:push(self.x, self.y, self.r, self.sx*self.springs.main.x, self.sy*self.springs.main.x)
@@ -2886,7 +2888,7 @@ In the first conditional a force is applied to the board if the mouse is going o
   game2:pop()
 ```
 
-Next the board is drawn. I already explained all of this in the previous post, this is the default way everything is drawn. The `'main'` springs is attached to the object's scale, shake mixin's `.shake_amount` is offsetting the draw position, and different shaders/colors are being applied depending on the object's state.
+Next the board is drawn. I already explained all of this in the previous post, this is the default way everything is drawn. The `'main'` spring is attached to the object's scale, shake mixin's `.shake_amount` is offsetting the draw position, and different shaders/colors are being applied depending on the object's state.
 
 ```lua
   game2:push(self.x, self.y, self.r, self.springs.main.x, self.springs.main.x)
@@ -2937,7 +2939,13 @@ game3:pop()
 
 As mentioned above, the `'emoji'` spring is used first to center the emoji's scaling for its own boing effect (which happens when it gets chosen in `arena:choose_next_emoji`), while the `'main'` one is used to make the emoji boing along with the board, such as when the board is clicked by the user. Otherwise the emoji is drawn as you'd expect anything to be drawn.
 
-And that's it for the board class. Like most objects in this game it's ultimately something very simple as it's there just for decoration pretty much. Now going back to the `arena:enter` function, the next line is this one:
+And that's it for the board class. Like most objects in this game it's ultimately something very simple as it's there just for decoration pretty much. 
+
+### [↑](#table-of-contents)
+
+## Plants
+
+Now going back to the `arena:enter` function, the next line is this one:
 
 ```lua
   self:spawn_plants()
@@ -2945,15 +2953,19 @@ And that's it for the board class. Like most objects in this game it's ultimatel
 
 Like the boards, the plants have no gameplay significance, but they're a good example of several things so it's worth going over their 300~ lines. The plants looks like this:
 
-=============== plant image ===========================
+https://github.com/a327ex/emoji-merge/assets/409773/fff50bf9-1abd-4234-97bd-a724a5fb9cab
 
-And as you can see they're spawned both inside the gameplay area as well as on top of the boards. What the plants actually do from a coding perspective is the following: they have some amount of wind constantly being applied to them, when emojis collide to them they also react as though something brushed against them, when the player passes the cursor above them they also react, when the boards move side to side they also have a wind force applied to them, and when an emoji falls near them they also react from the wind of that impact. A lot of small details that add to the feeling that the screen is alive, and a lot of them using the same mechanism, which is the plants reacting to some force. The specific way in which they react to these forces is moving left/right or up/down.
+As you can see they're spawned both inside the gameplay area as well as on top of the boards. They sway from side to side, and are affected by the pointer as well as emojis passing through them. 
+
+What the plants actually do from a coding perspective is the following: they have some amount of wind constantly being applied to them, when emojis collide to them they also react as though something brushed against them, when the player passes the cursor above them they also react, when the boards move side to side they also have a wind force applied to them, and when an emoji falls near them they also react from the wind of that impact. 
+
+A lot of small details that add to the feeling that the screen is alive, and a lot of them using the same mechanism, which is the plants reacting to some force. The specific way in which they react to these forces is rotating left/right or up/down.
 
 In every emoji prototype I made in the past I used these little plants like this, they're just a nice thing to have that adds to the game. Here's an example for a [Seraph's Last Stand](https://store.steampowered.com/app/1919460/Seraphs_Last_Stand/) clone I was working on earlier this year (click the image):
 
 [![](https://img.youtube.com/vi/AwZO-HVjXyA/maxresdefault.jpg)](https://www.youtube.com/watch?v=AwZO-HVjXyA)
 
-They are ultimately very simple objects, and I'm sure there are simpler ways of doing them than how I did them but my way works. Before getting into the [`arena:spawn_plants`](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L1167https://github.com/a327ex/emoji-merge/blob/main/main.lua#L1167) function itself, it's better to look at how the [plant class](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L1283) works first:
+They are ultimately very simple objects, and I'm sure there are simpler ways of doing them than how I did them but my way works. Before getting into the [`arena:spawn_plants`](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L1167https://github.com/a327ex/emoji-merge/blob/main/main.lua#L1167) function itself, it's better to look at how the [`plant class`](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L1283) works first:
 
 ```lua
 plant = class:class_new()
@@ -2990,7 +3002,7 @@ It's a normal anchor object, it has an emoji for its visual, a position and a sc
   end
 ```
 
-This sets the plant's position based on its direction. The `.direction` attribute represents which direction the plant object is pointing, and as you can see in-game, the plants are generally pointing up, but they can also be attached to the walls on either left or right, in which case they would be pointing right and left respectively. The plant object should work seamlessly regardless of position, and this makes sure that collider + sprite positions (which are based on the object's `.x, y` attributes) are aligned correctly. Because this is a decorative object that should have no gameplay effect but it's located inside the gameplay area, it's initialized as a ghost collider.
+This sets the plant's position based on its direction. The `.direction` attribute represents which direction the plant object is pointing, and as you can see in-game, the plants are generally pointing up, but they can also be attached to the walls on either left or right, in which case they would be pointing right and left respectively. The plant object should work seamlessly regardless of position, and this makes sure that collider + sprite positions (which are based on the object's `.x, .y` attributes) are aligned correctly. Because this is a decorative object that should have no gameplay effect but it's located inside the gameplay area, it's initialized as a ghost collider.
 
 ```lua
   self:timer_init()
@@ -3076,7 +3088,11 @@ As mentioned previously, if the pointer is touching a plant it applies a force t
 end
 ```
 
-And this is where the plant update function ends. This is nothing but some basic velocity + acceleration with damping applied to the plant's angle, for both moving and direct wind forces. Because of the way the `apply_moving_force` and `apply_direct_force` functions work, there needs to be a check that only applies that force if either of those functions has been called recently, and that's what `.applying_moving_force` and `.applying_direct_force` are doing, as we'll see next:
+And this is where the plant update function ends. This is nothing but some basic velocity + acceleration with damping applied to the plant's angle, for both moving and direct wind forces. Because of the way the `apply_moving_force` and `apply_direct_force` functions work, there needs to be a check that only applies that force if either of those functions has been called recently, and that's what `.applying_moving_force` and `.applying_direct_force` are doing.
+
+There is some raw damping going on here with multiplications by `57*dt` and `58*dt`, which only works because the game's update rate is 60 updates per second. There is a correct way to do damping independent of framerate, but I didn't do it for this because this code is copypasted from years ago and I just haven't bothered to change it yet. I will fix it some day though, I'm pretty sure I already have the function for it in the `math` module somewhere.
+
+Next let's look at the imeplementation of the force functions:
 
 ```lua
 function plant:apply_direct_force(vx, vy, force)
@@ -3134,11 +3150,11 @@ function plant:plant_draw()
 end
 ```
 
-There's a difference between how the plant is drawn horizontally vs. vertically. I don't remember why exactly this difference is here, but from the code it's clear that drawing the plant horizontally uses two pushes instead of a single one. The first push is centered on the plant's true center and applies the collider's rotation (`.r`), while the second push is centered on the plant's bottom center and applies all wind force rotations. This makes sense given that we want the plant to be rotated around its bottom and not its center, since that will give the correct impression of wind being applied to it:
+There's a difference between how the plant is drawn horizontally vs. vertically. I don't remember why exactly this difference is here, but from the code it's clear that drawing the plant horizontally uses two pushes instead of a single one. The first push is centered on the plant's true center and applies the collider's rotation (`.r`), while the second push is centered on the plant's bottom center and applies all wind force rotations. This makes sense given that we want the plant to be rotated around its bottom and not its center, since that will give the correct impression of wind being applied to it (notice how it rotates around the bottom center):
 
-=============================== plant rotation =====================================
+https://github.com/a327ex/emoji-merge/assets/409773/cbe94cbf-61ef-4094-ad23-c4c0c80e0908
 
-Why this needs to be separated out in two pushes when it's horizontal? I just don't remember and don't feel like trying to figure it out again. Anyway, in both cases the plant is drawn as every other object in the game is drawn, so there's nothing else special going on here.
+Why this needs to be separated out in two pushes when it's horizontal? I honestly don't remember and don't feel like trying to figure it out again. Anyway, in both cases the plant is drawn as every other object in the game is drawn, so there's nothing else special going on here.
 
 And so after the plant object is defined entirely like this, I also do this:
 
@@ -3146,7 +3162,9 @@ And so after the plant object is defined entirely like this, I also do this:
 anchor:class_add(plant)
 ```
 
-This means that `plant` is going to be used as a mixin instead of a normal object. It will be used as a mixin for `arena_plant` and `board_plant` classes, which are the plants that are inside the walls and on top of each board, respectively. This is the only instance of code reuse using the mixin system in this game, but this is how I'd do it for more complex games if required. I mentioned this before, but in general I try to avoid generalization like this while working on the game and prefer to do the generalization work in between projects, but in this case it just makes perfect sense to reuse all the plant code to create different objects that need slightly different behavior (`board_plant` needs forces applied to it based on the board's movement).
+This means that `plant` is going to be used as a mixin instead of a normal object. It will be used as a mixin for the `arena_plant` and `board_plant` classes, which are the plants that are inside the walls and on top of each board, respectively. This is the only instance of code reuse using the mixin system in this game, but this is how I'd do it for more complex games if required.
+
+I mentioned this before, but in general I try to avoid generalization like this while working on the game and prefer to do the generalization work in between projects, but in this case it just makes perfect sense to reuse all the plant code to create different objects that need slightly different behavior (`board_plant` needs forces applied to it based on the board's movement).
 
 ```lua
 arena_plant = class:class_new(anchor)
@@ -3212,7 +3230,7 @@ function board_plant:new(board, x, y, args)
   self.board = board
 ```
 
-This initializes the plant mixin and `.board` contains a reference to the board object, which is where what this plant will be attached to.
+This initializes the plant mixin and `.board` contains a reference to the board object, which is what this plant will be attached to.
 
 ```lua
   self.board_ox, self.board_oy = x, y
@@ -3227,7 +3245,7 @@ end
 
 `.board_ox` and `.board_oy` are the offset values for the plant's position in the board's local coordinates. Every frame we'll calculate where the plant should be relative to the board, since its attached to it, and we'll do this by using these offsets which represent that fixed value in the board's local coordinates. `.ox` and `.oy` instead are the plant's offset for rotation position, which only affect the `'sheaf'` emoji. This can be seen more easily with an image:
 
-============= sheaf rotation =====================
+![sheaf](https://github.com/a327ex/emoji-merge/assets/409773/11ebd748-c2ba-4850-a313-64e24fc87919)
 
 If the sheaf's rotation had no offset it would rotate around its bottom center, but that would be wrong because the base of the emoji isn't in the actual bottom center, it's a little to the side. So the `.ox` offset makes sure that that distance is accounted for.
 
@@ -3238,7 +3256,7 @@ function board_plant:update(dt)
   self.x, self.y = math.rotate_point(self.board.x + self.board_ox, self.board.y + self.board_oy, self.board.r, self.board.x, self.board.y)
 ```
 
-Plant's update function is called, a different constant wind is set (this is smaller/more subtle than the one in the plant mixin), and then `math.rotate_point` is used to set the plant's position based on the board's position. This is a basic rotation of one point `self.board.x + self.board_ox`, `self.board.y + self.board_oy` into a another by `self.board.r` degrees, with a pivot at `self.board.x`, `self.board.y`. Doing it this way makes sure that whenever the board object goes from side to side and rotates a little, the plant is always in the same position, which was set by its `.board_ox` and `.board_oy` offsets.
+Plant's update function is called, a different constant wind is set (this is smaller/more subtle than the one in the plant mixin), and then `math.rotate_point` is used to set the plant's position based on the board's position. This is a basic rotation of the point `self.board.x + self.board_ox`, `self.board.y + self.board_oy` into another by `self.board.r` degrees, with a pivot at `self.board.x`, `self.board.y`. Doing it this way makes sure that whenever the board object goes from side to side and rotates a little, the plant is always in the same position, which was set by its `.board_ox` and `.board_oy` offsets.
 
 ```lua
   local vx, vy = self.board:collider_get_velocity()
@@ -3268,7 +3286,9 @@ end
 
 And then after all that the plant is drawn. It has two pushes applied to it, the first attached to the board's angle, and the second to the plant's angle along with all wind forces being applied to it. Nothing that should look too unusual by now.
 
-And so with `plant`, `arena_plant` and `board_plant` explained, we can finally start going on [`arena:spawn_plants`](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L1167). What this function does is spawn all plants in the game, just like `arena:enter` spawns all other objects. It's a very simple function, but it's a lot of manual setting of positions. This is the kind of thing that's probably best done with a visual editor, but I don't have a visual editor so code it is. So let's go over it block by block:
+And so with `plant`, `arena_plant` and `board_plant` explained, we can finally start going over [`arena:spawn_plants`](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L1167).
+
+What this function does is spawn all plants in the game, just like `arena:enter` spawns all other objects. It's a very simple function, but it's a lot of manual setting of positions. This is the kind of thing that's probably best done with a visual editor, but I don't have a visual editor, so code it is. So let's go over it block by block:
 
 ```lua
 function arena:spawn_plants()
@@ -3277,7 +3297,21 @@ function arena:spawn_plants()
 
 The function starts by defining the internal `spawn_plant_set` function. This function takes in a position and a direction, and spawns a corresponding set of plants. A set of a plants is a group of anywhere between 2 and 5 plants that is close to one another. There's a total of 8 of them, and they look like this:
 
-=================================== 8 plant sets ===============================================
+![love_x5rCoG1Mya](https://github.com/a327ex/emoji-merge/assets/409773/3bc5bf49-12a0-4e8c-8dcb-f7d86c64d2f5)
+
+![love_zm7bu0YTUL](https://github.com/a327ex/emoji-merge/assets/409773/aae4b503-bfb3-4d6f-8d1b-3eac490466c9)
+
+![love_W7tdryCdmg](https://github.com/a327ex/emoji-merge/assets/409773/1ba30a61-a399-4917-a2dc-643634a26cab)
+
+![love_vghceBTCyv](https://github.com/a327ex/emoji-merge/assets/409773/35cbd10a-39ca-485a-9f5b-d3562ce2a637)
+
+![love_gs9vrPCcYo](https://github.com/a327ex/emoji-merge/assets/409773/abefd6b4-179c-4d6d-947c-afbfff41a0f3)
+
+![love_YkoiDbgTJt](https://github.com/a327ex/emoji-merge/assets/409773/5b628b23-1f1d-47e4-945a-0dff29bc4383)
+
+![love_Y25toSw0U8](https://github.com/a327ex/emoji-merge/assets/409773/d30d8bf7-4590-43ad-b393-2696157866db)
+
+![love_bRhXRp6cIY](https://github.com/a327ex/emoji-merge/assets/409773/dfb21dfe-933b-41c7-9e11-87fea560b15b)
 
 Here's what the code for the first of these looks like:
 
@@ -3318,11 +3352,11 @@ This one is spawning 3 instead, with each being 8 pixels apart from one another.
   end
 ```
 
-This defines a number of positions that are 25 pixels apart from each other along the bottom solid. This is what these positions look like, if I were to draw a blue circle on each of their centers:
+This defines a number of positions that are 25 pixels apart from each other along the bottom solid. This same thing is done for the side solids as well, and this is what all these positions would look like if I were to draw a blue circle on each of their centers:
 
-========= image =================
+![love_c8utqRvrHl](https://github.com/a327ex/emoji-merge/assets/409773/2dde6c70-c711-4ad5-8793-028aa7481451)
 
-Then it spawns plant set at 2 or 3 of those positions randomly, without a position being able to be repeated. This same process repeats itself for the left and right solids:
+Then, for each solid, it spawns a plant set at 2 or 3 of those positions randomly, without a position being able to be repeated.
 
 ```lua
   -- Left solid
@@ -3363,11 +3397,9 @@ After the solid plants are spawned, we spawn plants on top of the 3 boards:
   end
 ```
 
-This is a bit more involved and doesn't use the `spawn_plant_set` functions, instead spawning plants individually. Remember that `board_plant`'s positions are represented as an offset from the the board's center, and so in this case the positions for all the plants that can be spawned on top of the score board looks like this:
+This is a bit more involved and doesn't use the `spawn_plant_set` functions, instead spawning plants individually. Remember that `board_plant`'s positions are represented as an offset from the the board's center, and so in this case the positions for all the plants that can be spawned on top of the score board use values based on its center. So, for instance, `-21` means it's a bit to the left, while `21` a bit to the right; `-self.score_board.h/2 - 11` is a bit above the top of the board, and so on.
 
-======== image =================
-
-The blue circles are plant positions that always have a plant spawned, while the green ones have a chance to not happen. And essentially you have 2 plants around the center, and then a bunch more to the sides at some spawn chance. The same idea applies to the best board:
+Some board plants are also spawned with some chance, instead of always spawning. In general, for the score board, you have 2 plants around the center, and then a bunch more to the sides randomly. The same idea applies to the best board:
 
 ```lua
   -- Best board
@@ -3402,7 +3434,7 @@ This one has one big plant in the center, then 75% chance for 2 smaller plants o
 end
 ```
 
-Same thing, one big plant at the center, 2 with 75% chance to the sides, 2 with 50% chance further out if the first 2 were spawned, more 2 with another 50% chance if the previous 2 were also spawned. These chances are run every time the arena starts (remember that this function is being called in `arena:enter`), so each time the game is restarted the plants will look a bit different. So all of this is just a simple way of adding some variation to how the level looks, but it also happens to be a good example of how I go about spawning different things.
+Same thing, one big plant at the center, 2 with 75% chance to the sides, 2 with 50% chance further out if the first 2 were spawned, more 2 with another 50% chance if the previous 2 were also spawned. These chances are run every time the arena starts (remember that this function is being called in `arena:enter`), so each time the game is restarted the plants will look a bit different. So all of this is just a simple way of adding some variation to how the level looks, but it also happens to be a good example of how I'd go about spawning different things.
 
 In an ideal world, most things that are being spawned in `arena:enter`, the plants included, should have their positions set with a visual editor instead of by hand with code like this. But I have not spent time building a visual editor, so I have to do with code alone. I have quite a few ideas for a game editor that would help me with this, but I want to get a few different pieces of technology down before I try it. One of them is a general UI system, which I currently don't have. Another is a cleaner API for most common tasks.
 
@@ -3445,7 +3477,7 @@ This is called whenever forces need to be applied around an area instead of when
 
 When an emoji collides with a solid, it checks to see if that solid is the bottom one, and if it is then it grabs all plants within a 50 pixels radius from the collision position, and then for all those plants it applies a direct force to them based on their distance from that position. The effect that creates is this:
 
-=================== image ==========================
+https://github.com/a327ex/emoji-merge/assets/409773/d0003c9d-bf27-454e-b919-4a902066ae96
 
 Very nice and cool, it's the same process I used for the lightning bolts in the video below:
 
@@ -3453,7 +3485,13 @@ Very nice and cool, it's the same process I used for the lightning bolts in the 
 
 This is the only reason why plants need their own container, by the way. I thought I'd use it in more places but it turns out this was the only one. But even if it's only this use it's still fine, since it's useful for `get_nearby_plants` to be able to just directly go over all plants instead of having to first process them from another list.
 
-And that's all the code related to plants. Now we can continue with the rest of [`arena:enter`](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L466):
+And that's all the code related to plants.
+
+### [↑](#table-of-contents)
+
+## arena:enter 2
+
+Now we can continue with the rest of [`arena:enter`](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L466):
 
 ```lua
   -- Emojivolution objects
