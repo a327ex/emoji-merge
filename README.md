@@ -4774,4 +4774,6 @@ This kind of pattern, where you have objects that an entire system is built arou
 
 In any case, with all that said, I must depart. Good luck with your endeavours, dear reader, and thanks for your attention! Good bye!
 
+### [Comments](https://github.com/a327ex/emoji-merge/issues/1)
+
 ### [↑](#table-of-contents)
