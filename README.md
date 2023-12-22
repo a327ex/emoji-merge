@@ -3672,7 +3672,7 @@ This is an object that by itself doesn't do anything, it's just a ghost collider
 
 ## arena:update
 
-The [`arena:update`](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L518) function is where most of the gameplay rules are located or triggered due to our decision of modelling the game as a rules-based game. If we have a rules-based game and we want rules to not be attached to objects, they need to be attached to their individual functions, and those functions either happen directly on some update function somewhere when something happens, or are triggered by code that's in the update function. If this doesn't make sense now it will soon, but, when it comes to rules-based code, the update function ends up being the most natural place to place most rules or at least the trigger for most rules.
+The [`arena:update`](https://github.com/a327ex/emoji-merge/blob/main/main.lua#L518) function is where most of the gameplay rules are located or triggered due to our decision of modelling the game as a rules-based game. If we have a rules-based game and we want rules to not be attached to objects, they need to be attached to their individual functions, and those functions either happen directly on some update function somewhere when something happens, or are triggered by code that's in the update function. If this doesn't make sense now it will soon, but, when it comes to rules-based code, the update function ends up being the most natural place to place most rules or at least the trigger for most rules' behaviors.
 
 So let's get started:
 
@@ -3713,9 +3713,9 @@ The first things defined are the rules for the spawner object's movement. There 
     end
 ```
 
-`left_offset` and `right_offset` are offsets for where the spawner object stops moving on the edges of the play area. The edges of the play area are the two side solids, and you'll notice from the picture below that the hand's collider + the emoji it holds is not perfectly centered, which means that when we need different values for left and right side so that it plays correctly. If those values are wrong then whenever an emoji is dropped it will hit one of the side walls and move wrong. Importantly, the offsets are only set if `.spawner_emoji` is true, which will be the case when the hand is holding an emoji.
+`left_offset` and `right_offset` are offsets for where the spawner object stops moving on the edges of the play area. The edges of the play area are the two side solids, and you'll notice from the video below that the hand's collider + the emoji it holds are not perfectly centered, which means that when we need different values for left and right side so that it plays correctly. If those values are wrong then whenever an emoji is dropped it will hit one of the side walls and move wrong. Importantly, the offsets are only set if `.spawner_emoji` is true, which will be the case when the hand is holding an emoji.
 
-=============== image =======================
+https://github.com/a327ex/emoji-merge/assets/409773/2b2f9dfb-4fe4-445e-9525-e450be57c838
 
 ```lua
     local y_offset = 0
@@ -3732,7 +3732,9 @@ The first things defined are the rules for the spawner object's movement. There 
     end
 ```
 
-Next, `y_offset` is defined such that it will be set to a given value if `main.distance_to_top` is lower than 100. What this means is that whenever the `.lose_line` object is showing, and the gameplay area is filled with emojis and the player is about to lose, the hand should be moved up a little otherwise whenever new emojis controlled by the hand appear they will be colliding with the top emojis on the board, and when they're dropped they will not generate any collision enter events. Because the emoji merging logic, which we'll see soon, relies on collision enter events, the easiest solution is to simply move the hand up, which is what this section of the code does. Another possible solution would be to check for collisions every frame manually and merge the ones that can be merged, but that would be a bit more work to code than just changing the hand's position.
+Next, `y_offset` is defined such that it will be set to a given value if `main.distance_to_top` is lower than 100. What this means is that whenever the `.lose_line` object is showing, and the gameplay area is filled with emojis and the player is about to lose, the hand should be moved up a little otherwise whenever new emojis controlled by the hand appear they will be colliding with the top emojis on the board, and when they're dropped they will not generate any collision enter events.
+
+Because the emoji merging logic, which we'll see soon, relies on collision enter events, the easiest solution is to simply move the hand up, which is what this section of the code does. Another possible solution would be to check for collisions every frame manually and merge the ones that can be merged, but that would be a bit more work to code than just changing the hand's position.
 
 ```lua
     self.spawner.x = math.clamp(main.pointer.x - 12, self.x1 + left_offset, self.x2 + right_offset)
@@ -3743,7 +3745,7 @@ Next, `y_offset` is defined such that it will be set to a given value if `main.d
 
 And the final piece of code here simply sets the spawner's `x` and `y` positions according to what I just described. `x` follows the pointer's position and is clamped by `.x1` + the left offset and `.x2` + the right offset. `y` has a set position at `y = 20`, which is then offset by some value if the game is close to ending. The `y` position is also moved using `math.lerp_dt`, which gives it a nice and smooth movement over multiple frames. This is what all that looks like:
 
-=================== video ============================
+https://github.com/a327ex/emoji-merge/assets/409773/ee6fdc5d-a148-40d0-828e-3c1a6186978d
 
 Next the spawner's emoji:
 
@@ -3913,9 +3915,13 @@ end
 
 It's a very simple object that only exists visually and matches the visuals of the emoji it replaced. With the `timer_tween` call it also moves towards its target position. In practice this is what the merging looks like:
 
-===================== sadhahsdhdsa =====================
+https://github.com/a327ex/emoji-merge/assets/409773/4941eaf3-660e-4c4c-bece-6f8dde701e8e
 
-And the white flashing circles that quickly move towards each other are the two `emoji_merge_effect` objects. The effect itself continues after those objects get to their target position with the following code (now back to the `arena:merge_emojis` function):
+It's hard to see properly at normal speed, but here's roughly the same effect, except if it took 0.5 seconds to happen instead of the 0.15 seconds it does:
+
+https://github.com/a327ex/emoji-merge/assets/409773/fabb9fde-0d63-43d2-ba07-feb62a4986d4
+
+The only thing different in this slower case is that I forgot to change the flashing effect, so it still flashes for only 0.15 seconds. In any case, the emojis that move closer to each other and slowly decrease in size are the two `emoji_merge_effect` objects. The rest of the effect is coded like this:
 
 ```lua
   if a.value < 11 and b.value < 11 then
@@ -3938,9 +3944,9 @@ The new emoji is created with a few specific settings to say that it was created
 
 But in 1% of cases, like when a merge happens right before a round ends, the guard we have at the top of the `arena:merge_emojis` function, the `if self.round_ending then return end` line, will not be triggered because the round hasn't ended yet, yet we'll add a `timer_after` for 0.15 seconds later, which means that now our emoji is created after the round has ended, and as we'll see in the `arena:end_round` function, this can lead to all sorts of issues. So what we actually want is for the emoji merging effect to be contained to the `arena` object, especifically to be contained to the `objects` container (although it could have been any of the other containers), since if that's the case, then whenever the container is deleted, the `merge_object` will also be deleted, and thus the `timer_after` call attached to it also will, and thus we won't get merges happening in odd conditions.
 
-This situation is an example of two things. The first is the kind of care you have to have while using timers. If you use timers incorrectly, if you don't tag then properly and cancel tags correctly, or if you attach a timer to the wrong object, you'll get into these odd bugs that happen rarely but that can totally break the game in one way or another. SNKRX was full of these bugs, eventually I fixed most of them, but this is definitely a big drawback that comes with using the timer/observer constructs. I said so in the engine section, but this is great example of how it plays out practically.
+This situation is an example of two things. The first is the kind of care you have to have while using timers. If you use timers incorrectly, if you don't tag them properly and cancel tags correctly, or if you attach a timer to the wrong object, you'll get into these odd bugs that happen rarely but that can totally break the game in one way or another. SNKRX was full of these bugs, eventually I fixed most of them, but this is definitely a big drawback that comes with using the timer/observer constructs. I said so in the engine section, but this is great example of how it plays out practically.
 
-And the second thing this situation is an example of is how useful it is to have the mixin setup we have. Note that the `merge_object` construct is a new type of object entirely, but because it's only used here, it can be created completely locally as an anchor object with a timer mixin, and everything just works fine. This kind of flexibility of being able to create objects to do these kinds of things across time, and to be able to do that fully locally, is one of the best example of why I really like this mixin + god object setup with the anchor objects.
+And the second thing this situation is an example of is how useful it is to have the mixin setup we have. Note that the `merge_object` construct is a new type of object entirely, but because it's only used here, it can be created completely locally as an anchor object with a timer mixin, and everything just works fine. This kind of flexibility of being able to create objects to do these kinds of things across time, and to be able to do that fully locally, is one of the best examples of why I really like this mixin + god object setup with the anchor objects.
 
 Now, there are a few extra lines in `arena:merge_emojis`:
 
@@ -3965,7 +3971,7 @@ And finally, if a merge happens but the two emojis merging are sunglasses, the b
 
 ## Roguelite tangent
 
-emoji merge is a fairly small game, so the amount of knowledge it can pass is limited. It covers most common things that happen in most games, but some of them are still missing. One important one is how to handle LOTS of event types. For instance, consider that emoji merge was a roguelite, and it was such that there were hundreds of different types of emojis, and whenever any 2 of them merged, it would have a different effect. If you have 100 emojis alone, then you have around 5000 possible effects. How to handle such a large number?
+emoji merge is a fairly small game, so the amount of knowledge it can pass is limited. It covers some common things that happen in most games, but lots of them are still missing. One important one is how to handle LOTS of event types. For instance, consider that emoji merge was a roguelite, and it was such that there were hundreds of different types of emojis, and whenever any 2 of them merged, it would have a different effect. If you have 100 emojis alone, then you have around 5000 possible effects. How to handle such a large number?
 
 And my answer is that in this particular case, where you have 5000 possible different merging effects, you'd simply have a huge if/else statement inside the `arena:merge_emojis` function, each case handling each different type of merge possible as highly locally as possible. In lots of cases it would be unwise to handle what a particular effect needs to do entirely locally, so it's fine to have some things happen elsewhere, but the primary goal would be for it to happen locally.
 
